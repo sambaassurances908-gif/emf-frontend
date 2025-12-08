@@ -1,7 +1,7 @@
 // src/hooks/useEdgContracts.ts
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
-import { EdgContrat } from '@/types/edg'
+import { EdgContrat, EdgContratCreate } from '@/types/edg'
 
 interface EdgContractsParams {
   search?: string
@@ -67,7 +67,7 @@ export const useCreateEdgContract = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (payload: Partial<EdgContrat>) => {
+    mutationFn: async (payload: EdgContratCreate) => {
       const response = await api.post('/edg/contrats', payload)
       return response.data?.data || response.data
     },

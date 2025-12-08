@@ -23,6 +23,23 @@ export function formatCurrency(amount: number): string {
 }
 
 /**
+ * Formate une devise en version abrégée (1K, 1M, 1B) sans symbole $
+ * Exemple: 1500000 -> "1,5M FCFA"
+ */
+export function formatCurrencyShort(amount: number): string {
+  if (amount >= 1_000_000_000) {
+    return `${(amount / 1_000_000_000).toFixed(1).replace('.', ',')}B FCFA`;
+  }
+  if (amount >= 1_000_000) {
+    return `${(amount / 1_000_000).toFixed(1).replace('.', ',')}M FCFA`;
+  }
+  if (amount >= 1_000) {
+    return `${(amount / 1_000).toFixed(1).replace('.', ',')}K FCFA`;
+  }
+  return `${amount} FCFA`;
+}
+
+/**
  * Formate une date courte (JJ/MM/AAAA)
  */
 export function formatDate(dateInput: string | Date | null | undefined): string {
@@ -94,7 +111,9 @@ export function formatDateTime(dateInput: string | Date | null | undefined): str
 /**
  * Couleur du badge selon le statut contrat
  */
-export function getStatusColor(statut: string): string {
+export function getStatusColor(statut?: string | null): string {
+  if (!statut) return 'bg-gray-100 text-gray-800';
+  
   const colors: Record<string, string> = {
     actif: 'bg-green-100 text-green-800',
     en_attente: 'bg-yellow-100 text-yellow-800',
@@ -109,7 +128,9 @@ export function getStatusColor(statut: string): string {
 /**
  * Couleur spécifique pour les options SODEC
  */
-export function getOptionColor(option: string): string {
+export function getOptionColor(option?: string | null): string {
+  if (!option) return 'bg-gray-100 text-gray-800';
+  
   const colors: Record<string, string> = {
     option_a: 'bg-blue-100 text-blue-800 border-blue-200',
     option_b: 'bg-indigo-100 text-indigo-800 border-indigo-200',
@@ -121,8 +142,10 @@ export function getOptionColor(option: string): string {
  * Variant Badge UI selon statut
  */
 export function getStatusVariant(
-  statut: string
+  statut?: string | null
 ): 'default' | 'secondary' | 'destructive' | 'outline' | 'success' | 'warning' {
+  if (!statut) return 'default';
+  
   const variants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline' | 'success' | 'warning'> = {
     actif: 'success',
     en_attente: 'warning',

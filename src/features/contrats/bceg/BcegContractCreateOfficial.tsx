@@ -70,7 +70,7 @@ export const BcegContractCreateOfficial = () => {
     ville_assure: '',
     telephone_assure: '',
     email_assure: '',
-    numero_police: '',
+    numero_police: '509/111.701:0225',
     montant_pret: '',
     duree_pret_mois: '',
     date_effet: '',
@@ -86,10 +86,9 @@ export const BcegContractCreateOfficial = () => {
     tranche_duree: '' as '' | 'max_24' | '24_36' | '36_48' | '48_60'
   })
 
-  const [errors, setErrors] = useState<Record<string, string>>({})
   const [submitError, setSubmitError] = useState('')
 
-  const { mutate: createContract, isPending, isSuccess, isError, error } = useCreateBcegContract()
+  const { mutate: createContract, isPending, isError, error } = useCreateBcegContract()
 
   // Calculer la date de fin automatiquement
   useEffect(() => {
@@ -113,13 +112,13 @@ export const BcegContractCreateOfficial = () => {
   }, [formData.duree_pret_mois])
 
   useEffect(() => {
-    if (isError && error?.response?.status === 422) {
-      const validationErrors = error.response.data.errors || {}
+    const axiosError = error as any
+    if (isError && axiosError?.response?.status === 422) {
+      const validationErrors = axiosError.response.data.errors || {}
       const newErrors: Record<string, string> = {}
       Object.entries(validationErrors).forEach(([key, messages]) => {
         newErrors[key] = Array.isArray(messages) ? messages[0] : messages as string
       })
-      setErrors(newErrors)
       setSubmitError('Veuillez corriger les erreurs dans le formulaire')
     } else if (isError) {
       setSubmitError('Erreur serveur. Réessayez.')
@@ -192,17 +191,17 @@ export const BcegContractCreateOfficial = () => {
       adresse_assure: formData.adresse_assure.trim(),
       ville_assure: formData.ville_assure.trim(),
       telephone_assure: formData.telephone_assure.trim(),
-      email_assure: formData.email_assure?.trim() || null,
-      numero_police: formData.numero_police?.trim() || null,
+      email_assure: formData.email_assure?.trim() || undefined,
+      numero_police: formData.numero_police?.trim() || undefined,
       montant_pret: parseInt(formData.montant_pret),
       duree_pret_mois: parseInt(formData.duree_pret_mois),
       date_effet: formData.date_effet,
       beneficiaire_prevoyance_nom_prenom: formData.beneficiaire_prevoyance_nom_prenom.trim(),
-      beneficiaire_prevoyance_adresse: formData.beneficiaire_prevoyance_adresse?.trim() || null,
-      beneficiaire_prevoyance_contact: formData.beneficiaire_prevoyance_contact?.trim() || null,
+      beneficiaire_prevoyance_adresse: formData.beneficiaire_prevoyance_adresse?.trim() || undefined,
+      beneficiaire_prevoyance_contact: formData.beneficiaire_prevoyance_contact?.trim() || undefined,
       garantie_deces_iad: formData.garantie_deces_iad ? 1 : 0,
       garantie_prevoyance: formData.garantie_prevoyance ? 1 : 0,
-      agence: formData.agence?.trim() || null,
+      agence: formData.agence?.trim() || undefined,
       statut: isContractValid ? 'actif' : 'en_attente',
     }
 
@@ -308,7 +307,7 @@ export const BcegContractCreateOfficial = () => {
               type="text"
               value={formData.numero_police}
               onChange={(e) => setFormData({...formData, numero_police: e.target.value})}
-              placeholder="509/111.701:0225"
+              placeholder="Entrez le numéro de police"
               className="ml-2 border-b border-black bg-transparent text-center w-40 focus:outline-none focus:bg-orange-50"
             />
           </div>
@@ -326,49 +325,49 @@ export const BcegContractCreateOfficial = () => {
             <div className="w-36 flex-shrink-0 p-2 bg-orange-50 italic border-r border-[#F48232] flex items-center text-gray-900 text-xs">
               Couverture
             </div>
-            <div className="flex-grow p-2 space-y-2">
+            <div className="flex-grow p-2 space-y-2 overflow-hidden">
               <div className="flex gap-4">
-                <div className="flex items-end flex-1">
+                <div className="flex items-end flex-1 min-w-0">
                   <span className="text-xs text-gray-800 mr-2 whitespace-nowrap">Montant du prêt :</span>
                   <input 
                     type="number"
                     value={formData.montant_pret}
                     onChange={(e) => setFormData({...formData, montant_pret: e.target.value})}
-                    className="flex-grow border-b border-gray-800 bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold text-right"
+                    className="flex-1 min-w-0 border-b border-gray-800 bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold text-right"
                     placeholder="0"
                   />
-                  <span className="text-xs ml-1">FCFA</span>
+                  <span className="text-xs ml-1 flex-shrink-0">FCFA</span>
                 </div>
-                <div className="flex items-end flex-1">
+                <div className="flex items-end flex-1 min-w-0">
                   <span className="text-xs text-gray-800 mr-2 whitespace-nowrap">Durée du prêt :</span>
                   <input 
                     type="number"
                     value={formData.duree_pret_mois}
                     onChange={(e) => setFormData({...formData, duree_pret_mois: e.target.value})}
-                    className="flex-grow border-b border-gray-800 bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold text-center"
+                    className="flex-1 min-w-0 border-b border-gray-800 bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold text-center"
                     placeholder="0"
                     max="60"
                   />
-                  <span className="text-xs ml-1">mois</span>
+                  <span className="text-xs ml-1 flex-shrink-0">mois</span>
                 </div>
               </div>
               <div className="flex gap-4">
-                <div className="flex items-end flex-1">
+                <div className="flex items-end flex-1 min-w-0">
                   <span className="text-xs text-gray-800 mr-2 whitespace-nowrap">Date d'effet :</span>
                   <input 
                     type="date"
                     value={formData.date_effet}
                     onChange={(e) => setFormData({...formData, date_effet: e.target.value})}
-                    className="flex-grow border-b border-gray-800 bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold"
+                    className="flex-1 min-w-0 border-b border-gray-800 bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold"
                   />
                 </div>
-                <div className="flex items-end flex-1">
-                  <span className="text-xs text-gray-800 mr-2 whitespace-nowrap">Date de fin d'échéance :</span>
+                <div className="flex items-end flex-1 min-w-0">
+                  <span className="text-xs text-gray-800 mr-2 whitespace-nowrap">Date fin échéance :</span>
                   <input 
                     type="date"
                     value={formData.date_fin_echeance}
                     readOnly
-                    className="flex-grow border-b border-gray-800 bg-gray-100 text-xs px-1 font-semibold"
+                    className="flex-1 min-w-0 border-b border-gray-800 bg-gray-100 text-xs px-1 font-semibold"
                   />
                 </div>
               </div>

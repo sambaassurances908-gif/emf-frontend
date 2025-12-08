@@ -1,25 +1,30 @@
 // src/features/contrats/cofidec/CofidecContratPrint.tsx
 import React from 'react'
 import logoSamba from '@/assets/logo-samba.png'
+import { CofidecContrat } from '@/types/cofidec'
 
 interface CofidecContratPrintProps {
-  contrat: {
+  contrat: CofidecContrat | {
     id?: number
     reference?: string
     nom_prenom: string
-    adresse_assure: string
-    ville_assure: string
-    telephone_assure: string
+    adresse_assure?: string
+    ville_assure?: string
+    telephone_assure?: string
     email_assure?: string
-    montant_pret: number
-    duree_pret_mois: number
+    montant_pret?: number
+    montant_pret_assure?: number
+    duree_pret_mois?: number
+    duree_mois?: number
     date_effet: string
     date_fin_echeance?: string
-    categorie: string
+    date_echeance?: string
+    categorie?: string
     autre_categorie_precision?: string
     agence?: string
     garantie_prevoyance?: boolean | number
     garantie_deces_iad?: boolean | number
+    garantie_deces?: boolean | number
     garantie_perte_emploi?: boolean | number
     cotisation_prevoyance?: number
     cotisation_deces_iad?: number
@@ -28,6 +33,8 @@ interface CofidecContratPrintProps {
     statut?: string
     lieu_signature?: string
     created_at?: string
+    adresse?: string
+    telephone?: string
   }
 }
 
@@ -75,12 +82,13 @@ const CheckboxDisplay: React.FC<{
 
 export const CofidecContratPrint: React.FC<CofidecContratPrintProps> = ({ contrat }) => {
   // Calcul des valeurs
-  const montant = contrat.montant_pret || 0
-  const duree = contrat.duree_pret_mois || 0
+  // Utilisation des alias pour compatibilité
+  const montant = Number(contrat.montant_pret_assure) || Number(contrat.montant_pret) || 0
+  const duree = Number(contrat.duree_pret_mois) || Number(contrat.duree_mois) || 0
   
   // Taux selon catégorie et durée
   const getTaux = () => {
-    if (contrat.categorie === 'salaries_cofidec') return 0.0075 // 0.75%
+    if (contrat.categorie === 'salarie_cofidec') return 0.0075 // 0.75%
     if (duree >= 1 && duree <= 6) return 0.005 // 0.50%
     if (duree > 6 && duree <= 13) return 0.01 // 1.00%
     if (duree > 13 && duree <= 24) return 0.0175 // 1.75%
@@ -88,15 +96,17 @@ export const CofidecContratPrint: React.FC<CofidecContratPrintProps> = ({ contra
   }
   
   const tauxDeces = getTaux()
-  const cotisationDeces = contrat.cotisation_deces_iad || montant * tauxDeces
-  const cotisationPrevoyance = contrat.cotisation_prevoyance || (contrat.garantie_prevoyance ? 5000 : 0)
+  const cotisationDeces = Number(contrat.cotisation_deces_iad) || (montant * tauxDeces)
+  const cotisationPrevoyance = Number(contrat.cotisation_prevoyance) || (contrat.garantie_prevoyance ? 5000 : 0)
   const tauxPerteEmploi = contrat.garantie_perte_emploi ? 0.02 : 0
-  const cotisationPerteEmploi = contrat.cotisation_perte_emploi || (montant * tauxPerteEmploi)
-  const cotisationTotale = contrat.cotisation_totale || (cotisationDeces + cotisationPrevoyance + cotisationPerteEmploi)
+  const cotisationPerteEmploi = Number(contrat.cotisation_perte_emploi) || (montant * tauxPerteEmploi)
+  // Le backend envoie cotisation_totale_ttc, pas cotisation_totale
+  const cotisationTotale = Number((contrat as any).cotisation_totale_ttc) || Number(contrat.cotisation_totale) || (cotisationDeces + cotisationPrevoyance + cotisationPerteEmploi)
 
   // Calcul date fin si non fournie
   const getDateFin = () => {
-    if (contrat.date_fin_echeance) return contrat.date_fin_echeance
+    const dateFin = ('date_fin_echeance' in contrat ? contrat.date_fin_echeance : undefined) || ('date_echeance' in contrat ? contrat.date_echeance : undefined)
+    if (dateFin) return dateFin
     if (contrat.date_effet && duree) {
       const dateEffet = new Date(contrat.date_effet)
       dateEffet.setMonth(dateEffet.getMonth() + duree)
@@ -113,18 +123,6 @@ export const CofidecContratPrint: React.FC<CofidecContratPrintProps> = ({ contra
     if (!dateStr) return ''
     const date = new Date(dateStr)
     return date.toLocaleDateString('fr-FR')
-  }
-
-  const getCategorieLabel = (cat: string) => {
-    const labels: Record<string, string> = {
-      'commercants': 'Commerçants',
-      'salaries_public': 'Salariés du public',
-      'salaries_prive': 'Salariés du privé',
-      'salaries_cofidec': 'Salariés COFIDEC',
-      'retraites': 'Retraités',
-      'autre': 'Autre'
-    }
-    return labels[cat] || cat
   }
 
   return (

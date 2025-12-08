@@ -34,19 +34,21 @@ export const BcegDashboard = () => {
   const emfId = emfIdFromState || emfIdFromUser || (emfIdFromStorage ? parseInt(emfIdFromStorage) : 3)
 
   useEffect(() => {
-    // Stocker emf_id dans localStorage et URL
-    localStorage.setItem('emf_id', emfId.toString())
+    // NE PAS modifier emf_id pour les admins - ils doivent garder emf_id=null
+    if (user?.role !== 'admin') {
+      localStorage.setItem('emf_id', emfId.toString())
 
-    if (user && user.emf_id !== emfId) {
-      const updatedUser = { ...user, emf_id: emfId }
-      setUser(updatedUser)
-      localStorage.setItem('user', JSON.stringify(updatedUser))
+      if (user && user.emf_id !== emfId) {
+        const updatedUser = { ...user, emf_id: emfId }
+        setUser(updatedUser)
+        localStorage.setItem('user', JSON.stringify(updatedUser))
+      }
     }
 
     searchParams.set('emf_id', emfId.toString())
     setSearchParams(searchParams)
 
-    console.log('🌱 BcegDashboard emf_id:', emfId)
+    console.log('🌱 BcegDashboard emf_id:', emfId, '| user.role:', user?.role)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [emfId])
 
@@ -403,21 +405,21 @@ export const BcegDashboard = () => {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <p className="font-semibold text-gray-900 truncate">
-                          {contrat.nom_prenom}
+                          {contrat.nom_prenom || `${contrat.nom} ${contrat.prenom}`}
                         </p>
                         <Badge className={getStatusColor(contrat.statut)}>
                           {contrat.statut}
                         </Badge>
                       </div>
                       <p className="text-sm text-gray-600">
-                        N° {contrat.numero_police || 'N/A'} | {contrat.emf.sigle}
+                        N° {contrat.numero_police || 'N/A'} | {contrat.emf?.sigle || 'BCEG'}
                       </p>
                       <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
                         <span>
                           Effet: {new Date(contrat.date_effet).toLocaleDateString('fr-FR')}
                         </span>
                         <span className="font-semibold text-green-600">
-                          {formatCurrency(contrat.montant_pret_assure)}
+                          {formatCurrency(contrat.montant_pret_assure || Number(contrat.montant_pret) || 0)}
                         </span>
                       </div>
                     </div>

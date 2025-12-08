@@ -1,7 +1,7 @@
 // src/hooks/useBcegContracts.ts
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
-import { BcegContrat } from '@/types/bceg'
+import { BcegContrat, BcegContratFormData } from '@/types/bceg'
 
 type BcegContractsResponse = {
   data: BcegContrat[]
@@ -82,7 +82,7 @@ export const useCreateBcegContract = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (payload: Partial<BcegContrat>) => {
+    mutationFn: async (payload: Partial<BcegContratFormData>) => {
       const response = await api.post('/bceg/contrats', payload)
       return response.data?.data || response.data
     },

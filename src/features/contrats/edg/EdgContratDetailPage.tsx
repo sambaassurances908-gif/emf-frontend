@@ -16,6 +16,7 @@ import { EdgContratPrint } from '@/components/contrats/EdgContratPrint'
 import {
   ArrowLeft,
   User,
+  Users,
   Shield,
   DollarSign,
   Phone,
@@ -28,6 +29,7 @@ import {
   EyeOff,
   Briefcase,
   Crown,
+  Calendar,
 } from 'lucide-react'
 
 export const EdgContratDetailPage = () => {
@@ -154,7 +156,7 @@ export const EdgContratDetailPage = () => {
             )}
           </div>
 
-          <div className="flex gap-4 flex-wrap">
+          <div className="flex gap-3">
             <Button
               size="lg"
               className={`flex items-center gap-2 shadow-lg ${
@@ -165,16 +167,15 @@ export const EdgContratDetailPage = () => {
               onClick={() => setShowContratOfficiel(!showContratOfficiel)}
             >
               {showContratOfficiel ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-              {showContratOfficiel ? 'Masquer contrat' : 'Voir contrat officiel'}
+              <span className="hidden sm:inline">{showContratOfficiel ? 'Masquer' : 'Voir contrat'}</span>
             </Button>
             <Button
               size="lg"
-              variant="outline"
-              className="flex items-center gap-2 border-[#F48232] text-[#F48232] hover:bg-orange-50"
+              className="flex items-center gap-2 bg-[#F48232] hover:bg-[#e0742a] text-white shadow-lg"
               onClick={handlePrint}
             >
               <Printer className="w-5 h-5" />
-              Imprimer contrat
+              <span className="hidden sm:inline">Imprimer</span>
             </Button>
           </div>
         </div>
@@ -253,48 +254,128 @@ export const EdgContratDetailPage = () => {
                 <User className="w-6 h-6 text-cyan-600" />
                 Assuré / Emprunteur
               </CardTitle>
-              <CardDescription className="text-gray-600">Coordonnées de l'assuré</CardDescription>
+              <CardDescription className="text-gray-600">Coordonnées complètes de l'assuré</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="text-xl font-bold text-gray-900">{contrat.nom_prenom}</div>
+            <CardContent className="space-y-4">
+              {/* Nom */}
+              <div className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                {contrat.nom_prenom}
+                {contrat.est_vip && (
+                  <Badge className="bg-yellow-100 text-yellow-800 flex items-center gap-1">
+                    <Crown className="w-3 h-3" /> VIP
+                  </Badge>
+                )}
+              </div>
 
               {/* Date et lieu de naissance */}
               {(contrat.date_naissance || contrat.lieu_naissance) && (
-                <div className="bg-cyan-50 rounded-lg p-2">
-                  <div className="text-xs text-cyan-600 font-medium">Naissance</div>
+                <div className="bg-cyan-50 rounded-lg p-3">
+                  <div className="text-xs text-cyan-600 font-medium mb-1">📅 Naissance</div>
                   <div className="font-bold text-cyan-800">
-                    {formatDate(contrat.date_naissance)} {contrat.lieu_naissance && `à ${contrat.lieu_naissance}`}
+                    {contrat.date_naissance ? formatDate(contrat.date_naissance) : 'Date non renseignée'}
+                    {contrat.lieu_naissance && ` à ${contrat.lieu_naissance}`}
                   </div>
                 </div>
               )}
 
+              {/* Catégorie socio-professionnelle */}
+              <div className="bg-indigo-50 rounded-lg p-3">
+                <div className="text-xs text-indigo-600 font-medium mb-1">👤 Catégorie</div>
+                <div className="font-bold text-indigo-800">
+                  {contrat.categorie === 'commercants' && '🛒 Commerçants'}
+                  {contrat.categorie === 'salaries_public' && '🏛️ Salariés du Public'}
+                  {contrat.categorie === 'salaries_prive' && '🏢 Salariés du Privé'}
+                  {contrat.categorie === 'retraites' && '👴 Retraités'}
+                  {contrat.categorie === 'autre' && `📋 ${contrat.autre_categorie_precision || 'Autre'}`}
+                </div>
+              </div>
+
               {/* Profession */}
               {contrat.profession && (
-                <p className="flex items-center gap-2 text-gray-600">
-                  <Briefcase className="w-5 h-5" />
-                  <span>{contrat.profession}</span>
-                </p>
+                <div className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg">
+                  <Briefcase className="w-5 h-5 text-gray-500" />
+                  <div>
+                    <div className="text-xs text-gray-500">Profession</div>
+                    <div className="font-semibold text-gray-800">{contrat.profession}</div>
+                  </div>
+                </div>
               )}
 
-              {contrat.telephone && (
-                <p className="flex items-center gap-2 text-gray-600">
-                  <Phone className="w-5 h-5" />
-                  <span>{contrat.telephone}</span>
-                </p>
+              {/* Type contrat de travail */}
+              {contrat.type_contrat_travail && (
+                <div className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg">
+                  <Briefcase className="w-5 h-5 text-gray-500" />
+                  <div>
+                    <div className="text-xs text-gray-500">Type de contrat de travail</div>
+                    <div className="font-semibold text-gray-800">
+                      {contrat.type_contrat_travail === 'cdi' && 'CDI'}
+                      {contrat.type_contrat_travail === 'cdd_plus_9_mois' && 'CDD > 9 mois'}
+                      {contrat.type_contrat_travail === 'cdd_moins_9_mois' && 'CDD < 9 mois'}
+                      {contrat.type_contrat_travail === 'non_applicable' && 'Non applicable'}
+                    </div>
+                  </div>
+                </div>
               )}
 
-              {contrat.email && (
-                <p className="flex items-center gap-2 text-gray-600">
-                  <Mail className="w-5 h-5" />
-                  <span>{contrat.email}</span>
-                </p>
-              )}
+              <div className="border-t border-gray-200 pt-3 mt-3">
+                <div className="text-sm font-bold text-gray-700 mb-2">📞 Coordonnées</div>
+                
+                {/* Téléphone */}
+                {(contrat.telephone_assure || contrat.telephone) && (
+                  <div className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg">
+                    <Phone className="w-5 h-5 text-green-500" />
+                    <div>
+                      <div className="text-xs text-gray-500">Téléphone</div>
+                      <div className="font-semibold text-gray-800">{contrat.telephone_assure || contrat.telephone}</div>
+                    </div>
+                  </div>
+                )}
 
-              {contrat.adresse && (
-                <p className="flex items-center gap-2 text-gray-600">
-                  <MapPin className="w-5 h-5" />
-                  <span>{contrat.adresse}</span>
-                </p>
+                {/* Email */}
+                {(contrat.email_assure || contrat.email) && (
+                  <div className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg">
+                    <Mail className="w-5 h-5 text-blue-500" />
+                    <div>
+                      <div className="text-xs text-gray-500">Email</div>
+                      <div className="font-semibold text-gray-800">{contrat.email_assure || contrat.email}</div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Adresse */}
+                {(contrat.adresse_assure || contrat.adresse) && (
+                  <div className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg">
+                    <MapPin className="w-5 h-5 text-red-500" />
+                    <div>
+                      <div className="text-xs text-gray-500">Adresse</div>
+                      <div className="font-semibold text-gray-800">
+                        {contrat.adresse_assure || contrat.adresse}
+                        {contrat.ville_assure && `, ${contrat.ville_assure}`}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Ville seule si pas d'adresse */}
+                {!contrat.adresse_assure && !contrat.adresse && contrat.ville_assure && (
+                  <div className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg">
+                    <MapPin className="w-5 h-5 text-red-500" />
+                    <div>
+                      <div className="text-xs text-gray-500">Ville</div>
+                      <div className="font-semibold text-gray-800">{contrat.ville_assure}</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Bénéficiaire décès */}
+              {contrat.beneficiaire_deces && (
+                <div className="border-t border-gray-200 pt-3 mt-3">
+                  <div className="bg-orange-50 rounded-lg p-3">
+                    <div className="text-xs text-orange-600 font-medium mb-1">🎯 Bénéficiaire en cas de décès</div>
+                    <div className="font-bold text-orange-800">{contrat.beneficiaire_deces}</div>
+                  </div>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -379,6 +460,77 @@ export const EdgContratDetailPage = () => {
             </CardHeader>
             <CardContent>
               <p className="text-gray-700">{contrat.observations}</p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Assurés Associés */}
+        {contrat.assures_associes && contrat.assures_associes.length > 0 && (
+          <Card className="rounded-xl shadow-lg bg-white">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+                <Users className="w-6 h-6 text-purple-600" />
+                Assurés Associés
+              </CardTitle>
+              <CardDescription className="text-gray-600">
+                {contrat.assures_associes.length} assuré(s) associé(s) au contrat
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {contrat.assures_associes.map((assure, index) => (
+                  <div 
+                    key={assure.id || `assure-${index}`}
+                    className="p-4 bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl border border-purple-200"
+                  >
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="h-10 w-10 bg-purple-100 rounded-full flex items-center justify-center">
+                        <User className="h-5 w-5 text-purple-600" />
+                      </div>
+                      <div>
+                        <div className="font-bold text-gray-900">
+                          {assure.nom_complet || `${assure.prenom} ${assure.nom}`}
+                        </div>
+                        <div className="text-xs text-purple-600 font-medium">
+                          Assuré #{index + 1}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2 text-sm">
+                      {(assure.date_naissance || assure.lieu_naissance) && (
+                        <div className="flex items-center gap-2 text-gray-600">
+                          <Calendar className="w-4 h-4 text-purple-500" />
+                          <span>
+                            {assure.date_naissance ? formatDate(assure.date_naissance) : ''} 
+                            {assure.lieu_naissance ? ` à ${assure.lieu_naissance}` : ''}
+                          </span>
+                        </div>
+                      )}
+                      
+                      {assure.contact && (
+                        <div className="flex items-center gap-2 text-gray-600">
+                          <Phone className="w-4 h-4 text-purple-500" />
+                          <span>{assure.contact}</span>
+                        </div>
+                      )}
+                      
+                      {assure.adresse && (
+                        <div className="flex items-center gap-2 text-gray-600">
+                          <MapPin className="w-4 h-4 text-purple-500" />
+                          <span>{assure.adresse}</span>
+                        </div>
+                      )}
+
+                      {assure.age && (
+                        <div className="text-xs text-purple-600 font-medium mt-2">
+                          Âge: {assure.age} ans
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </CardContent>
           </Card>
         )}

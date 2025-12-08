@@ -24,7 +24,25 @@ export interface SinistreRecent {
 export interface EvolutionContrat {
   mois: string;
   nouveaux: number;
+  total?: number;
   resilie: number;
+}
+
+export interface LocalisationStats {
+  ville?: string;
+  localisation?: string;
+  nombre: number;
+}
+
+export interface GenreStats {
+  hommes: number;
+  femmes: number;
+  non_determine: number;
+}
+
+export interface CategorieSocioPro {
+  categorie: string;
+  nombre: number;
 }
 
 export interface EmfStats {
@@ -41,8 +59,14 @@ export interface DashboardStats {
   montant_total_assure: number;
   sinistres_en_cours: number;
   taux_reglement: number;
+  contrats_en_attente?: number;
+  contrats_expires_mois?: number;
+  prime_totale_collectee?: number;
   evolution_contrats: EvolutionContrat[];
   par_emf: EmfStats[];
+  par_localisation?: LocalisationStats[];
+  par_genre?: GenreStats;
+  par_categorie_socio_pro?: CategorieSocioPro[];
   contrats_recents: ContratRecent[];
   sinistres_recents: SinistreRecent[];
 }

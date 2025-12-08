@@ -21,11 +21,11 @@ export const DashboardRedirect = () => {
     5: '/dashboard/sodec',    // SODEC
   }
 
-  // Si l'utilisateur a un emf_id, rediriger vers son dashboard spécifique
-  if (user.emf_id && emfDashboardMap[user.emf_id]) {
+  // Si l'utilisateur a un emf_id valide (> 0), rediriger vers son dashboard spécifique
+  if (user.emf_id && user.emf_id > 0 && emfDashboardMap[user.emf_id]) {
     return <Navigate to={emfDashboardMap[user.emf_id]} replace />
   }
 
-  // Sinon (admin ou sans EMF), dashboard général
+  // Sinon (admin SAMBA ou sans EMF), dashboard général
   return <Navigate to="/dashboard" replace />
 }

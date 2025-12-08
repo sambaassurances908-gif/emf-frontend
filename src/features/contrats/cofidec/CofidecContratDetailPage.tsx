@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { useCofidecContract } from '@/hooks/useCofidecContracts'
-import { formatCurrency, formatDate, getStatusColor } from '@/lib/utils'
+import { formatCurrency, formatDate } from '@/lib/utils'
 import { CofidecContratPrint } from './CofidecContratPrint'
 import {
   ArrowLeft,
@@ -28,7 +28,6 @@ import {
   Eye,
   EyeOff,
   Building2,
-  Calendar,
   Percent,
 } from 'lucide-react'
 
@@ -95,11 +94,12 @@ export const CofidecContratDetailPage = () => {
   }
 
   // Calcul des cotisations
-  const montant = contrat.montant_pret || 0
-  const duree = contrat.duree_pret_mois || 0
+  const montant = contrat.montant_pret || contrat.montant_pret_assure || 0
+  const duree = contrat.duree_pret_mois || contrat.duree_mois || 0
   
   const getTaux = () => {
-    if (contrat.categorie === 'salaries_cofidec') return 0.0075
+    const cat = contrat.categorie
+    if (cat === 'salaries_cofidec') return 0.0075
     if (duree >= 1 && duree <= 6) return 0.005
     if (duree > 6 && duree <= 13) return 0.01
     if (duree > 13 && duree <= 24) return 0.0175
@@ -142,7 +142,7 @@ export const CofidecContratDetailPage = () => {
             Contrat #{contrat.id} - {contrat.nom_prenom}
           </h1>
 
-          <div className="flex gap-4 flex-wrap">
+          <div className="flex gap-3">
             <Button
               size="lg"
               className={`flex items-center gap-2 shadow-lg ${
@@ -153,16 +153,15 @@ export const CofidecContratDetailPage = () => {
               onClick={() => setShowContratOfficiel(!showContratOfficiel)}
             >
               {showContratOfficiel ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-              {showContratOfficiel ? 'Masquer contrat' : 'Voir contrat officiel'}
+              <span className="hidden sm:inline">{showContratOfficiel ? 'Masquer' : 'Voir contrat'}</span>
             </Button>
             <Button
               size="lg"
-              variant="outline"
-              className="flex items-center gap-2 border-[#F48232] text-[#F48232] hover:bg-orange-50"
+              className="flex items-center gap-2 bg-[#F48232] hover:bg-orange-600 text-white shadow-lg"
               onClick={handlePrint}
             >
               <Printer className="w-5 h-5" />
-              Imprimer contrat
+              <span className="hidden sm:inline">Imprimer</span>
             </Button>
           </div>
         </div>
@@ -250,27 +249,27 @@ export const CofidecContratDetailPage = () => {
                 </div>
               </div>
 
-              {contrat.telephone_assure && (
+              {(contrat.telephone_assure || contrat.telephone) && (
                 <p className="flex items-center gap-2 text-gray-600">
                   <Phone className="w-5 h-5" />
-                  <span>{contrat.telephone_assure}</span>
+                  <span>{contrat.telephone_assure || contrat.telephone}</span>
                 </p>
               )}
 
-              {contrat.email_assure && (
+              {(contrat.email_assure || contrat.email) && (
                 <p className="flex items-center gap-2 text-gray-600">
                   <Mail className="w-5 h-5" />
-                  <span>{contrat.email_assure}</span>
+                  <span>{contrat.email_assure || contrat.email}</span>
                 </p>
               )}
 
-              {(contrat.ville_assure || contrat.adresse_assure) && (
+              {(contrat.ville_assure || contrat.adresse_assure || contrat.adresse) && (
                 <p className="flex items-center gap-2 text-gray-600">
                   <MapPin className="w-5 h-5" />
                   <span>
                     {contrat.ville_assure}
-                    {contrat.ville_assure && contrat.adresse_assure ? ', ' : ''}
-                    {contrat.adresse_assure}
+                    {contrat.ville_assure && (contrat.adresse_assure || contrat.adresse) ? ', ' : ''}
+                    {contrat.adresse_assure || contrat.adresse}
                   </span>
                 </p>
               )}
@@ -312,7 +311,7 @@ export const CofidecContratDetailPage = () => {
               </div>
               <div className="flex justify-between">
                 <span className="font-medium text-gray-700">Date de fin</span>
-                <span className="font-semibold">{formatDate(contrat.date_fin_echeance)}</span>
+                <span className="font-semibold">{formatDate(contrat.date_fin_echeance || contrat.date_echeance)}</span>
               </div>
 
               {/* Cotisation TTC */}
@@ -396,17 +395,17 @@ export const CofidecContratDetailPage = () => {
 
               {/* Décès ou IAD */}
               <div className={`p-3 rounded-lg flex justify-between items-center ${
-                contrat.garantie_deces_iad ? 'bg-green-50 border border-green-200' : 'bg-gray-50'
+                (contrat.garantie_deces_iad || contrat.garantie_deces) ? 'bg-green-50 border border-green-200' : 'bg-gray-50'
               }`}>
                 <div>
                   <div className="font-semibold text-gray-800">Décès ou IAD</div>
                   <div className="text-xs text-gray-500">Taux: {(taux * 100).toFixed(2)}%</div>
                 </div>
                 <div className="text-right">
-                  <Badge className={contrat.garantie_deces_iad ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}>
-                    {contrat.garantie_deces_iad ? '✓ Souscrite' : 'Non'}
+                  <Badge className={(contrat.garantie_deces_iad || contrat.garantie_deces) ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}>
+                    {(contrat.garantie_deces_iad || contrat.garantie_deces) ? '✓ Souscrite' : 'Non'}
                   </Badge>
-                  {contrat.garantie_deces_iad && (
+                  {(contrat.garantie_deces_iad || contrat.garantie_deces) && (
                     <div className="text-sm font-bold text-green-700 mt-1">
                       {formatCurrency(cotisationDeces)} FCFA
                     </div>
@@ -508,7 +507,7 @@ export const CofidecContratDetailPage = () => {
             Modifier le contrat
           </Button>
           <Button
-            variant="destructive"
+            variant="danger"
             size="lg"
             onClick={() => alert('Fonction suppression du contrat à implémenter')}
             className="flex items-center gap-2"

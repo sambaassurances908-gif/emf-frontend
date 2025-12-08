@@ -5,7 +5,6 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useAuthStore } from '@/store/authStore'
 import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react'
 import logoSamba from '@/assets/logo-samba.png'
 
@@ -22,6 +21,7 @@ export const LoginPage = () => {
   const { login, isAuthenticated, isLoading: authLoading, getDashboardPath, user } = useAuthStore()
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false) // Flag pour éviter double redirection
 
   const from = (location.state as { from?: { pathname: string } })?.from?.pathname
 
@@ -33,53 +33,75 @@ export const LoginPage = () => {
     resolver: zodResolver(loginSchema),
   })
 
-  // Redirection si déjà authentifié
+  // Redirection si déjà authentifié (mais PAS pendant la soumission du formulaire)
   useEffect(() => {
+    // Ne pas rediriger pendant la soumission - laisser onSubmit gérer la redirection
+    if (isSubmitting) {
+      console.log('⏳ [LoginPage useEffect] Soumission en cours, skip redirection')
+      return
+    }
+
     if (!authLoading && isAuthenticated && user) {
-      const emfId = user.emf_id || null
+      // Pour admin, emf_id doit être null
+      const emfId = user.role === 'admin' ? null : (user.emf_id || null)
       
-      // Stocker emf_id dans localStorage
-      if (emfId) {
+      console.log('🔍 [LoginPage useEffect] User:', user.name, '| Role:', user.role, '| emf_id:', emfId)
+      
+      // Nettoyer ou stocker emf_id dans localStorage
+      if (emfId && emfId > 0) {
         localStorage.setItem('emf_id', emfId.toString())
+      } else {
+        localStorage.removeItem('emf_id') // Nettoyer pour les admins
       }
 
-      const targetPath = from || getDashboardPath()
-      console.log('🚀 Redirection vers:', targetPath, '| emf_id:', emfId)
+      // IMPORTANT: Ne pas utiliser 'from' si c'est un dashboard EMF pour un admin
+      let targetPath = getDashboardPath()
+      if (from && user.role !== 'admin') {
+        targetPath = from
+      }
       
-      // Naviguer avec state contenant emf_id
+      console.log('🚀 [LoginPage useEffect] Redirection vers:', targetPath)
+      
       navigate(targetPath, { 
         replace: true,
         state: { emf_id: emfId }
       })
     }
-  }, [isAuthenticated, authLoading, user, navigate, from, getDashboardPath])
+  }, [isAuthenticated, authLoading, user, navigate, from, getDashboardPath, isSubmitting])
 
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true)
+    setIsSubmitting(true) // Empêcher le useEffect de rediriger
+    
     try {
       await login(data)
       
-      // Attendre un instant puis récupérer le user et rediriger
-      setTimeout(() => {
-        const { user: currentUser, getDashboardPath } = useAuthStore.getState()
-        const emfId = currentUser?.emf_id || null
-        
-        // Stocker emf_id dans localStorage
-        if (emfId) {
-          localStorage.setItem('emf_id', emfId.toString())
-        }
+      // Récupérer immédiatement le user et rediriger
+      const { user: currentUser, getDashboardPath: getPath } = useAuthStore.getState()
+      
+      // Pour admin, emf_id doit être null
+      const emfId = currentUser?.role === 'admin' ? null : (currentUser?.emf_id || null)
+      
+      console.log('🔍 [onSubmit] User:', currentUser?.name, '| Role:', currentUser?.role, '| emf_id:', emfId)
+      
+      // Nettoyer ou stocker emf_id dans localStorage
+      if (emfId && emfId > 0) {
+        localStorage.setItem('emf_id', emfId.toString())
+      } else {
+        localStorage.removeItem('emf_id') // Nettoyer pour les admins
+      }
 
-        const dashboardPath = getDashboardPath()
-        console.log('✅ Login réussi, redirection vers:', dashboardPath, '| emf_id:', emfId)
-        
-        // Naviguer avec state contenant emf_id
-        navigate(dashboardPath, { 
-          replace: true,
-          state: { emf_id: emfId }
-        })
-      }, 100)
+      const dashboardPath = getPath()
+      console.log('✅ [onSubmit] Login réussi, redirection vers:', dashboardPath)
+      
+      // Naviguer immédiatement
+      navigate(dashboardPath, { 
+        replace: true,
+        state: { emf_id: emfId }
+      })
     } catch (error) {
       console.error('❌ Erreur login:', error)
+      setIsSubmitting(false) // Réactiver le useEffect en cas d'erreur
     } finally {
       setIsLoading(false)
     }

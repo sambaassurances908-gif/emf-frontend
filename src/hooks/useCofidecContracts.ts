@@ -48,8 +48,29 @@ export const useCofidecContract = (id?: number) => {
   return useQuery<CofidecContrat>({
     queryKey: ['cofidec-contract', id],
     queryFn: async () => {
-      const { data } = await axios.get<CofidecContrat>(`/cofidec/contrats/${id}`)
-      return data
+      const response = await axios.get(`/cofidec/contrats/${id}`)
+      console.log('🏦 COFIDEC Detail Response:', response.data)
+      
+      const rawData = response.data
+      
+      // Format: { success: true, data: { ... } }
+      if (rawData?.success && rawData?.data && typeof rawData.data === 'object' && !Array.isArray(rawData.data)) {
+        console.log('🏦 Contrat COFIDEC extrait:', rawData.data)
+        return rawData.data
+      }
+      
+      // Format: { data: { ... } }
+      if (rawData?.data && typeof rawData.data === 'object' && !Array.isArray(rawData.data)) {
+        return rawData.data
+      }
+      
+      // Si c'est déjà le contrat directement
+      if (rawData?.id) {
+        return rawData
+      }
+      
+      console.warn('🏦 Format de réponse détail COFIDEC inattendu:', rawData)
+      return rawData
     },
     enabled: !!id,
   })
@@ -63,8 +84,18 @@ export const useCreateCofidecContract = () => {
 
   return useMutation({
     mutationFn: async (payload: Partial<CofidecContrat>) => {
-      const { data } = await axios.post<CofidecContrat>('/cofidec/contrats', payload)
-      return data
+      const response = await axios.post('/cofidec/contrats', payload)
+      console.log('🏦 COFIDEC Create Response:', response.data)
+      
+      // Extraire les données selon le format de réponse
+      const rawData = response.data
+      if (rawData?.success && rawData?.data) {
+        return rawData.data
+      }
+      if (rawData?.data) {
+        return rawData.data
+      }
+      return rawData
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cofidec-contracts'] })

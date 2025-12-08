@@ -59,10 +59,29 @@ export const useBambooContract = (id?: number) => {
   return useQuery<BambooContrat>({
     queryKey: ['bamboo-contract', id],
     queryFn: async () => {
-      const { data } = await axios.get<BambooContrat>(
-        `/bamboo-emf/contrats/${id}`,
-      )
-      return data
+      const response = await axios.get(`/bamboo-emf/contrats/${id}`)
+      console.log('🎋 BAMBOO Detail API Response:', response.data)
+      
+      const rawData = response.data
+      
+      // Format: { success: true, data: { ... } }
+      if (rawData?.success && rawData?.data && typeof rawData.data === 'object' && !Array.isArray(rawData.data)) {
+        console.log('🎋 Contrat extrait:', rawData.data)
+        return rawData.data
+      }
+      
+      // Format: { data: { ... } }
+      if (rawData?.data && typeof rawData.data === 'object' && !Array.isArray(rawData.data)) {
+        return rawData.data
+      }
+      
+      // Si c'est déjà le contrat directement
+      if (rawData?.id) {
+        return rawData
+      }
+      
+      console.warn('🎋 Format de réponse détail inattendu:', rawData)
+      return rawData
     },
     enabled: !!id, // ne lance la requête que si id est défini
   })

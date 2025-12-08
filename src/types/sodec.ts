@@ -48,11 +48,13 @@ export interface SodecContrat {
   nom_prenom: string
   numero_police?: string
   statut: string
-  categorie: string
-  option_prevoyance: string
+  categorie: 'commercants' | 'salaries_public' | 'salaries_prive' | 'retraites' | 'autre'
+  autre_categorie_precision?: string
+  option_prevoyance: 'option_a' | 'option_b'
   montant_pret_assure: number
   duree_pret_mois: number
   date_effet: string
+  date_fin_echeance?: string
   garantie_perte_emploi?: boolean
   nombre_assures_associes?: number
   emf_id: number
@@ -61,8 +63,30 @@ export interface SodecContrat {
   adresse_assure: string
   ville_assure: string
   telephone_assure: string
+  email_assure?: string
   garantie_prevoyance: boolean
   garantie_deces_iad: boolean
+  
+  // Champs bénéficiaire
+  beneficiaire_nom?: string
+  beneficiaire_prenom?: string
+  beneficiaire_date_naissance?: string
+  beneficiaire_lieu_naissance?: string
+  beneficiaire_contact?: string
+  beneficiaire_deces?: string
+  
+  // Contrat travail
+  type_contrat_travail?: 'cdi' | 'cdd_plus_9_mois' | 'cdd_moins_9_mois' | 'non_applicable'
+  agence?: string
+  
+  // Cotisations
+  cotisation_deces_iad?: number
+  cotisation_prevoyance?: number
+  cotisation_perte_emploi?: number
+  cotisation_totale?: number
+  
+  // Relations
+  assures_associes?: SodecAssureAssocie[]
 }
 
 export interface SodecAssureAssocie {

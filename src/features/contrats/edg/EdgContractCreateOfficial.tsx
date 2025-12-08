@@ -216,7 +216,6 @@ export const EdgContractCreateOfficial = () => {
   }
 
   const businessWarnings = validateBusinessRules()
-  const _isContractValid = businessWarnings.length === 0 // Utilisé pour validation
 
   const categories = [
     { key: 'commercants' as const, label: 'Commerçants' },
@@ -364,7 +363,7 @@ export const EdgContractCreateOfficial = () => {
         // ✅ Le backend attend 'est_vip' (boolean) et non 'garantie_vip'
         est_vip: formData.garantie_vip || formData.categorie === 'vip',
         agence: formData.agence?.trim() || undefined,
-        statut: 'actif',
+        statut: 'actif' as const,
         ...(assuresArray.length > 0 ? { assures_associes: assuresArray } : {})
       }
 

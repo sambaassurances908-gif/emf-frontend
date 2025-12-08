@@ -21,9 +21,13 @@ export interface EdgAssureAssocie {
   adresse?: string
   nom_complet?: string
   age?: number
+  type_assure?: string
   created_at?: string
   updated_at?: string
 }
+
+// Type pour la création d'assurés associés (sans id, contrat_edg_id, numero_ordre)
+export type EdgAssureAssocieCreate = Omit<EdgAssureAssocie, 'id' | 'contrat_edg_id' | 'numero_ordre' | 'created_at' | 'updated_at' | 'nom_complet' | 'age'>
 
 export interface EdgContrat {
   id: number
@@ -43,27 +47,41 @@ export interface EdgContrat {
   // Couverture
   montant_pret_assure: number
   duree_pret_mois: number
+  duree_mois?: number  // Alias
   date_effet: string
   date_fin_echeance?: string
+  date_echeance?: string  // Alias
   
   // Assuré principal
   nom_prenom: string
   adresse_assure?: string
+  adresse?: string  // Alias
   ville_assure?: string
   telephone_assure?: string
+  telephone?: string  // Alias
   email_assure?: string
+  email?: string  // Alias
+  date_naissance?: string
+  lieu_naissance?: string
+  profession?: string
   categorie: 'commercants' | 'salaries_public' | 'salaries_prive' | 'retraites' | 'autre'
   autre_categorie_precision?: string
   est_vip: boolean
+  is_vip?: boolean  // Alias
   beneficiaire_deces?: string
   
   // Garanties
   garantie_prevoyance: boolean
   garantie_deces_iad: boolean
+  garantie_deces?: boolean  // Alias
+  garantie_ipt?: boolean
+  garantie_itt?: boolean
   garantie_perte_emploi?: boolean
   
   // Tarification
   prime_unique_prevoyance?: number
+  prime_mensuelle?: number
+  prime_totale?: number
   taux_deces_standard?: number
   taux_deces_vip?: number
   taux_perte_emploi?: number
@@ -92,8 +110,9 @@ export interface EdgContrat {
   signature_cachet_edg?: boolean
   signature_assureur?: boolean
   
-  // Statut
+  // Statut et observations
   statut: 'en_attente' | 'actif' | 'suspendu' | 'resilie' | 'termine' | 'sinistre'
+  observations?: string
   
   // Délais
   delai_couverture_maladie_mois?: number
@@ -140,4 +159,9 @@ export interface EdgDashboardStats {
     retraites: number
     autre: number
   }
+}
+
+// Type pour la création de contrat EDG (avec assures_associes en création)
+export interface EdgContratCreate extends Omit<Partial<EdgContrat>, 'assures_associes' | 'id' | 'emf' | 'created_at' | 'updated_at'> {
+  assures_associes?: EdgAssureAssocieCreate[]
 }

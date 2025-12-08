@@ -64,7 +64,7 @@ export const EdgContractsList = () => {
     return (
       c.nom_prenom?.toLowerCase().includes(searchLower) ||
       c.numero_police?.toLowerCase().includes(searchLower) ||
-      c.telephone?.toLowerCase().includes(searchLower)
+      c.telephone_assure?.toLowerCase().includes(searchLower)
     )
   })
 

@@ -34,12 +34,9 @@ import {
 export const BambooContratDetailPage = () => {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { data, isLoading, isError } = useBambooContract(Number(id))
+  const { data: contrat, isLoading, isError } = useBambooContract(Number(id))
   const [showContratOfficiel, setShowContratOfficiel] = useState(false)
   const printRef = useRef<HTMLDivElement>(null)
-
-  // Extraire le contrat de la réponse API
-  const contrat = data?.data || data
 
   useEffect(() => {
     if (isError) {
@@ -120,7 +117,7 @@ export const BambooContratDetailPage = () => {
   }
 
   // Catégorie affichée
-  const getCategorieLabel = (categorie?: string, precision?: string) => {
+  const getCategorieLabel = (categorie?: string | null, precision?: string | null) => {
     const labels: Record<string, string> = {
       commercants: '🛒 Commerçants',
       salaries_public: '🏛️ Salariés du Public',

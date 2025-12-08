@@ -48,19 +48,21 @@ export const EdgDashboard = () => {
   const emfId = emfIdFromState || emfIdFromUser || (emfIdFromStorage ? parseInt(emfIdFromStorage) : 4)
 
   useEffect(() => {
-    // Stocker emf_id dans localStorage et URL
-    localStorage.setItem('emf_id', emfId.toString())
+    // NE PAS modifier emf_id pour les admins - ils doivent garder emf_id=null
+    if (user?.role !== 'admin') {
+      localStorage.setItem('emf_id', emfId.toString())
 
-    if (user && user.emf_id !== emfId) {
-      const updatedUser = { ...user, emf_id: emfId }
-      setUser(updatedUser)
-      localStorage.setItem('user', JSON.stringify(updatedUser))
+      if (user && user.emf_id !== emfId) {
+        const updatedUser = { ...user, emf_id: emfId }
+        setUser(updatedUser)
+        localStorage.setItem('user', JSON.stringify(updatedUser))
+      }
     }
 
     searchParams.set('emf_id', emfId.toString())
     setSearchParams(searchParams)
 
-    console.log('💎 EdgDashboard emf_id:', emfId)
+    console.log('💎 EdgDashboard emf_id:', emfId, '| user.role:', user?.role)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [emfId])
 

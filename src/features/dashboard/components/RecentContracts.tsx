@@ -71,8 +71,8 @@ export const RecentContracts = ({ contracts }: RecentContractsProps) => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {contracts.map((contract: ContratRecent) => (
-                <TableRow key={contract.id}>
+              {contracts.map((contract: ContratRecent, index: number) => (
+                <TableRow key={`${contract.emf?.sigle || 'unknown'}-${contract.id}-${index}`}>
                   <TableCell className="font-mono text-sm">
                     {contract.numero_police}
                   </TableCell>

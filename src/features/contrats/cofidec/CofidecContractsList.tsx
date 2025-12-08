@@ -8,7 +8,6 @@ import { Input } from '@/components/ui/Input'
 import { Badge } from '@/components/ui/Badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { useCofidecContracts } from '@/hooks/useCofidecContracts'
-import { useAuthStore } from '@/store/authStore'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { CofidecContrat } from '@/types/cofidec'
@@ -31,7 +30,8 @@ const getCategorieLabel = (cat?: string) => {
     'commercants': 'Commerçants',
     'salaries_public': 'Salariés Public',
     'salaries_prive': 'Salariés Privé',
-    'salaries_cofidec': 'Salariés COFIDEC',
+    'salarie_cofidec': 'Salariés COFIDEC',  // ✅ Singulier (backend)
+    'salaries_cofidec': 'Salariés COFIDEC', // Alias pluriel
     'retraites': 'Retraités',
     'autre': 'Autre'
   }
@@ -40,11 +40,9 @@ const getCategorieLabel = (cat?: string) => {
 
 export const CofidecContractsList = () => {
   const navigate = useNavigate()
-  const { user } = useAuthStore()
-  const emfId = user?.emf_id || COFIDEC_EMF_ID
 
   const [search, setSearch] = useState('')
-  const [filters, setFilters] = useState({
+  const [filters] = useState({
     statut: '',
     categorie: ''
   })
@@ -194,7 +192,7 @@ export const CofidecContractsList = () => {
                         </Badge>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right font-bold text-[#F48232] text-lg">
-                        {formatCurrency(contrat.montant_pret || 0)}
+                        {formatCurrency(contrat.montant_pret_assure || contrat.montant_pret || 0)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
                         {formatDate(contrat.date_effet) || 'N/A'}

@@ -8,7 +8,6 @@ import { Input } from '@/components/ui/Input'
 import { Badge } from '@/components/ui/Badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { useBambooContracts } from '@/hooks/useBambooContracts'
-import { useAuthStore } from '@/store/authStore'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { BambooContrat } from '@/types/bamboo'
@@ -44,7 +43,6 @@ const getCategorieColor = (categorie?: string) => {
 
 export const BambooContractsList = () => {
   const navigate = useNavigate()
-  const { user } = useAuthStore()
   const emfId = 1 // BAMBOO EMF ID fixe
 
   const [search, setSearch] = useState('')

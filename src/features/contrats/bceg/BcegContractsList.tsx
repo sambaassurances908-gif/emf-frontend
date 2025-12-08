@@ -10,7 +10,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { useBcegContracts } from '@/hooks/useBcegContracts'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { formatCurrency, formatDate } from '@/lib/utils'
-import { BcegContrat } from '@/types/bceg'
 
 // Fonctions utilitaires pour les couleurs de statut
 const getStatusColor = (status?: string) => {

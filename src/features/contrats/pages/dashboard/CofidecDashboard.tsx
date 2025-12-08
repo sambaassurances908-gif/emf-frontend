@@ -48,19 +48,21 @@ export const CofidecDashboard = () => {
   const emfId = emfIdFromState || emfIdFromUser || (emfIdFromStorage ? parseInt(emfIdFromStorage) : 2)
 
   useEffect(() => {
-    // Stocker emf_id dans localStorage et URL
-    localStorage.setItem('emf_id', emfId.toString())
+    // NE PAS modifier emf_id pour les admins - ils doivent garder emf_id=null
+    if (user?.role !== 'admin') {
+      localStorage.setItem('emf_id', emfId.toString())
 
-    if (user && user.emf_id !== emfId) {
-      const updatedUser = { ...user, emf_id: emfId }
-      setUser(updatedUser)
-      localStorage.setItem('user', JSON.stringify(updatedUser))
+      if (user && user.emf_id !== emfId) {
+        const updatedUser = { ...user, emf_id: emfId }
+        setUser(updatedUser)
+        localStorage.setItem('user', JSON.stringify(updatedUser))
+      }
     }
 
     searchParams.set('emf_id', emfId.toString())
     setSearchParams(searchParams)
 
-    console.log('🏦 CofidecDashboard emf_id:', emfId)
+    console.log('🏦 CofidecDashboard emf_id:', emfId, '| user.role:', user?.role)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [emfId])
 
@@ -403,9 +405,9 @@ export const CofidecDashboard = () => {
         <CardContent className="p-6">
           {contrats.length > 0 ? (
             <div className="space-y-4">
-              {contrats.map((contrat: CofidecContrat) => (
+              {contrats.map((contrat: CofidecContrat, index: number) => (
                 <div
-                  key={contrat.id}
+                  key={`cofidec-${contrat.id}-${index}`}
                   className="flex items-center justify-between p-4 border rounded-xl hover:border-yellow-500 hover:bg-yellow-50 cursor-pointer transition-all"
                   onClick={() => navigate(`/contrats/cofidec/${contrat.id}`)}
                 >

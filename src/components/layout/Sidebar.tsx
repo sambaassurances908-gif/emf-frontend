@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/authStore';
+import logoSamba from '@/assets/logo-samba.png';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -34,8 +35,19 @@ export const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
 
   // Déterminer le slug EMF de l'utilisateur
   const userEmfId = user?.emf_id;
-  const userEmfSlug = userEmfId ? EMF_SLUGS[userEmfId] : null;
+  const userEmfSlug = (userEmfId && userEmfId > 0) ? EMF_SLUGS[userEmfId] : null;
   const isEmfUser = !!userEmfSlug && !isAdmin();
+
+  // Debug pour comprendre le problème
+  console.log('🔍 Sidebar Debug:', {
+    userName: user?.name,
+    userRole: user?.role,
+    userEmfId,
+    userEmfSlug,
+    isAdmin: isAdmin(),
+    isEmfUser,
+    currentPath: location.pathname
+  });
 
   // Fonction pour obtenir le chemin approprié selon l'utilisateur
   const getPath = (item: MenuItem): string => {
@@ -102,10 +114,13 @@ export const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
       <div className="flex items-center justify-between p-4 border-b border-gray-200 h-16">
         {isOpen && (
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">SA</span>
-            </div>
-            <span className="font-bold text-lg text-gray-900">SAMBA</span>
+            <img src={logoSamba} alt="SAMB'A" className="h-10 w-auto" />
+            <span className="font-bold text-lg text-gray-900">SAMB'A</span>
+          </div>
+        )}
+        {!isOpen && (
+          <div className="flex items-center justify-center w-full">
+            <img src={logoSamba} alt="SAMB'A" className="h-8 w-auto" />
           </div>
         )}
         <button

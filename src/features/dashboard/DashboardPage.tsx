@@ -8,7 +8,7 @@ import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { 
   FileText, 
   AlertCircle, 
-  DollarSign, 
+  Wallet, 
   CheckCircle, 
   Building2, 
   TrendingUp,
@@ -24,7 +24,7 @@ import {
   User,
   UserCircle2
 } from 'lucide-react';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrencyShort } from '@/lib/utils';
 import { StatsCard } from './components/StatsCard';
 import { ContratChart } from './components/ContratChart';
 import { RecentContracts } from './components/RecentContracts';
@@ -36,9 +36,9 @@ export const DashboardPage = () => {
   const { user } = useAuthStore();
   const navigate = useNavigate();
 
-  // ✅ Redirection si l'utilisateur a un emf_id (pas superadmin)
+  // ✅ Redirection si l'utilisateur a un emf_id valide (pas superadmin)
   useEffect(() => {
-    if (user?.emf_id) {
+    if (user?.emf_id && user.emf_id > 0) {
       const emfDashboards: Record<number, string> = {
         1: '/dashboard/bamboo',
         2: '/dashboard/cofidec',
@@ -60,10 +60,11 @@ export const DashboardPage = () => {
       const response = await api.get<{ data: DashboardStats }>('/dashboard/statistiques');
       return response.data.data;
     },
-    enabled: !user?.emf_id,
+    enabled: !user?.emf_id || user.emf_id === 0, // Activer pour admin SAMBA (sans emf_id ou emf_id=0)
   });
 
-  if (user?.emf_id) {
+  // Afficher loading pendant la redirection pour les utilisateurs EMF
+  if (user?.emf_id && user.emf_id > 0) {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-4rem)] bg-white">
         <LoadingSpinner size="lg" text="Redirection..." />
@@ -145,15 +146,16 @@ export const DashboardPage = () => {
       <div className="flex items-center justify-between border-b pb-4">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-              Tableau de bord Global
+            <h1 className="text-4xl font-bold">
+              <span className="text-gray-800">Tableau de bord </span>
+              <span className="bg-gradient-to-r from-[#F48232] to-orange-600 bg-clip-text text-transparent">SAMB'A</span>
             </h1>
-            <span className="px-3 py-1 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs font-semibold rounded-full">
+            <span className="px-3 py-1 bg-gradient-to-r from-[#F48232] to-orange-500 text-white text-xs font-semibold rounded-full shadow-lg">
               SUPERADMIN
             </span>
           </div>
           <p className="text-gray-600 mt-2 flex items-center gap-2">
-            <Activity className="h-4 w-4" />
+            <Activity className="h-4 w-4 text-[#F48232]" />
             Vue d'ensemble du service technique micro-assurance - Bonjour {user?.name}
           </p>
         </div>
@@ -174,8 +176,8 @@ export const DashboardPage = () => {
         />
         <StatsCard
           title="Montant Total Assuré"
-          value={formatCurrency(stats?.montant_total_assure || 0)}
-          icon={DollarSign}
+          value={formatCurrencyShort(stats?.montant_total_assure || 0)}
+          icon={Wallet}
           trend={{ value: 8, isPositive: true }}
           color="green"
         />
@@ -206,7 +208,7 @@ export const DashboardPage = () => {
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold text-blue-700">
-              {formatCurrency(montantMoyenParContrat)}
+              {formatCurrencyShort(montantMoyenParContrat)}
             </p>
             <p className="text-xs text-gray-600 mt-1">
               Moyenne calculée sur {stats?.contrats_actifs || 0} contrats actifs
@@ -288,9 +290,9 @@ export const DashboardPage = () => {
 
             {/* Prime totale collectée */}
             <div className="text-center p-4 border border-green-200 rounded-lg shadow-sm">
-              <DollarSign className="h-8 w-8 text-green-600 mx-auto mb-2" />
+              <Wallet className="h-8 w-8 text-green-600 mx-auto mb-2" />
               <p className="text-2xl font-bold text-green-700">
-                {formatCurrency(stats?.prime_totale_collectee || 0)}
+                {formatCurrencyShort(stats?.prime_totale_collectee || 0)}
               </p>
               <p className="text-xs text-gray-600 mt-1">Primes collectées</p>
             </div>
@@ -574,10 +576,10 @@ export const DashboardPage = () => {
                       </div>
                       <div className="text-right">
                         <p className="font-bold text-gray-900 whitespace-nowrap">
-                          {formatCurrency(emf.montant_total)}
+                          {formatCurrencyShort(emf.montant_total)}
                         </p>
                         <p className="text-xs text-gray-500 mt-1">
-                          {formatCurrency(emf.montant_total / emf.total)}/contrat
+                          {formatCurrencyShort(emf.montant_total / emf.total)}/contrat
                         </p>
                       </div>
                     </div>
@@ -644,10 +646,10 @@ export const DashboardPage = () => {
                           {emf.total}
                         </td>
                         <td className="px-6 py-4 text-right font-semibold text-gray-900">
-                          {formatCurrency(emf.montant_total)}
+                          {formatCurrencyShort(emf.montant_total)}
                         </td>
                         <td className="px-6 py-4 text-right text-gray-700">
-                          {formatCurrency(moyenne)}
+                          {formatCurrencyShort(moyenne)}
                         </td>
                         <td className="px-6 py-4 text-right">
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">

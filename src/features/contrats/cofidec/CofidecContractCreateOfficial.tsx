@@ -66,7 +66,7 @@ export const CofidecContractCreateOfficial = () => {
     duree_pret_mois: '',
     date_effet: '',
     date_fin_echeance: '',
-    categorie: '' as '' | 'commercants' | 'salaries_public' | 'salaries_prive' | 'retraites' | 'salaries_cofidec' | 'autre',
+    categorie: '' as '' | 'commercants' | 'salaries_public' | 'salaries_prive' | 'retraites' | 'salarie_cofidec' | 'autre',
     autre_categorie_precision: '',
     agence: '',
     garantie_prevoyance: true,
@@ -95,7 +95,7 @@ export const CofidecContractCreateOfficial = () => {
   
   // Taux selon catégorie et durée
   const getTaux = () => {
-    if (formData.categorie === 'salaries_cofidec') return 0.0075 // 0.75%
+    if (formData.categorie === 'salarie_cofidec') return 0.0075 // 0.75%
     if (duree >= 1 && duree <= 6) return 0.005 // 0.50%
     if (duree > 6 && duree <= 13) return 0.01 // 1.00%
     if (duree > 13 && duree <= 24) return 0.0175 // 1.75%
@@ -110,7 +110,7 @@ export const CofidecContractCreateOfficial = () => {
   const cotisationTotale = cotisationDeces + cotisationPrevoyance + cotisationPerteEmploi
 
   // Validation des règles métier
-  const montantMaxPret = formData.categorie === 'salaries_cofidec' ? 20000000 : 
+  const montantMaxPret = formData.categorie === 'salarie_cofidec' ? 20000000 : 
                          duree <= 6 ? 5000000 : 
                          duree <= 13 ? 10000000 : 20000000
   const dureeMaxPret = 24
@@ -152,31 +152,60 @@ export const CofidecContractCreateOfficial = () => {
       adresse_assure: formData.adresse_assure.trim(),
       ville_assure: formData.ville_assure.trim(),
       telephone_assure: formData.telephone_assure.trim(),
-      email_assure: formData.email_assure?.trim() || null,
-      montant_pret: parseInt(formData.montant_pret),
+      email_assure: formData.email_assure?.trim() || undefined,
+      // ✅ Le backend attend 'montant_pret_assure' et non 'montant_pret'
+      montant_pret_assure: parseInt(formData.montant_pret),
       duree_pret_mois: parseInt(formData.duree_pret_mois),
       date_effet: formData.date_effet,
-      categorie: formData.categorie,
-      autre_categorie_precision: formData.autre_categorie_precision?.trim() || null,
-      agence: formData.agence?.trim() || null,
-      garantie_prevoyance: formData.garantie_prevoyance ? 1 : 0,
-      garantie_deces_iad: formData.garantie_deces_iad ? 1 : 0,
-      garantie_perte_emploi: formData.garantie_perte_emploi ? 1 : 0,
+      categorie: formData.categorie || undefined,
+      autre_categorie_precision: formData.autre_categorie_precision?.trim() || undefined,
+      agence: formData.agence?.trim() || undefined,
+      garantie_prevoyance: formData.garantie_prevoyance,
+      // ✅ Le backend attend les deux champs
+      garantie_deces_iad: formData.garantie_deces_iad,
+      garantie_prevoyance_deces_iad: formData.garantie_deces_iad,
+      garantie_perte_emploi: formData.garantie_perte_emploi,
       statut: 'actif',
     }
 
     console.log('📤 Payload COFIDEC:', JSON.stringify(payload, null, 2))
 
     createContract(payload, {
-      onSuccess: (data) => {
-        console.log('✅ Contrat COFIDEC créé avec succès! ID:', data.id)
-        navigate(`/contrats/cofidec/${data.id}`, {
-          state: { success: 'Contrat créé avec succès !' }
-        })
+      onSuccess: (response: any) => {
+        console.log('✅ Contrat COFIDEC créé - Réponse complète:', response)
+        
+        // Extraire l'ID selon le format de réponse du backend
+        const contratId = response?.id || response?.data?.id || response?.contrat?.id
+        
+        if (contratId) {
+          console.log('✅ ID du contrat:', contratId)
+          navigate(`/contrats/cofidec/${contratId}`, {
+            state: { success: 'Contrat créé avec succès !' }
+          })
+        } else {
+          console.warn('⚠️ ID du contrat non trouvé dans la réponse:', response)
+          // Rediriger vers la liste en cas de problème
+          navigate('/contrats/cofidec', {
+            state: { success: 'Contrat créé avec succès !' }
+          })
+        }
       },
       onError: (error: any) => {
-        console.error('❌ Erreur création COFIDEC:', error.response?.data?.message || error.message)
-        setSubmitError(error.response?.data?.message || 'Erreur lors de la création')
+        console.error('❌ Erreur création COFIDEC:', error.response?.data)
+        
+        // Afficher les erreurs de validation détaillées
+        if (error.response?.status === 422) {
+          const validationErrors = error.response.data.errors || {}
+          console.error('❌ Erreurs de validation:', validationErrors)
+          
+          const errorMessages = Object.entries(validationErrors)
+            .map(([field, msgs]) => `• ${field}: ${Array.isArray(msgs) ? msgs[0] : msgs}`)
+            .join('\n')
+          
+          setSubmitError(`Erreurs de validation:\n${errorMessages || error.response.data.message || 'Champs invalides'}`)
+        } else {
+          setSubmitError(error.response?.data?.message || 'Erreur lors de la création')
+        }
       }
     })
   }
@@ -387,8 +416,8 @@ export const CofidecContractCreateOfficial = () => {
                 />
                 <Checkbox 
                   label="Salariés COFIDEC" 
-                  checked={formData.categorie === 'salaries_cofidec'}
-                  onChange={() => setFormData({...formData, categorie: 'salaries_cofidec'})}
+                  checked={formData.categorie === 'salarie_cofidec'}
+                  onChange={() => setFormData({...formData, categorie: 'salarie_cofidec'})}
                 />
               </div>
               <div className="flex items-center gap-2">
@@ -470,28 +499,28 @@ export const CofidecContractCreateOfficial = () => {
                     <td className="p-1 border-r border-[#F48232]">Durée du prêt</td>
                     <td className="p-1">250 000 FCFA</td>
                   </tr>
-                  <tr className={`border-b border-[#F48232] ${formData.categorie === 'salaries_cofidec' ? 'bg-orange-50' : ''}`}>
+                  <tr className={`border-b border-[#F48232] ${formData.categorie === 'salarie_cofidec' ? 'bg-orange-50' : ''}`}>
                     <td className="p-1 border-r border-[#F48232] text-left pl-2 font-medium">Décès ou IAD</td>
                     <td className="p-1 border-r border-[#F48232]">Salariés COFIDEC</td>
                     <td className="p-1 border-r border-[#F48232] font-bold">0,75% du prêt</td>
                     <td className="p-1 border-r border-[#F48232]">Durée du prêt</td>
                     <td className="p-1">20 000 000 FCFA</td>
                   </tr>
-                  <tr className={`border-b border-[#F48232] ${duree >= 1 && duree <= 6 && formData.categorie !== 'salaries_cofidec' ? 'bg-orange-50' : ''}`}>
+                  <tr className={`border-b border-[#F48232] ${duree >= 1 && duree <= 6 && formData.categorie !== 'salarie_cofidec' ? 'bg-orange-50' : ''}`}>
                     <td className="p-1 border-r border-[#F48232] text-left pl-2 font-medium">Décès ou IAD</td>
                     <td className="p-1 border-r border-[#F48232]">Toutes catégories</td>
                     <td className="p-1 border-r border-[#F48232] font-bold">0,50% du prêt</td>
                     <td className="p-1 border-r border-[#F48232]">1 à 6 mois max</td>
                     <td className="p-1">5 000 000 FCFA</td>
                   </tr>
-                  <tr className={`border-b border-[#F48232] ${duree > 6 && duree <= 13 && formData.categorie !== 'salaries_cofidec' ? 'bg-orange-50' : ''}`}>
+                  <tr className={`border-b border-[#F48232] ${duree > 6 && duree <= 13 && formData.categorie !== 'salarie_cofidec' ? 'bg-orange-50' : ''}`}>
                     <td className="p-1 border-r border-[#F48232] text-left pl-2 font-medium">Décès ou IAD</td>
                     <td className="p-1 border-r border-[#F48232]">Toutes catégories</td>
                     <td className="p-1 border-r border-[#F48232] font-bold">1,00% du prêt</td>
                     <td className="p-1 border-r border-[#F48232]">6 à 12(+1) mois</td>
                     <td className="p-1">10 000 000 FCFA</td>
                   </tr>
-                  <tr className={`border-b border-[#F48232] ${duree > 13 && duree <= 24 && formData.categorie !== 'salaries_cofidec' ? 'bg-orange-50' : ''}`}>
+                  <tr className={`border-b border-[#F48232] ${duree > 13 && duree <= 24 && formData.categorie !== 'salarie_cofidec' ? 'bg-orange-50' : ''}`}>
                     <td className="p-1 border-r border-[#F48232] text-left pl-2 font-medium">Décès ou IAD</td>
                     <td className="p-1 border-r border-[#F48232]">Toutes catégories</td>
                     <td className="p-1 border-r border-[#F48232] font-bold">1,75% du prêt</td>
@@ -570,6 +599,38 @@ export const CofidecContractCreateOfficial = () => {
         </div>
 
         <Footer pageNum={1} />
+      </div>
+
+      {/* Boutons de soumission en dehors du "PDF" */}
+      <div className="w-[210mm] mt-6 flex gap-4 print:hidden">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => navigate('/contrats/cofidec')}
+          className="flex-1"
+          disabled={isPending}
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Annuler
+        </Button>
+        <Button
+          type="button"
+          onClick={handleSubmit}
+          disabled={isPending}
+          className="flex-1 bg-[#F48232] hover:bg-[#e0742a] text-white font-semibold text-lg py-3"
+        >
+          {isPending ? (
+            <>
+              <span className="animate-spin mr-2">⏳</span>
+              Création en cours...
+            </>
+          ) : (
+            <>
+              <Save className="h-5 w-5 mr-2" />
+              Créer le Contrat COFIDEC
+            </>
+          )}
+        </Button>
       </div>
     </div>
   )

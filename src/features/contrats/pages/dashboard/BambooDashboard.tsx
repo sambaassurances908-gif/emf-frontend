@@ -50,18 +50,21 @@ export const BambooDashboard = () => {
     emfIdFromState || emfIdFromUser || (emfIdFromStorage ? parseInt(emfIdFromStorage) : 1)
 
   useEffect(() => {
-    // Synchroniser emf_id dans localStorage, user store et URL
-    localStorage.setItem('emf_id', emfId.toString())
+    // NE PAS modifier emf_id pour les admins - ils doivent garder emf_id=null
+    if (user?.role !== 'admin') {
+      localStorage.setItem('emf_id', emfId.toString())
 
-    if (user && user.emf_id !== emfId) {
-      const updatedUser = { ...user, emf_id: emfId }
-      setUser(updatedUser)
-      localStorage.setItem('user', JSON.stringify(updatedUser))
+      if (user && user.emf_id !== emfId) {
+        const updatedUser = { ...user, emf_id: emfId }
+        setUser(updatedUser)
+        localStorage.setItem('user', JSON.stringify(updatedUser))
+      }
     }
 
     searchParams.set('emf_id', emfId.toString())
     setSearchParams(searchParams)
 
+    console.log('🎋 BambooDashboard emf_id:', emfId, '| user.role:', user?.role)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [emfId])
 

@@ -71,6 +71,7 @@ export interface BcegContrat {
   
   // Informations prêt
   montant_pret: string
+  montant_pret_assure?: number  // Alias pour compatibilité
   duree_pret_mois: number
   date_effet: string
   date_fin_echeance: string
@@ -78,6 +79,7 @@ export interface BcegContrat {
   // Informations assuré
   nom: string
   prenom: string
+  nom_prenom?: string  // Champ calculé pour compatibilité
   adresse_assure: string
   ville_assure: string
   telephone_assure: string

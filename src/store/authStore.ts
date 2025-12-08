@@ -42,12 +42,12 @@ export const useAuthStore = create<AuthState>()(
           5: '/dashboard/sodec',
         }
 
-        // Si l'utilisateur a un emf_id, retourner son dashboard spécifique
-        if (user.emf_id && emfDashboardMap[user.emf_id]) {
+        // Si l'utilisateur a un emf_id valide (> 0), retourner son dashboard spécifique
+        if (user.emf_id && user.emf_id > 0 && emfDashboardMap[user.emf_id]) {
           return emfDashboardMap[user.emf_id]
         }
 
-        // Sinon, dashboard général (pour les admins)
+        // Sinon, dashboard général (pour les admins SAMBA sans EMF)
         return '/dashboard'
       },
 
@@ -59,7 +59,14 @@ export const useAuthStore = create<AuthState>()(
         if (token && userStr) {
           try {
             const user = JSON.parse(userStr) as User
-            console.log('✅ User restauré:', user)
+            
+            // Pour les admins, s'assurer que emf_id est null
+            if (user.role === 'admin') {
+              user.emf_id = null;
+              user.emf = null;
+            }
+            
+            console.log('✅ User restauré:', user, '| emf_id:', user.emf_id)
             set({
               user,
               token,
@@ -88,14 +95,25 @@ export const useAuthStore = create<AuthState>()(
             throw new Error('Réponse serveur invalide')
           }
 
+          // Déterminer le emf_id correct
+          // Pour les admins SAMBA (role = 'admin'), on force emf_id à null
+          let finalEmfId: number | null = null;
+          
+          if (user.role !== 'admin') {
+            // Pour les utilisateurs non-admin, prendre le emf_id du backend
+            finalEmfId = user.emf_id ?? user.emf?.id ?? null;
+          }
+          
+          console.log('🔍 Role:', user.role, '| Backend emf_id:', user.emf_id, '| Final emf_id:', finalEmfId);
+
           // Construire l'objet user complet
           const userWithEmf: User = {
             id: user.id,
             name: user.name,
             email: user.email,
             role: user.role,
-            emf_id: user.emf_id ?? user.emf?.id ?? null,
-            emf: user.emf ?? null,
+            emf_id: finalEmfId,
+            emf: user.role === 'admin' ? null : (user.emf ?? null),
             statut: user.statut || 'actif',
             last_login: user.last_login ?? null,
             created_at: user.created_at || new Date().toISOString(),

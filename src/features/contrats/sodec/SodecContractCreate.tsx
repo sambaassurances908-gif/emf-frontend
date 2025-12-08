@@ -24,9 +24,9 @@ export const SodecContractCreate = () => {
     email_assure: '',
     date_naissance: '',
     numero_police: '',
-    categorie: 'commercants' as const,
+    categorie: 'commercants' as 'commercants' | 'salaries_public' | 'salaries_prive' | 'retraites' | 'autre',
     autre_categorie_precision: '',
-    option_prevoyance: 'option_a' as const,
+    option_prevoyance: 'option_a' as 'option_a' | 'option_b',
     montant_pret_assure: 5000000,
     duree_pret_mois: 12,
     date_effet: '',
@@ -34,7 +34,7 @@ export const SodecContractCreate = () => {
     garantie_prevoyance: true,
     garantie_deces_iad: true,
     garantie_perte_emploi: false,
-    type_contrat_travail: 'non_applicable' as const,
+    type_contrat_travail: 'non_applicable' as 'cdi' | 'cdd_plus_9_mois' | 'cdd_moins_9_mois' | 'non_applicable',
     agence: ''
   })
 
