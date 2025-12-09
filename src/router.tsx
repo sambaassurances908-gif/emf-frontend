@@ -38,6 +38,20 @@ import { CofidecSinistreDeclarationForm } from '@/features/sinistres/cofidec/Cof
 import { BcegSinistreDeclarationForm } from '@/features/sinistres/bceg/BcegSinistreDeclarationForm'
 import { EdgSinistreDeclarationForm } from '@/features/sinistres/edg/EdgSinistreDeclarationForm'
 
+// ✅ Pages liste de sinistres par EMF
+import { BambooSinistresList } from '@/features/sinistres/bamboo/BambooSinistresList'
+import { CofidecSinistresList } from '@/features/sinistres/cofidec/CofidecSinistresList'
+import { BcegSinistresList } from '@/features/sinistres/bceg/BcegSinistresList'
+import { EdgSinistresList } from '@/features/sinistres/edg/EdgSinistresList'
+import { SodecSinistresList } from '@/features/sinistres/sodec/SodecSinistresList'
+
+// ✅ Pages détail de sinistre par EMF
+import { BambooSinistreDetailPage } from '@/features/sinistres/bamboo/BambooSinistreDetailPage'
+import { CofidecSinistreDetailPage } from '@/features/sinistres/cofidec/CofidecSinistreDetailPage'
+import { BcegSinistreDetailPage } from '@/features/sinistres/bceg/BcegSinistreDetailPage'
+import { EdgSinistreDetailPage } from '@/features/sinistres/edg/EdgSinistreDetailPage'
+import { SodecSinistreDetailPage } from '@/features/sinistres/sodec/SodecSinistreDetailPage'
+
 import { EmfListPage } from '@/features/emfs/EmfListPage'
 import { EmfDetailPage } from '@/features/emfs/EmfDetailPage'
 import { EmfForm } from '@/features/emfs/EmfForm'
@@ -191,6 +205,13 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: <SinistreListPage /> },
           
+          // ✅ Listes dédiées par EMF
+          { path: 'bamboo', element: <BambooSinistresList /> },
+          { path: 'cofidec', element: <CofidecSinistresList /> },
+          { path: 'bceg', element: <BcegSinistresList /> },
+          { path: 'edg', element: <EdgSinistresList /> },
+          { path: 'sodec', element: <SodecSinistresList /> },
+          
           // Déclaration générique (fallback)
           { path: 'nouveau', element: <SinistreDeclarationForm /> },
           
@@ -201,7 +222,14 @@ export const router = createBrowserRouter([
           { path: 'nouveau/bceg', element: <BcegSinistreDeclarationForm /> },
           { path: 'nouveau/edg', element: <EdgSinistreDeclarationForm /> },
           
-          // Détail d'un sinistre
+          // ✅ Détails dédiés par EMF
+          { path: 'bamboo/:id', element: <BambooSinistreDetailPage /> },
+          { path: 'cofidec/:id', element: <CofidecSinistreDetailPage /> },
+          { path: 'bceg/:id', element: <BcegSinistreDetailPage /> },
+          { path: 'edg/:id', element: <EdgSinistreDetailPage /> },
+          { path: 'sodec/:id', element: <SodecSinistreDetailPage /> },
+          
+          // Détail générique d'un sinistre (fallback)
           { path: ':id', element: <SinistreDetailPage /> },
         ],
       },

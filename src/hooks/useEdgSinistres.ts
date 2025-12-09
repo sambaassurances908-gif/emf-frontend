@@ -1,47 +1,57 @@
 // src/hooks/useEdgSinistres.ts
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import axios from '@/lib/axios'
-import { EdgSinistre, EdgSinistreCreatePayload } from '@/types/sinistre.types'
+import { sinistreService } from '@/services/sinistre.service'
+import { SinistreCreatePayload, EdgSinistre } from '@/types/sinistre.types'
 
+/**
+ * Hook pour récupérer les contrats EDG actifs (pour le sélecteur du formulaire)
+ */
 export const useEdgContratsForSinistre = (emfId: number) => {
   return useQuery({
     queryKey: ['edg-contrats-for-sinistre', emfId],
     queryFn: async () => {
-      const { data } = await axios.get('/edg-emf/contrats', {
-        params: { emf_id: emfId, statut: 'actif' },
+      const { data } = await axios.get('/edg/contrats', {
+        params: { emf_id: emfId, statut: 'actif', per_page: 100 },
       })
-      return data.data
+      return data.data?.data || data.data || []
     },
   })
 }
 
+/**
+ * Hook pour récupérer les sinistres EDG
+ */
+export const useEdgSinistres = (params?: { page?: number; statut?: string }) => {
+  return useQuery({
+    queryKey: ['edg-sinistres', params],
+    queryFn: async () => {
+      const response = await sinistreService.getAll({
+        contrat_type: 'ContratEdg',
+        ...params,
+      })
+      return response
+    },
+  })
+}
+
+/**
+ * Hook pour créer un sinistre EDG
+ * Utilise le service sinistre générique avec contrat_type = 'ContratEdg'
+ */
 export const useCreateEdgSinistre = () => {
   const queryClient = useQueryClient()
-  
+
   return useMutation({
-    mutationFn: async (payload: EdgSinistreCreatePayload) => {
-      const formData = new FormData()
-      formData.append('contrat_id', payload.contrat_id.toString())
-      formData.append('type_sinistre', payload.type_sinistre)
-      formData.append('date_survenance', payload.date_survenance)
-      formData.append('description', payload.description)
-      
-      if (payload.documents) {
-        payload.documents.forEach((file, index) => {
-          formData.append(`documents[${index}]`, file)
-        })
+    mutationFn: async (payload: Omit<SinistreCreatePayload, 'contrat_type'>) => {
+      const fullPayload: SinistreCreatePayload = {
+        ...payload,
+        contrat_type: 'ContratEdg',
       }
-      
-      const { data } = await axios.post<EdgSinistre>(
-        '/edg-emf/sinistres',
-        formData,
-        {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        },
-      )
-      return data
+      return sinistreService.create(fullPayload)
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sinistres'] })
       queryClient.invalidateQueries({ queryKey: ['edg-sinistres'] })
     },
   })

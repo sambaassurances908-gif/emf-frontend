@@ -150,9 +150,9 @@ export const BambooDashboard = () => {
             </p>
           </div>
           <div className="flex gap-3">
-            {/* Bouton sinistre (garde la route sinistres/nouveau) */}
+            {/* Bouton sinistre BAMBOO */}
             <Button
-              onClick={() => navigate('/sinistres/nouveau')}
+              onClick={() => navigate('/sinistres/nouveau/bamboo')}
               variant="outline"
               className="border-orange-500 text-orange-600 hover:bg-orange-50"
             >
@@ -389,10 +389,10 @@ export const BambooDashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Déclaration de sinistre (reste global) */}
+        {/* Déclaration de sinistre BAMBOO */}
         <Card
           className="cursor-pointer hover:shadow-xl transition-all border-2 border-transparent hover:border-blue-500 hover:-translate-y-1 bg-white"
-          onClick={() => navigate('/sinistres/nouveau')}
+          onClick={() => navigate('/sinistres/nouveau/bamboo')}
         >
           <CardContent className="p-6">
             <div className="flex items-center gap-4">
@@ -401,7 +401,7 @@ export const BambooDashboard = () => {
               </div>
               <div>
                 <h3 className="font-semibold text-gray-900 text-lg">Déclarer Sinistre</h3>
-                <p className="text-sm text-gray-600">Nouvelle déclaration</p>
+                <p className="text-sm text-gray-600">Nouvelle déclaration BAMBOO</p>
               </div>
             </div>
           </CardContent>

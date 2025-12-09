@@ -149,7 +149,7 @@ export const SodecDashboard = () => {
           </div>
           <div className="flex gap-3">
             <Button
-              onClick={() => navigate('/sinistres/nouveau?sodec=1&emf_id=' + emfId)}
+              onClick={() => navigate('/sinistres/nouveau/sodec')}
               variant="outline"
               className="border-orange-500 text-orange-600 hover:bg-orange-50"
             >
@@ -343,7 +343,7 @@ export const SodecDashboard = () => {
       )}
 
       {/* Actions rapides */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card
           className="cursor-pointer hover:shadow-xl transition-all border-2 border-transparent hover:border-indigo-500 hover:-translate-y-1 bg-white"
           onClick={() => navigate('/contrats/nouveau/sodec')}
@@ -373,6 +373,23 @@ export const SodecDashboard = () => {
               <div>
                 <h3 className="font-semibold text-gray-900 text-lg">Mes Contrats</h3>
                 <p className="text-sm text-gray-600">{totalContrats} contrats SODEC</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card
+          className="cursor-pointer hover:shadow-xl transition-all border-2 border-transparent hover:border-indigo-500 hover:-translate-y-1 bg-white"
+          onClick={() => navigate('/sinistres/nouveau/sodec')}
+        >
+          <CardContent className="p-6">
+            <div className="flex items-center gap-4">
+              <div className="h-14 w-14 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg">
+                <AlertCircle className="h-7 w-7 text-white" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900 text-lg">Déclarer Sinistre</h3>
+                <p className="text-sm text-gray-600">Nouvelle déclaration SODEC</p>
               </div>
             </div>
           </CardContent>
