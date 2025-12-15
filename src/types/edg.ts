@@ -69,8 +69,12 @@ export interface EdgContrat {
   est_vip: boolean
   is_vip?: boolean  // Alias
   beneficiaire_deces?: string
+  beneficiaire_telephone?: string
+  numero_compte_protege?: string
+  capital_compte_protege?: number
   
   // Garanties
+  garantie_compte_protege?: boolean
   garantie_prevoyance: boolean
   garantie_deces_iad: boolean
   garantie_deces?: boolean  // Alias
@@ -112,6 +116,8 @@ export interface EdgContrat {
   
   // Statut et observations
   statut: 'en_attente' | 'actif' | 'suspendu' | 'resilie' | 'termine' | 'sinistre'
+  motif_attente?: string | null
+  limites_depassees?: boolean
   observations?: string
   
   // Délais

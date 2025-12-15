@@ -46,7 +46,7 @@ export const EdgSinistreDetailPage = () => {
   const { data: sinistre, isLoading, isError } = useQuery({
     queryKey: ['edg-sinistre', id],
     queryFn: async () => {
-      const response = await axios.get(`/edg/sinistres/${id}`)
+      const response = await axios.get(`/sinistres/${id}`)
       const rawData = response.data
       if (rawData?.success && rawData?.data) return rawData.data
       if (rawData?.data) return rawData.data

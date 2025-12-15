@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/Badge'
 import { useAuthStore } from '@/store/authStore'
 import { useCreateCofidecContract } from '@/hooks/useCofidecContracts'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
+import { LimitesDepasseesModal, type ContratCreationResponse } from '@/components/ui/LimitesDepasseesModal'
 import { formatCurrency } from '@/lib/utils'
 
 export const CofidecContractCreate = () => {
@@ -25,6 +26,8 @@ export const CofidecContractCreate = () => {
   })
 
   const { mutate: createContract, isPending } = useCreateCofidecContract()
+  const [showLimitesModal, setShowLimitesModal] = useState(false)
+  const [createdContrat, setCreatedContrat] = useState<ContratCreationResponse | null>(null)
 
   useEffect(() => {
     const today = new Date().toISOString().split('T')[0]
@@ -41,7 +44,14 @@ export const CofidecContractCreate = () => {
     }
     createContract(payload, {
       onSuccess: (data: any) => {
-        navigate(`/contrats/cofidec/${data.data.id}`)
+        setCreatedContrat({
+          id: data.data.id,
+          numero_police: data.data.numero_police,
+          statut: data.data.statut,
+          limites_depassees: data.data.limites_depassees || false,
+          motif_attente: data.data.motif_attente || null
+        })
+        setShowLimitesModal(true)
       },
     })
   }
@@ -142,6 +152,21 @@ export const CofidecContractCreate = () => {
           </Button>
         </div>
       </form>
+
+      {/* Modal de résultat de création */}
+      <LimitesDepasseesModal
+        isOpen={showLimitesModal}
+        onClose={() => setShowLimitesModal(false)}
+        onNavigate={() => {
+          if (createdContrat) {
+            navigate(`/contrats/cofidec/${createdContrat.id}`, {
+              state: { success: createdContrat.statut === 'actif' ? 'Contrat créé avec succès !' : 'Contrat créé en attente de validation.' }
+            })
+          }
+        }}
+        contrat={createdContrat}
+        emfType="cofidec"
+      />
     </div>
   )
 }

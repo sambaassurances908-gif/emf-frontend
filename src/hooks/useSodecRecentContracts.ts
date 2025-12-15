@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
-import { SodecContrat } from '@/types/sodec'
 
 export const useSodecRecentContracts = (emfId: number = 5, limit: number = 5) => {
   return useQuery({

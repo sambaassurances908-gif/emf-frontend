@@ -143,6 +143,13 @@ export const BambooContratPrint = ({ contrat }: BambooContratPrintProps) => {
             Couverture
           </div>
           <div className="flex-grow p-1.5 grid grid-cols-2 gap-x-4 gap-y-1">
+            {/* Numéro de police */}
+            <div className="col-span-2 flex items-end">
+              <span className="mr-1 whitespace-nowrap text-[11px] text-gray-800">N° Police :</span>
+              <span className="flex-grow border-b-2 border-gray-400 text-[11px] px-1 py-0.5 font-bold">
+                {contrat.numero_police || ''}
+              </span>
+            </div>
             <DisplayField 
               label="Montant du prêt assuré :" 
               value={montant ? formatCurrency(montant) : undefined}
@@ -205,12 +212,13 @@ export const BambooContratPrint = ({ contrat }: BambooContratPrintProps) => {
                   checked={contrat.categorie === cat.key}
                 />
               ))}
-              <div className="flex items-center ml-1">
-                <CheckboxDisplay 
-                  label="Autre à préciser :" 
-                  checked={contrat.categorie === 'autre'}
-                />
-                <span className="border-b border-gray-400 w-24 ml-1 text-xs font-semibold">
+              <CheckboxDisplay 
+                label="Autre" 
+                checked={contrat.categorie === 'autre'}
+              />
+              <div className="flex items-center">
+                <span className="text-[10px] text-gray-800 mr-1">à préciser :</span>
+                <span className="border-b border-gray-400 w-24 text-xs font-semibold">
                   {contrat.categorie === 'autre' ? contrat.autre_categorie_precision : ''}
                 </span>
               </div>

@@ -61,7 +61,7 @@ export const CofidecSinistreDetailPage = () => {
   const { data: sinistre, isLoading, isError } = useQuery({
     queryKey: ['cofidec-sinistre', id],
     queryFn: async () => {
-      const response = await axios.get(`/cofidec/sinistres/${id}`)
+      const response = await axios.get(`/sinistres/${id}`)
       const rawData = response.data
       if (rawData?.success && rawData?.data) return rawData.data
       if (rawData?.data) return rawData.data

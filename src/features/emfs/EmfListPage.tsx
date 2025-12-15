@@ -37,7 +37,7 @@ export const EmfListPage = () => {
   const [statutFilter, setStatutFilter] = useState('');
   const [page, setPage] = useState(1);
 
-  const { data, isLoading } = useQuery({
+  const { data: rawData, isLoading } = useQuery({
     queryKey: ['emfs', { search, typeFilter, statutFilter, page }],
     queryFn: async () => {
       return await emfService.getAll({
@@ -48,6 +48,20 @@ export const EmfListPage = () => {
       });
     },
   });
+
+  // Normalisation des données pour gérer différents formats de réponse API
+  // L'API peut retourner: { data: [...] }, [...], ou { data: { data: [...] } }
+  const normalizeEmfList = (raw: any): EmfWithCount[] => {
+    if (!raw) return [];
+    if (Array.isArray(raw)) return raw;
+    if (Array.isArray(raw.data)) return raw.data;
+    if (raw.data && Array.isArray(raw.data.data)) return raw.data.data;
+    return [];
+  };
+
+  const emfList = normalizeEmfList(rawData);
+  const meta = rawData?.meta || rawData?.data?.meta || { total: 0, from: 0, to: 0, current_page: 1, last_page: 1, per_page: 15 };
+  const stats = rawData?.stats || rawData?.data?.stats || { total_emfs: 0, total_banques: 0, total_actifs: 0 };
 
   const getStatutColor = (statut: string) => {
     const colors: Record<string, string> = {
@@ -88,7 +102,7 @@ export const EmfListPage = () => {
               <div>
                 <p className="text-sm text-gray-600">Total Partenaires</p>
                 <p className="text-2xl font-bold text-gray-900 mt-1">
-                  {data?.meta?.total || 0}
+                  {meta.total || emfList.length}
                 </p>
               </div>
               <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -104,7 +118,7 @@ export const EmfListPage = () => {
               <div>
                 <p className="text-sm text-gray-600">EMFs</p>
                 <p className="text-2xl font-bold text-blue-600 mt-1">
-                  {data?.stats?.total_emfs || 0}
+                  {stats.total_emfs || emfList.filter(e => e.type === 'emf').length}
                 </p>
               </div>
               <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -120,7 +134,7 @@ export const EmfListPage = () => {
               <div>
                 <p className="text-sm text-gray-600">Banques</p>
                 <p className="text-2xl font-bold text-purple-600 mt-1">
-                  {data?.stats?.total_banques || 0}
+                  {stats.total_banques || emfList.filter(e => e.type === 'banque').length}
                 </p>
               </div>
               <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
@@ -136,7 +150,7 @@ export const EmfListPage = () => {
               <div>
                 <p className="text-sm text-gray-600">Actifs</p>
                 <p className="text-2xl font-bold text-green-600 mt-1">
-                  {data?.stats?.total_actifs || 0}
+                  {stats.total_actifs || emfList.filter(e => e.statut === 'actif').length}
                 </p>
               </div>
               <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
@@ -185,7 +199,7 @@ export const EmfListPage = () => {
             <div className="py-12">
               <LoadingSpinner size="lg" text="Chargement des partenaires..." />
             </div>
-          ) : !data?.data || data.data.length === 0 ? (
+          ) : emfList.length === 0 ? (
             <EmptyState
               title="Aucun partenaire trouvé"
               description="Commencez par ajouter un EMF ou une banque"
@@ -211,7 +225,7 @@ export const EmfListPage = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {data.data.map((emf: EmfWithCount) => (
+                {emfList.map((emf: EmfWithCount) => (
                   <TableRow key={emf.id}>
                     <TableCell>
                       <div className="flex items-center gap-2">
@@ -269,10 +283,10 @@ export const EmfListPage = () => {
       </Card>
 
       {/* Pagination */}
-      {data?.meta && (
+      {emfList.length > 0 && meta.last_page > 1 && (
         <div className="flex items-center justify-between">
           <p className="text-sm text-gray-600">
-            Affichage de {data.meta.from} à {data.meta.to} sur {data.meta.total} partenaires
+            Affichage de {meta.from || 1} à {meta.to || emfList.length} sur {meta.total || emfList.length} partenaires
           </p>
           <div className="flex items-center gap-2">
             <Button
@@ -284,12 +298,12 @@ export const EmfListPage = () => {
               Précédent
             </Button>
             <span className="text-sm text-gray-600">
-              Page {page} sur {data.meta.last_page}
+              Page {page} sur {meta.last_page || 1}
             </span>
             <Button
               variant="outline"
               size="sm"
-              disabled={page === data.meta.last_page}
+              disabled={page === meta.last_page}
               onClick={() => setPage(page + 1)}
             >
               Suivant

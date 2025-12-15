@@ -8,17 +8,16 @@ export type SinistreType = 'deces' | 'iad' | 'perte_emploi' | 'perte_activite'
 
 /**
  * Statuts de sinistre supportés par l'API Laravel
+ * Correspond exactement à SinistreController@update validation
  */
 export type SinistreStatut = 
-  | 'en_attente'
-  | 'en_attente_documents'
-  | 'documents_complets'
-  | 'en_cours_traitement'
-  | 'en_attente_decision'
-  | 'accepte'
-  | 'rejete'
-  | 'paye'
-  | 'cloture'
+  | 'en_cours'          // Sinistre déclaré, en attente de traitement
+  | 'en_instruction'    // Documents reçus, en cours d'analyse
+  | 'en_reglement'      // Analyse terminée, en cours de règlement
+  | 'en_paiement'       // Validé, en attente de paiement
+  | 'paye'              // Indemnisation versée
+  | 'rejete'            // Sinistre refusé
+  | 'cloture'           // Dossier clôturé
 
 /**
  * Types de contrat supportés par l'API pour les sinistres
@@ -38,9 +37,15 @@ export interface Sinistre {
   numero_sinistre: string
   contrat_type: ContratType
   contrat_id: number
+  emf_id?: number // ID de l'EMF (peut être directement sur le sinistre ou via contrat)
   type_sinistre: SinistreType
   date_sinistre: string
   date_declaration: string
+  
+  // Accesseurs calculés depuis le contrat
+  numero_police?: string
+  nom_assure?: string
+  telephone_assure?: string
   
   // Déclarant
   nom_declarant: string
@@ -105,8 +110,25 @@ export interface Sinistre {
     nom_prenom?: string
     nom_prenom_assure_principal?: string
     montant_pret_assure: number
+    duree_pret_mois?: number
+    date_effet?: string
+    date_fin_echeance?: string
     capital_restant_du?: number
+    emf_id?: number
     emf?: { id: number; sigle: string; nom: string }
+    // Garanties communes
+    garantie_deces_iad?: boolean | number
+    garantie_prevoyance?: boolean | number
+    garantie_prevoyance_deces_iad?: boolean | number
+    garantie_perte_emploi?: boolean | number
+    // Cotisations
+    cotisation_deces_iad?: number
+    cotisation_perte_emploi?: number
+    cotisation_totale_ttc?: number
+    prime_unique_prevoyance?: number
+    // SODEC spécifique
+    option_prevoyance?: 'A' | 'B'
+    cotisation_prevoyance?: number
   }
   documents?: SinistreDocument[]
   declarePar?: { id: number; name: string }
@@ -134,28 +156,35 @@ export interface SinistreDocument {
 }
 
 /**
- * Payload pour créer un sinistre (correspond exactement au validator Laravel)
+ * Payload pour créer un sinistre (correspond exactement au validator Laravel SinistreController@store)
+ * 
+ * Champs obligatoires:
+ * - contrat_type: ContratBambooEmf, ContratCofidec, ContratBceg, ContratEdg, ContratSodec
+ * - contrat_id: integer (doit exister dans la table correspondante)
+ * - type_sinistre: deces, iad, perte_emploi, perte_activite
+ * - date_sinistre: date format YYYY-MM-DD (before_or_equal:today)
+ * - capital_restant_du: numeric min:0
+ * 
+ * Champs optionnels:
+ * - circonstances: string
+ * - lieu_sinistre: string max:255
+ * - montant_reclame: numeric min:0
+ * - fichier_*: File (PDF, max 10MB)
  */
 export interface SinistreCreatePayload {
+  // Champs obligatoires
   contrat_type: ContratType
   contrat_id: number
   type_sinistre: SinistreType
   date_sinistre: string // format YYYY-MM-DD
+  capital_restant_du: number
   
-  // Informations du déclarant (obligatoires)
-  nom_declarant: string
-  prenom_declarant: string
-  qualite_declarant: string
-  telephone_declarant: string
-  email_declarant?: string
-  
-  // Détails sinistre
+  // Champs optionnels
   circonstances?: string
   lieu_sinistre?: string
-  capital_restant_du: number
   montant_reclame?: number
   
-  // Documents PDF (optionnels lors de la création)
+  // Documents PDF (tous optionnels, max 10MB chacun)
   fichier_tableau_amortissement?: File
   fichier_acte_deces?: File
   fichier_certificat_arret_travail?: File
@@ -163,7 +192,7 @@ export interface SinistreCreatePayload {
   fichier_certificat_licenciement?: File
   fichier_proces_verbal?: File
   fichier_proces_verbal_faillite?: File
-  fichier_piece_identite?: File
+  fichier_piece_identite?: File // Accepte aussi jpg, jpeg, png
   fichier_certificat_heredite?: File
   fichier_autres_documents?: File
 }
@@ -181,14 +210,17 @@ export interface SinistreCreateResponse {
 }
 
 /**
- * Statistiques sinistres
+ * Statistiques sinistres - Correspond à SinistreController@statistiques
  */
 export interface SinistreStats {
   total: number
-  en_attente: number
-  acceptes: number
-  rejetes: number
+  en_cours: number
+  en_instruction: number
+  en_reglement: number
+  en_paiement: number
   payes: number
+  rejetes: number
+  clotures: number
   par_type: {
     deces: number
     iad: number
@@ -237,6 +269,8 @@ export interface BcegSinistre extends Sinistre {
 
 export interface BcegSinistreCreatePayload extends Omit<SinistreCreatePayload, 'contrat_type'> {
   contrat_type?: 'ContratBceg'
+  // Note: Les flags doc_* ne sont PAS acceptés lors de la création (store)
+  // Ils sont mis à jour automatiquement par le backend lors de l'upload des fichiers
 }
 
 // EDG

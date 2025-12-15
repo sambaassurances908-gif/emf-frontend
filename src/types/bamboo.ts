@@ -34,6 +34,7 @@ export interface BambooDashboardStats {
 export interface BambooContrat {
   id: number
   emf_id: number
+  numero_police?: string | null
   nom_prenom: string
   date_naissance?: string | null
   lieu_naissance?: string | null
@@ -45,15 +46,19 @@ export interface BambooContrat {
   categorie: string
   autre_categorie_precision?: string | null
   type_contrat_travail?: string | null
+  // Statut et observations
   statut: string
-  numero_police?: string | null
-  montant_pret_assure: number
+  motif_attente?: string | null
+  limites_depassees?: boolean
+  observations?: string | null
+  
+  // Montant et durée du prêt
+  montant_pret_assure?: number
   montant_pret?: number // Alias pour compatibilité
   duree_pret_mois: number
   date_effet: string
   date_fin_echeance?: string | null
   agence?: string | null
-  observations?: string | null
   
   // Garanties
   garantie_prevoyance?: boolean | number

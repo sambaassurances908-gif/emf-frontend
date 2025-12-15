@@ -58,14 +58,16 @@ export const BambooSinistresList = () => {
   const { data: sinistres = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['bamboo-sinistres', emfId, search],
     queryFn: async () => {
+      // Utiliser l'endpoint générique /sinistres avec filtre contrat_type
       const params = new URLSearchParams({
         emf_id: emfId.toString(),
+        contrat_type: 'ContratBambooEmf',
         ...(search && { search }),
         per_page: '50'
       })
-      const response = await axios.get(`/bamboo-emf/sinistres?${params}`)
+      const response = await axios.get(`/sinistres?${params}`)
       
-      // Extraire les données selon le format
+      // Extraire les données selon le format de réponse Laravel
       const rawData = response.data
       if (rawData?.data?.data) return rawData.data.data
       if (Array.isArray(rawData?.data)) return rawData.data

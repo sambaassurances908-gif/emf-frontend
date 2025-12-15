@@ -54,6 +54,11 @@ export interface EmfStats {
   montant_total: number;
 }
 
+export interface AgenceStats {
+  agence: string;
+  nombre: number;
+}
+
 export interface DashboardStats {
   contrats_actifs: number;
   montant_total_assure: number;
@@ -65,6 +70,7 @@ export interface DashboardStats {
   evolution_contrats: EvolutionContrat[];
   par_emf: EmfStats[];
   par_localisation?: LocalisationStats[];
+  par_agence?: AgenceStats[];
   par_genre?: GenreStats;
   par_categorie_socio_pro?: CategorieSocioPro[];
   contrats_recents: ContratRecent[];

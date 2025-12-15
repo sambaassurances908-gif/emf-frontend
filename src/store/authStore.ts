@@ -88,8 +88,20 @@ export const useAuthStore = create<AuthState>()(
         try {
           console.log('🚀 Login en cours...')
           
+          // IMPORTANT: Réinitialiser COMPLÈTEMENT le store AVANT l'appel API
+          set({
+            user: null,
+            token: null,
+            isAuthenticated: false,
+          })
+          
+          // Nettoyer TOUT le localStorage
+          localStorage.clear()
+          
           const response = await authService.login(credentials)
           const { token, user } = response
+          
+          console.log('📥 Réponse backend complète:', JSON.stringify(user, null, 2))
           
           if (!token || !user) {
             throw new Error('Réponse serveur invalide')
@@ -104,7 +116,7 @@ export const useAuthStore = create<AuthState>()(
             finalEmfId = user.emf_id ?? user.emf?.id ?? null;
           }
           
-          console.log('🔍 Role:', user.role, '| Backend emf_id:', user.emf_id, '| Final emf_id:', finalEmfId);
+          console.log('🔍 Role:', user.role, '| Backend emf_id:', user.emf_id, '| emf.id:', user.emf?.id, '| emf.sigle:', user.emf?.sigle, '| Final emf_id:', finalEmfId);
 
           // Construire l'objet user complet
           const userWithEmf: User = {
@@ -121,7 +133,7 @@ export const useAuthStore = create<AuthState>()(
           }
 
           console.log('✅ User traité:', userWithEmf)
-          console.log('📍 EMF ID:', userWithEmf.emf_id)
+          console.log('📍 EMF ID:', userWithEmf.emf_id, '| EMF sigle:', userWithEmf.emf?.sigle)
 
           localStorage.setItem('token', token)
           localStorage.setItem('user', JSON.stringify(userWithEmf))

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button'
 import { useAuthStore } from '@/store/authStore'
 import { useCreateSodecContract } from '@/hooks/useCreateSodecContract'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
+import { LimitesDepasseesModal, type ContratCreationResponse } from '@/components/ui/LimitesDepasseesModal'
 import { formatCurrency } from '@/lib/utils'
 import logoSamba from '@/assets/logo-samba.png'
 
@@ -113,7 +114,17 @@ const Footer: React.FC = () => {
 export const SodecContractCreateOfficial = () => {
   const navigate = useNavigate()
   const { user } = useAuthStore()
-  const emfId = user?.emf_id || 5
+  
+  // ═══════════════════════════════════════════════════════════════════
+  // 🔒 VÉRIFICATION EMF - SODEC = emf_id 5
+  // ═══════════════════════════════════════════════════════════════════
+  const userEmfId = user?.emf_id
+  const userEmfSigle = user?.emf?.sigle?.toUpperCase() || ''
+  const isSodecUser = userEmfId === 5 || userEmfSigle.includes('SODEC') || user?.role === 'admin'
+  const emfName = userEmfSigle || (userEmfId === 1 ? 'BAMBOO' : userEmfId === 2 ? 'COFIDEC' : userEmfId === 3 ? 'BCEG' : userEmfId === 4 ? 'EDG' : userEmfId === 5 ? 'SODEC' : 'inconnu')
+
+  // IMPORTANT: Toujours utiliser emf_id = 5 pour SODEC (pas depuis user qui peut être incorrect)
+  const emfId = 5
 
   const [formData, setFormData] = useState({
     emf_id: emfId,
@@ -152,6 +163,37 @@ export const SodecContractCreateOfficial = () => {
 
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [submitError, setSubmitError] = useState('')
+  const [showLimitesModal, setShowLimitesModal] = useState(false)
+  const [createdContrat, setCreatedContrat] = useState<ContratCreationResponse | null>(null)
+
+  // ═══════════════════════════════════════════════════════════════════
+  // 🔒 VALIDATION PROGRESSIVE - Activation des sections par étapes
+  // ═══════════════════════════════════════════════════════════════════
+  
+  // Section 1: Couverture Prêt (toujours active) - Option prévoyance n'est pas obligatoire pour débloquer
+  const isSection1Complete = Boolean(
+    formData.montant_pret_assure && 
+    formData.duree_pret_mois && 
+    formData.date_effet
+  )
+
+  // Section 2: Assuré (active si Section 1 complète)
+  const isSection2Enabled = isSection1Complete
+  const isSection2Complete = Boolean(
+    formData.nom_prenom.trim() && 
+    formData.adresse_assure.trim() && 
+    formData.ville_assure.trim() && 
+    formData.telephone_assure.trim() &&
+    formData.categorie
+  )
+
+  // Section 3+ (active si Section 2 complète)
+  const isSection3Enabled = isSection2Complete
+  const isSection4Enabled = isSection2Complete
+  const isSection5Enabled = isSection2Complete
+
+  // Bouton de création: actif si tous les champs obligatoires sont remplis
+  const isFormComplete = isSection1Complete && isSection2Complete
 
   const { mutate: createContract, isPending, isSuccess, isError, error } = useCreateSodecContract()
 
@@ -184,7 +226,7 @@ export const SodecContractCreateOfficial = () => {
   const duree = parseInt(formData.duree_pret_mois) || 0
   const cotisationPrevoyance = formData.option_prevoyance === 'option_a' ? 30000 : formData.option_prevoyance === 'option_b' ? 15000 : 0
   const tauxDeces = 0.015
-  const tauxPerteEmploi = formData.garantie_perte_emploi ? 0.025 : 0
+  const tauxPerteEmploi = formData.garantie_perte_emploi ? 0.025 : 0  // 2,5% pour perte d'emploi
   const cotisationTotale = cotisationPrevoyance + (montant * tauxDeces) + (montant * tauxPerteEmploi)
 
   // Validation des règles métier pour statut "actif"
@@ -226,6 +268,34 @@ export const SodecContractCreateOfficial = () => {
 
   const businessWarnings = validateBusinessRules()
   const isContractValid = businessWarnings.length === 0
+
+  // ═══════════════════════════════════════════════════════════════════
+  // 🔒 VÉRIFICATION D'ACCÈS - Après tous les hooks (Rules of Hooks)
+  // ═══════════════════════════════════════════════════════════════════
+  if (!isSodecUser) {
+    return (
+      <div className="min-h-screen bg-gray-100 py-8 px-4">
+        <div className="max-w-[210mm] mx-auto">
+          <div className="bg-red-50 border border-red-300 rounded-lg p-6 text-center">
+            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <h1 className="text-xl font-bold text-red-700 mb-2">Accès non autorisé</h1>
+            <p className="text-red-600 mb-4">
+              Vous êtes connecté avec un compte <strong>{emfName}</strong>.
+              <br />
+              Ce formulaire est réservé aux utilisateurs SODEC.
+            </p>
+            <Button 
+              onClick={() => navigate(-1)} 
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Retour
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   const categories = [
     { key: 'commercants' as const, label: 'Commerçants' },
@@ -446,6 +516,8 @@ export const SodecContractCreateOfficial = () => {
         garantie_perte_emploi: formData.garantie_perte_emploi,
         type_contrat_travail: (formData.garantie_perte_emploi ? 'cdi' : 'non_applicable') as 'cdi' | 'cdd_plus_9_mois' | 'cdd_moins_9_mois' | 'non_applicable',
         agence: formData.agence?.trim() || null,
+        lieu_signature: formData.lieu_signature?.trim() || 'Libreville',
+        date_signature: formData.date_signature || new Date().toISOString().split('T')[0],
         statut: (isContractValid ? 'actif' : 'en_attente') as 'actif' | 'en_attente',
         ...(assuresArray.length > 0 ? { assures_associes: assuresArray } : {})
       }
@@ -464,11 +536,19 @@ export const SodecContractCreateOfficial = () => {
           console.log('✅ SUCCÈS: Contrat créé avec succès!')
           console.log('   ID:', data.data.id)
           console.log('   Numéro police:', data.data.numero_police)
+          console.log('   Statut:', data.data.statut)
+          console.log('   Limites dépassées:', data.data.limites_depassees)
           console.log('═══════════════════════════════════════════════════════════════')
           
-          navigate(`/contrats/sodec/${data.data.id}`, {
-            state: { success: 'Contrat créé avec succès !' }
+          // Afficher le modal avec le résultat
+          setCreatedContrat({
+            id: data.data.id,
+            numero_police: data.data.numero_police,
+            statut: data.data.statut,
+            limites_depassees: data.data.limites_depassees || false,
+            motif_attente: data.data.motif_attente || null
           })
+          setShowLimitesModal(true)
         },
         onError: (error: any) => {
           console.error('═══════════════════════════════════════════════════════════════')
@@ -577,6 +657,37 @@ export const SodecContractCreateOfficial = () => {
         )}
       </div>
 
+      {/* 🔒 Indicateur de progression */}
+      <div className="max-w-[210mm] mx-auto mb-4 bg-white rounded-lg shadow p-4">
+        <div className="flex items-center justify-between text-sm">
+          <span className="font-medium text-gray-700">Progression du formulaire :</span>
+          <div className="flex items-center gap-2">
+            <div className={`flex items-center gap-1 px-2 py-1 rounded ${isSection1Complete ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+              {isSection1Complete ? <CheckCircle className="h-4 w-4" /> : <span className="w-4 h-4 rounded-full border-2 border-current" />}
+              <span>Prêt</span>
+            </div>
+            <div className={`flex items-center gap-1 px-2 py-1 rounded ${isSection2Complete ? 'bg-green-100 text-green-700' : isSection2Enabled ? 'bg-orange-100 text-orange-700' : 'bg-gray-100 text-gray-400'}`}>
+              {isSection2Complete ? <CheckCircle className="h-4 w-4" /> : <span className="w-4 h-4 rounded-full border-2 border-current" />}
+              <span>Assuré</span>
+            </div>
+            <div className={`flex items-center gap-1 px-2 py-1 rounded ${isFormComplete ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'}`}>
+              {isFormComplete ? <CheckCircle className="h-4 w-4" /> : <span className="w-4 h-4 rounded-full border-2 border-current" />}
+              <span>Prêt à créer</span>
+            </div>
+          </div>
+        </div>
+        {!isSection1Complete && (
+          <p className="text-xs text-orange-600 mt-2">
+            ⚠️ Remplissez d'abord les informations du prêt (Montant, Durée, Date d'effet, Option) pour débloquer la section Assuré.
+          </p>
+        )}
+        {isSection1Complete && !isSection2Complete && (
+          <p className="text-xs text-orange-600 mt-2">
+            ⚠️ Remplissez les informations de l'assuré (Nom, Adresse, Ville, Téléphone, Catégorie) pour activer le bouton de création.
+          </p>
+        )}
+      </div>
+
       {/* Formulaire style contrat officiel */}
       <form onSubmit={handleSubmit}>
         <div className="bg-white w-[210mm] min-h-[297mm] p-[6mm] shadow-xl relative flex flex-col mx-auto">
@@ -652,10 +763,11 @@ export const SodecContractCreateOfficial = () => {
             </div>
 
             {/* Section: Assuré principal */}
-            <div className="flex border-b border-[#F48232]">
+            <div className={`flex border-b border-[#F48232] ${!isSection2Enabled ? 'opacity-50 pointer-events-none' : ''}`}>
               <div className="w-24 flex-shrink-0 p-1.5 bg-orange-50 italic border-r border-[#F48232] flex flex-col justify-center text-xs">
                 Assuré principal<br/>
                 <span className="text-[9px] not-italic">Personne assurée</span>
+                {!isSection2Enabled && <span className="text-[10px] text-orange-600 mt-1">🔒 Remplir Prêt</span>}
               </div>
               <div className="flex-grow p-1.5 space-y-1">
                 <FormInput 
@@ -665,6 +777,7 @@ export const SodecContractCreateOfficial = () => {
                   placeholder="Ex: Jean NGUEMA"
                   required
                   error={errors.nom_prenom}
+                  disabled={!isSection2Enabled}
                 />
                 <div className="flex gap-2">
                   <FormInput 
@@ -675,6 +788,7 @@ export const SodecContractCreateOfficial = () => {
                     required
                     error={errors.adresse_assure}
                     className="flex-grow-[2]"
+                    disabled={!isSection2Enabled}
                   />
                   <FormInput 
                     label="Ville :" 
@@ -684,6 +798,7 @@ export const SodecContractCreateOfficial = () => {
                     required
                     error={errors.ville_assure}
                     className="flex-grow-[1]"
+                    disabled={!isSection2Enabled}
                   />
                 </div>
                 <div className="flex gap-2">
@@ -695,6 +810,7 @@ export const SodecContractCreateOfficial = () => {
                     required
                     error={errors.telephone_assure}
                     className="flex-grow-[1]"
+                    disabled={!isSection2Enabled}
                   />
                   <FormInput 
                     label="Email:" 
@@ -703,6 +819,7 @@ export const SodecContractCreateOfficial = () => {
                     placeholder="Ex: email@example.com"
                     type="email"
                     className="flex-grow-[2]"
+                    disabled={!isSection2Enabled}
                   />
                 </div>
                 <div className="flex flex-wrap items-center mt-1 gap-y-1">
@@ -715,17 +832,18 @@ export const SodecContractCreateOfficial = () => {
                       onChange={() => setFormData({...formData, categorie: cat.key})}
                     />
                   ))}
-                  <div className="flex items-center ml-1">
-                    <Checkbox 
-                      label="Autre à préciser :" 
-                      checked={formData.categorie === 'autre'}
-                      onChange={() => setFormData({...formData, categorie: 'autre'})}
-                    />
+                  <Checkbox 
+                    label="Autre" 
+                    checked={formData.categorie === 'autre'}
+                    onChange={() => setFormData({...formData, categorie: 'autre'})}
+                  />
+                  <div className="flex items-center">
+                    <span className="text-[10px] text-gray-800 mr-1">à préciser :</span>
                     <input
                       type="text"
                       value={formData.autre_categorie_precision}
                       onChange={(e) => setFormData({...formData, autre_categorie_precision: e.target.value})}
-                      className="border-b border-gray-400 w-24 ml-1 text-xs font-semibold bg-transparent focus:outline-none focus:border-[#F48232]"
+                      className="border-b border-gray-400 w-24 text-xs font-semibold bg-transparent focus:outline-none focus:border-[#F48232]"
                       disabled={formData.categorie !== 'autre'}
                     />
                   </div>
@@ -740,9 +858,10 @@ export const SodecContractCreateOfficial = () => {
             </div>
 
             {/* Section: Souscripteur / EMF */}
-            <div className="flex border-b border-[#F48232]">
-              <div className="w-24 flex-shrink-0 p-1.5 bg-orange-50 italic border-r border-[#F48232] flex items-center text-xs">
+            <div className={`flex border-b border-[#F48232] ${!isSection3Enabled ? 'opacity-50 pointer-events-none' : ''}`}>
+              <div className="w-24 flex-shrink-0 p-1.5 bg-orange-50 italic border-r border-[#F48232] flex flex-col justify-center text-xs">
                 Souscripteur / EMF
+                {!isSection3Enabled && <span className="text-[10px] text-orange-600 mt-1">🔒 Remplir Assuré</span>}
               </div>
               <div className="flex-grow p-1.5 space-y-1">
                 <div className="flex items-end">
@@ -775,9 +894,10 @@ export const SodecContractCreateOfficial = () => {
             </div>
 
             {/* Section: Assurés associés */}
-            <div className="flex border-b border-[#F48232]">
-              <div className="w-24 flex-shrink-0 p-1.5 bg-orange-50 italic border-r border-[#F48232] flex items-center text-xs">
+            <div className={`flex border-b border-[#F48232] ${!isSection4Enabled ? 'opacity-50 pointer-events-none' : ''}`}>
+              <div className="w-24 flex-shrink-0 p-1.5 bg-orange-50 italic border-r border-[#F48232] flex flex-col justify-center text-xs">
                 Assurés associés
+                {!isSection4Enabled && <span className="text-[10px] text-orange-600 mt-1">🔒 Remplir Assuré</span>}
               </div>
               <div className="flex-grow">
                 <table className="w-full text-left text-[10px] border-collapse">
@@ -940,9 +1060,10 @@ export const SodecContractCreateOfficial = () => {
             </div>
 
             {/* Section: Garanties */}
-            <div className="flex border-b border-[#F48232]">
-              <div className="w-24 flex-shrink-0 p-1.5 bg-orange-50 italic border-r border-[#F48232] flex items-center text-xs">
+            <div className={`flex border-b border-[#F48232] ${!isSection5Enabled ? 'opacity-50 pointer-events-none' : ''}`}>
+              <div className="w-24 flex-shrink-0 p-1.5 bg-orange-50 italic border-r border-[#F48232] flex flex-col justify-center text-xs">
                 Garanties
+                {!isSection5Enabled && <span className="text-[10px] text-orange-600 mt-1">🔒 Remplir Assuré</span>}
               </div>
               <div className="flex-grow">
                 <table className="w-full text-center text-[10px] border-collapse">
@@ -1124,13 +1245,23 @@ export const SodecContractCreateOfficial = () => {
           </Button>
           <Button
             type="submit"
-            disabled={isPending}
-            className="flex-1 bg-[#F48232] hover:bg-[#e0742a] text-white font-semibold text-lg py-3"
+            disabled={isPending || !isFormComplete}
+            className={`flex-1 text-white font-semibold text-lg py-3 ${
+              isFormComplete 
+                ? 'bg-[#F48232] hover:bg-[#e0742a]' 
+                : 'bg-gray-400 cursor-not-allowed'
+            }`}
+            title={!isFormComplete ? 'Veuillez remplir tous les champs obligatoires' : ''}
           >
             {isPending ? (
               <>
                 <LoadingSpinner size="sm" />
                 <span className="ml-2">Création en cours...</span>
+              </>
+            ) : !isFormComplete ? (
+              <>
+                <AlertCircle className="h-5 w-5 mr-2" />
+                Remplir les champs obligatoires
               </>
             ) : (
               <>
@@ -1141,6 +1272,21 @@ export const SodecContractCreateOfficial = () => {
           </Button>
         </div>
       </form>
+
+      {/* Modal de résultat de création */}
+      <LimitesDepasseesModal
+        isOpen={showLimitesModal}
+        onClose={() => setShowLimitesModal(false)}
+        onNavigate={() => {
+          if (createdContrat) {
+            navigate(`/contrats/sodec/${createdContrat.id}`, {
+              state: { success: createdContrat.statut === 'actif' ? 'Contrat créé avec succès !' : 'Contrat créé en attente de validation.' }
+            })
+          }
+        }}
+        contrat={createdContrat}
+        emfType="sodec"
+      />
     </div>
   )
 }

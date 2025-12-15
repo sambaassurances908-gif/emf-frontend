@@ -35,36 +35,36 @@ export const sinistreService = {
   /**
    * Crée un nouveau sinistre avec upload de documents
    * Utilise FormData pour l'envoi multipart
+   * 
+   * Correspond exactement à SinistreController@store
    */
   create: async (payload: SinistreCreatePayload): Promise<SinistreCreateResponse> => {
     const formData = new FormData();
     
-    // Champs obligatoires
+    // Champs obligatoires (required par le backend)
     formData.append('contrat_type', payload.contrat_type);
     formData.append('contrat_id', payload.contrat_id.toString());
     formData.append('type_sinistre', payload.type_sinistre);
     formData.append('date_sinistre', payload.date_sinistre);
-    formData.append('nom_declarant', payload.nom_declarant);
-    formData.append('prenom_declarant', payload.prenom_declarant);
-    formData.append('qualite_declarant', payload.qualite_declarant);
-    formData.append('telephone_declarant', payload.telephone_declarant);
-    formData.append('capital_restant_du', payload.capital_restant_du.toString());
     
-    // Champs optionnels texte
-    if (payload.email_declarant) {
-      formData.append('email_declarant', payload.email_declarant);
+    // capital_restant_du - s'assurer que c'est un nombre valide
+    const capitalRestantDu = typeof payload.capital_restant_du === 'string' 
+      ? parseFloat(payload.capital_restant_du) 
+      : payload.capital_restant_du;
+    formData.append('capital_restant_du', capitalRestantDu.toString());
+    
+    // Champs optionnels (nullable) - NE PAS envoyer si vide/undefined
+    if (payload.circonstances && payload.circonstances.trim()) {
+      formData.append('circonstances', payload.circonstances.trim());
     }
-    if (payload.circonstances) {
-      formData.append('circonstances', payload.circonstances);
+    if (payload.lieu_sinistre && payload.lieu_sinistre.trim()) {
+      formData.append('lieu_sinistre', payload.lieu_sinistre.trim());
     }
-    if (payload.lieu_sinistre) {
-      formData.append('lieu_sinistre', payload.lieu_sinistre);
-    }
-    if (payload.montant_reclame) {
+    if (payload.montant_reclame !== undefined && payload.montant_reclame !== null && payload.montant_reclame > 0) {
       formData.append('montant_reclame', payload.montant_reclame.toString());
     }
     
-    // Documents PDF
+    // Documents PDF (tous optionnels)
     const documentFields = [
       'fichier_tableau_amortissement',
       'fichier_acte_deces',
@@ -80,15 +80,30 @@ export const sinistreService = {
     
     documentFields.forEach((field) => {
       const file = payload[field];
-      if (file) {
+      if (file instanceof File) {
         formData.append(field, file);
       }
     });
+
+    // Log pour debug
+    console.log('📤 Sinistre FormData:', {
+      contrat_type: payload.contrat_type,
+      contrat_id: payload.contrat_id,
+      type_sinistre: payload.type_sinistre,
+      date_sinistre: payload.date_sinistre,
+      capital_restant_du: capitalRestantDu,
+      circonstances: payload.circonstances,
+      lieu_sinistre: payload.lieu_sinistre,
+      montant_reclame: payload.montant_reclame,
+      documents: documentFields.filter(f => payload[f] instanceof File),
+    });
     
+    // POST sans emf_id dans les params (le backend le récupère du contrat)
     const response = await api.post<SinistreCreateResponse>('/sinistres', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
+      params: {}, // Forcer des params vides pour éviter l'ajout automatique de emf_id
     });
     
     return response.data;
@@ -138,13 +153,35 @@ export const sinistreService = {
   },
 
   /**
-   * Télécharge un document d'un sinistre
+   * Télécharge un document d'un sinistre via l'API (retourne un blob)
    */
-  downloadDocument: async (sinistreId: number, typeDocument: string) => {
+  downloadDocument: async (sinistreId: number, typeDocument: string): Promise<Blob> => {
     const response = await api.get(`/sinistres/${sinistreId}/documents/${typeDocument}/telecharger`, {
       responseType: 'blob',
     });
     return response.data;
+  },
+
+  /**
+   * Télécharge un document par son chemin de fichier (via l'API pour contourner CORS/symlink)
+   */
+  downloadDocumentByPath: async (sinistreId: number, filePath: string): Promise<Blob> => {
+    const response = await api.post(`/sinistres/${sinistreId}/documents/download`, {
+      file_path: filePath,
+    }, {
+      responseType: 'blob',
+    });
+    return response.data;
+  },
+
+  /**
+   * Récupère l'URL de téléchargement d'un document (URL signée ou directe)
+   */
+  getDocumentUrl: async (sinistreId: number, typeDocument: string): Promise<{ url: string; expires_at?: string }> => {
+    const response = await api.get<{ success: boolean; data: { url: string; expires_at?: string } }>(
+      `/sinistres/${sinistreId}/documents/${typeDocument}/url`
+    );
+    return response.data.data;
   },
 
   /**

@@ -157,6 +157,12 @@ export const CofidecContratPrint: React.FC<CofidecContratPrintProps> = ({ contra
             Couverture
           </div>
           <div className="flex-grow p-2 space-y-2">
+            <div className="flex items-end">
+              <span className="text-xs text-gray-800 mr-2 whitespace-nowrap">N° Police :</span>
+              <span className="flex-grow border-b border-gray-800 text-xs px-1 font-bold">
+                {(contrat as any).numero_police || '-'}
+              </span>
+            </div>
             <div className="flex gap-4">
               <div className="flex items-end flex-1">
                 <span className="text-xs text-gray-800 mr-2 whitespace-nowrap">Montant du prêt assuré :</span>
@@ -228,38 +234,67 @@ export const CofidecContratPrint: React.FC<CofidecContratPrintProps> = ({ contra
                 </span>
               </div>
             </div>
-            {/* Catégories */}
-            <div className="flex flex-wrap items-center mt-1 gap-y-1 text-xs">
-              <span className="mr-2 text-xs text-gray-800 whitespace-nowrap">Catégorie :</span>
-              <CheckboxDisplay 
-                label="Commerçants" 
-                checked={contrat.categorie === 'commercants'}
-              />
-              <CheckboxDisplay 
-                label="Salariés du public" 
-                checked={contrat.categorie === 'salaries_public'}
-              />
-              <CheckboxDisplay 
-                label="Salariés du privé" 
-                checked={contrat.categorie === 'salaries_prive'}
-              />
-              <CheckboxDisplay 
-                label="Salariés COFIDEC" 
-                checked={contrat.categorie === 'salaries_cofidec'}
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <CheckboxDisplay 
-                label="Retraités" 
-                checked={contrat.categorie === 'retraites'}
-              />
-              <div className="flex items-end flex-grow">
+            {/* Catégories - Disposition grille 2 colonnes comme EDG */}
+            <div className="flex items-start gap-x-4 mt-1">
+              <span className="text-xs text-gray-800 whitespace-nowrap pt-0.5">Catégorie :</span>
+              <div className="grid grid-cols-2 gap-x-6 gap-y-1">
                 <CheckboxDisplay 
-                  label="Autre à préciser :" 
-                  checked={contrat.categorie === 'autre'}
+                  label="Commerçants" 
+                  checked={contrat.categorie === 'commercants'}
                 />
-                <span className="border-b border-gray-400 flex-grow ml-1 text-xs font-bold">
-                  {contrat.categorie === 'autre' ? contrat.autre_categorie_precision : ''}
+                <CheckboxDisplay 
+                  label="Salariés du public" 
+                  checked={contrat.categorie === 'salaries_public'}
+                />
+                <CheckboxDisplay 
+                  label="Salariés du privé" 
+                  checked={contrat.categorie === 'salaries_prive'}
+                />
+                <CheckboxDisplay 
+                  label="Salariés COFIDEC" 
+                  checked={contrat.categorie === 'salarie_cofidec' || contrat.categorie === 'salaries_cofidec'}
+                />
+                <CheckboxDisplay 
+                  label="Retraités" 
+                  checked={contrat.categorie === 'retraites'}
+                />
+                <div className="flex items-center">
+                  <CheckboxDisplay 
+                    label="Autre :" 
+                    checked={contrat.categorie === 'autre'}
+                  />
+                  <span className="border-b border-gray-400 flex-grow ml-1 text-xs font-bold min-w-[60px]">
+                    {contrat.categorie === 'autre' ? contrat.autre_categorie_precision : ''}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Section: Bénéficiaire */}
+        <div className="flex border-b border-[#F48232]">
+          <div className="w-28 flex-shrink-0 p-2 bg-orange-50 italic border-r border-[#F48232] flex items-center text-gray-900 text-xs">
+            Bénéficiaire
+          </div>
+          <div className="flex-grow p-2 space-y-1.5">
+            <div className="flex gap-4">
+              <div className="flex items-end flex-1">
+                <span className="text-xs text-gray-800 mr-2">Nom :</span>
+                <span className="flex-grow border-b border-gray-800 text-xs px-1 font-bold">
+                  {(contrat as any).beneficiaire_nom || '-'}
+                </span>
+              </div>
+              <div className="flex items-end flex-1">
+                <span className="text-xs text-gray-800 mr-2">Prénom :</span>
+                <span className="flex-grow border-b border-gray-800 text-xs px-1 font-bold">
+                  {(contrat as any).beneficiaire_prenom || '-'}
+                </span>
+              </div>
+              <div className="flex items-end flex-1">
+                <span className="text-xs text-gray-800 mr-2">Contact :</span>
+                <span className="flex-grow border-b border-gray-800 text-xs px-1 font-bold">
+                  {(contrat as any).beneficiaire_contact || '-'}
                 </span>
               </div>
             </div>

@@ -1,10 +1,11 @@
 // src/features/contrats/cofidec/CofidecContractCreateOfficial.tsx
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Printer, Save, ArrowLeft, CheckCircle, AlertTriangle } from 'lucide-react'
+import { Printer, Save, ArrowLeft, CheckCircle, AlertTriangle, AlertCircle, Lock } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { useCreateCofidecContract } from '@/hooks/useCofidecContracts'
 import { Button } from '@/components/ui/Button'
+import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import logoSamba from '@/assets/logo-samba.png'
 
 // --- Logo Component ---
@@ -40,10 +41,14 @@ const Footer: React.FC<{ pageNum: number }> = ({ pageNum }) => {
 const Checkbox: React.FC<{ 
   label: string
   checked?: boolean
-  onChange?: () => void 
-}> = ({ label, checked, onChange }) => (
-  <div className="flex items-center mr-3 cursor-pointer" onClick={onChange}>
-    <div className={`w-4 h-4 border-2 border-black mr-1.5 flex items-center justify-center transition-colors ${checked ? 'bg-[#F48232]' : 'bg-white hover:bg-orange-50'}`}>
+  onChange?: () => void
+  disabled?: boolean 
+}> = ({ label, checked, onChange, disabled }) => (
+  <div 
+    className={`flex items-center mr-3 ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`} 
+    onClick={disabled ? undefined : onChange}
+  >
+    <div className={`w-4 h-4 border-2 border-black mr-1.5 flex items-center justify-center transition-colors ${checked ? 'bg-[#F48232]' : disabled ? 'bg-gray-200' : 'bg-white hover:bg-orange-50'}`}>
       {checked && <div className="w-2 h-2 bg-white" />}
     </div>
     <span className="text-[10px] text-gray-800">{label}</span>
@@ -53,7 +58,17 @@ const Checkbox: React.FC<{
 export const CofidecContractCreateOfficial = () => {
   const navigate = useNavigate()
   const { user } = useAuthStore()
-  const emfId = user?.emf_id || 2 // COFIDEC = 2
+
+  // ═══════════════════════════════════════════════════════════════════
+  // 🔒 VÉRIFICATION EMF - COFIDEC = emf_id 2
+  // ═══════════════════════════════════════════════════════════════════
+  const userEmfId = user?.emf_id
+  const userEmfSigle = user?.emf?.sigle?.toUpperCase() || ''
+  const isCofidecUser = userEmfId === 2 || userEmfSigle.includes('COFIDEC') || user?.role === 'admin'
+  const emfName = userEmfSigle || (userEmfId === 1 ? 'BAMBOO' : userEmfId === 2 ? 'COFIDEC' : userEmfId === 3 ? 'BCEG' : userEmfId === 4 ? 'EDG' : userEmfId === 5 ? 'SODEC' : 'inconnu')
+
+  // IMPORTANT: Toujours utiliser emf_id = 2 pour COFIDEC
+  const emfId = 2
 
   const [formData, setFormData] = useState({
     emf_id: emfId,
@@ -69,6 +84,9 @@ export const CofidecContractCreateOfficial = () => {
     categorie: '' as '' | 'commercants' | 'salaries_public' | 'salaries_prive' | 'retraites' | 'salarie_cofidec' | 'autre',
     autre_categorie_precision: '',
     agence: '',
+    beneficiaire_nom: '',
+    beneficiaire_prenom: '',
+    beneficiaire_contact: '',
     garantie_prevoyance: true,
     garantie_deces_iad: true,
     garantie_perte_emploi: false,
@@ -78,6 +96,35 @@ export const CofidecContractCreateOfficial = () => {
 
   const [submitError, setSubmitError] = useState('')
   const { mutate: createContract, isPending } = useCreateCofidecContract()
+
+  // ═══════════════════════════════════════════════════════════════════
+  // 🔒 VALIDATION PROGRESSIVE - Activation des sections par étapes
+  // ═══════════════════════════════════════════════════════════════════
+  
+  // Section 1: Couverture Prêt (toujours active)
+  const isSection1Complete = Boolean(
+    formData.montant_pret && 
+    formData.duree_pret_mois && 
+    formData.date_effet
+  )
+
+  // Section 2: Assuré (active si Section 1 complète)
+  const isSection2Enabled = isSection1Complete
+  const isSection2Complete = Boolean(
+    formData.nom_prenom.trim() && 
+    formData.adresse_assure.trim() && 
+    formData.ville_assure.trim() && 
+    formData.telephone_assure.trim() &&
+    formData.categorie
+  )
+
+  // Section 3+ (active si Section 2 complète)
+  const isSection3Enabled = isSection2Complete
+  const isSection4Enabled = isSection2Complete
+  const isSection5Enabled = isSection2Complete
+
+  // Bouton de création: actif si tous les champs obligatoires sont remplis
+  const isFormComplete = isSection1Complete && isSection2Complete
 
   // Calculer la date de fin automatiquement
   useEffect(() => {
@@ -116,6 +163,34 @@ export const CofidecContractCreateOfficial = () => {
   const dureeMaxPret = 24
   const isContractValid = montant > 0 && montant <= montantMaxPret && duree > 0 && duree <= dureeMaxPret && formData.categorie !== ''
 
+  // ═══════════════════════════════════════════════════════════════════
+  // 🔒 VÉRIFICATION D'ACCÈS - Après tous les hooks (Rules of Hooks)
+  // ═══════════════════════════════════════════════════════════════════
+  if (!isCofidecUser) {
+    return (
+      <div className="min-h-screen bg-gray-100 py-8 px-4">
+        <div className="max-w-[210mm] mx-auto">
+          <div className="bg-red-50 border border-red-300 rounded-lg p-6 text-center">
+            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <h1 className="text-xl font-bold text-red-700 mb-2">Accès non autorisé</h1>
+            <p className="text-red-600 mb-4">
+              Vous êtes connecté avec un compte <strong>{emfName}</strong>.
+              <br />
+              Ce formulaire est réservé aux utilisateurs COFIDEC.
+            </p>
+            <Button 
+              onClick={() => navigate(-1)} 
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Retour
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     
@@ -153,6 +228,10 @@ export const CofidecContractCreateOfficial = () => {
       ville_assure: formData.ville_assure.trim(),
       telephone_assure: formData.telephone_assure.trim(),
       email_assure: formData.email_assure?.trim() || undefined,
+      // Bénéficiaire
+      beneficiaire_nom: formData.beneficiaire_nom?.trim() || undefined,
+      beneficiaire_prenom: formData.beneficiaire_prenom?.trim() || undefined,
+      beneficiaire_contact: formData.beneficiaire_contact?.trim() || undefined,
       // ✅ Le backend attend 'montant_pret_assure' et non 'montant_pret'
       montant_pret_assure: parseInt(formData.montant_pret),
       duree_pret_mois: parseInt(formData.duree_pret_mois),
@@ -266,6 +345,37 @@ export const CofidecContractCreateOfficial = () => {
         </div>
       )}
 
+      {/* 🔒 Indicateur de progression */}
+      <div className="max-w-[210mm] mx-auto mb-4 bg-white rounded-lg shadow p-4 print:hidden">
+        <div className="flex items-center justify-between text-sm">
+          <span className="font-medium text-gray-700">Progression du formulaire :</span>
+          <div className="flex items-center gap-2">
+            <div className={`flex items-center gap-1 px-2 py-1 rounded ${isSection1Complete ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+              {isSection1Complete ? <CheckCircle className="h-4 w-4" /> : <span className="w-4 h-4 rounded-full border-2 border-current" />}
+              <span>Prêt</span>
+            </div>
+            <div className={`flex items-center gap-1 px-2 py-1 rounded ${isSection2Complete ? 'bg-green-100 text-green-700' : isSection2Enabled ? 'bg-orange-100 text-orange-700' : 'bg-gray-100 text-gray-400'}`}>
+              {isSection2Complete ? <CheckCircle className="h-4 w-4" /> : <span className="w-4 h-4 rounded-full border-2 border-current" />}
+              <span>Assuré</span>
+            </div>
+            <div className={`flex items-center gap-1 px-2 py-1 rounded ${isFormComplete ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'}`}>
+              {isFormComplete ? <CheckCircle className="h-4 w-4" /> : <span className="w-4 h-4 rounded-full border-2 border-current" />}
+              <span>Prêt à créer</span>
+            </div>
+          </div>
+        </div>
+        {!isSection1Complete && (
+          <p className="text-xs text-orange-600 mt-2">
+            ⚠️ Remplissez d'abord les informations du prêt (Montant, Durée, Date d'effet) pour débloquer la section Assuré.
+          </p>
+        )}
+        {isSection1Complete && !isSection2Complete && (
+          <p className="text-xs text-orange-600 mt-2">
+            ⚠️ Remplissez les informations de l'assuré (Nom, Adresse, Ville, Téléphone, Catégorie) pour activer le bouton de création.
+          </p>
+        )}
+      </div>
+
       {/* PAGE 1 - Contrat COFIDEC */}
       <div className="bg-white w-[210mm] min-h-[297mm] p-[10mm] shadow-xl relative flex flex-col print:shadow-none print:p-[8mm]">
         {/* Header */}
@@ -293,6 +403,12 @@ export const CofidecContractCreateOfficial = () => {
               Couverture
             </div>
             <div className="flex-grow p-2 space-y-2">
+              <div className="flex items-end">
+                <span className="text-[10px] text-gray-800 mr-1 whitespace-nowrap">N° Police :</span>
+                <span className="flex-grow border-b border-gray-800 text-xs px-1 font-semibold text-gray-500 italic">
+                  (Auto-généré à la création)
+                </span>
+              </div>
               <div className="flex gap-4">
                 <div className="flex items-end flex-1">
                   <span className="text-[10px] text-gray-800 mr-1 whitespace-nowrap">Montant du prêt :</span>
@@ -342,8 +458,9 @@ export const CofidecContractCreateOfficial = () => {
           </div>
 
           {/* Section: Assuré */}
-          <div className="flex border-b border-[#F48232]">
+          <div className={`flex border-b border-[#F48232] transition-opacity ${!isSection2Enabled ? 'opacity-50 pointer-events-none' : ''}`}>
             <div className="w-28 flex-shrink-0 p-2 bg-orange-50 italic border-r border-[#F48232] flex items-center text-gray-900 text-xs">
+              {!isSection2Enabled && <Lock className="h-3 w-3 mr-1 text-gray-500" />}
               Assuré
             </div>
             <div className="flex-grow p-2 space-y-1.5">
@@ -353,7 +470,8 @@ export const CofidecContractCreateOfficial = () => {
                   type="text"
                   value={formData.nom_prenom}
                   onChange={(e) => setFormData({...formData, nom_prenom: e.target.value})}
-                  className="flex-grow border-b border-gray-800 bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold"
+                  disabled={!isSection2Enabled}
+                  className="flex-grow border-b border-gray-800 bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold disabled:bg-gray-100"
                 />
               </div>
               <div className="flex gap-4">
@@ -363,7 +481,8 @@ export const CofidecContractCreateOfficial = () => {
                     type="text"
                     value={formData.adresse_assure}
                     onChange={(e) => setFormData({...formData, adresse_assure: e.target.value})}
-                    className="flex-grow border-b border-gray-800 bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold"
+                    disabled={!isSection2Enabled}
+                    className="flex-grow border-b border-gray-800 bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold disabled:bg-gray-100"
                   />
                 </div>
                 <div className="flex items-end flex-1">
@@ -372,7 +491,8 @@ export const CofidecContractCreateOfficial = () => {
                     type="text"
                     value={formData.ville_assure}
                     onChange={(e) => setFormData({...formData, ville_assure: e.target.value})}
-                    className="flex-grow border-b border-gray-800 bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold"
+                    disabled={!isSection2Enabled}
+                    className="flex-grow border-b border-gray-800 bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold disabled:bg-gray-100"
                   />
                 </div>
               </div>
@@ -383,7 +503,8 @@ export const CofidecContractCreateOfficial = () => {
                     type="text"
                     value={formData.telephone_assure}
                     onChange={(e) => setFormData({...formData, telephone_assure: e.target.value})}
-                    className="flex-grow border-b border-gray-800 bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold"
+                    disabled={!isSection2Enabled}
+                    className="flex-grow border-b border-gray-800 bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold disabled:bg-gray-100"
                   />
                 </div>
                 <div className="flex items-end flex-1">
@@ -392,52 +513,102 @@ export const CofidecContractCreateOfficial = () => {
                     type="email"
                     value={formData.email_assure}
                     onChange={(e) => setFormData({...formData, email_assure: e.target.value})}
-                    className="flex-grow border-b border-gray-800 bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold"
+                    disabled={!isSection2Enabled}
+                    className="flex-grow border-b border-gray-800 bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold disabled:bg-gray-100"
                   />
                 </div>
               </div>
-              {/* Catégories */}
-              <div className="flex flex-wrap items-center mt-1 gap-y-1 text-xs">
-                <span className="mr-2 text-xs text-gray-800 whitespace-nowrap">Catégorie :</span>
-                <Checkbox 
-                  label="Commerçants" 
-                  checked={formData.categorie === 'commercants'}
-                  onChange={() => setFormData({...formData, categorie: 'commercants'})}
-                />
-                <Checkbox 
-                  label="Salariés du public" 
-                  checked={formData.categorie === 'salaries_public'}
-                  onChange={() => setFormData({...formData, categorie: 'salaries_public'})}
-                />
-                <Checkbox 
-                  label="Salariés du privé" 
-                  checked={formData.categorie === 'salaries_prive'}
-                  onChange={() => setFormData({...formData, categorie: 'salaries_prive'})}
-                />
-                <Checkbox 
-                  label="Salariés COFIDEC" 
-                  checked={formData.categorie === 'salarie_cofidec'}
-                  onChange={() => setFormData({...formData, categorie: 'salarie_cofidec'})}
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <Checkbox 
-                  label="Retraités" 
-                  checked={formData.categorie === 'retraites'}
-                  onChange={() => setFormData({...formData, categorie: 'retraites'})}
-                />
-                <div className="flex items-end flex-grow">
+              {/* Catégories - Disposition grille 2 colonnes comme EDG */}
+              <div className="flex items-start gap-x-4 mt-1">
+                <span className="text-xs text-gray-800 whitespace-nowrap pt-0.5">Catégorie :</span>
+                <div className="grid grid-cols-2 gap-x-6 gap-y-1">
                   <Checkbox 
-                    label="Autre à préciser :" 
-                    checked={formData.categorie === 'autre'}
-                    onChange={() => setFormData({...formData, categorie: 'autre'})}
+                    label="Commerçants" 
+                    checked={formData.categorie === 'commercants'}
+                    onChange={() => setFormData({...formData, categorie: 'commercants'})}
+                    disabled={!isSection2Enabled}
                   />
+                  <Checkbox 
+                    label="Salariés du public" 
+                    checked={formData.categorie === 'salaries_public'}
+                    onChange={() => setFormData({...formData, categorie: 'salaries_public'})}
+                    disabled={!isSection2Enabled}
+                  />
+                  <Checkbox 
+                    label="Salariés du privé" 
+                    checked={formData.categorie === 'salaries_prive'}
+                    onChange={() => setFormData({...formData, categorie: 'salaries_prive'})}
+                    disabled={!isSection2Enabled}
+                  />
+                  <Checkbox 
+                    label="Salariés COFIDEC" 
+                    checked={formData.categorie === 'salarie_cofidec'}
+                    onChange={() => setFormData({...formData, categorie: 'salarie_cofidec'})}
+                    disabled={!isSection2Enabled}
+                  />
+                  <Checkbox 
+                    label="Retraités" 
+                    checked={formData.categorie === 'retraites'}
+                    onChange={() => setFormData({...formData, categorie: 'retraites'})}
+                    disabled={!isSection2Enabled}
+                  />
+                  <div className="flex items-center">
+                    <Checkbox 
+                      label="Autre :" 
+                      checked={formData.categorie === 'autre'}
+                      onChange={() => setFormData({...formData, categorie: 'autre'})}
+                      disabled={!isSection2Enabled}
+                    />
+                    <input 
+                      type="text"
+                      value={formData.autre_categorie_precision}
+                      onChange={(e) => setFormData({...formData, autre_categorie_precision: e.target.value})}
+                      disabled={!isSection2Enabled || formData.categorie !== 'autre'}
+                      className="border-b border-gray-400 flex-grow bg-transparent focus:outline-none text-xs font-semibold ml-1 disabled:opacity-50 disabled:bg-gray-100"
+                      placeholder="Préciser..."
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Section: Bénéficiaire */}
+          <div className={`flex border-b border-[#F48232] transition-opacity ${!isSection2Enabled ? 'opacity-50 pointer-events-none' : ''}`}>
+            <div className="w-28 flex-shrink-0 p-2 bg-orange-50 italic border-r border-[#F48232] flex items-center text-gray-900 text-xs">
+              {!isSection2Enabled && <Lock className="h-3 w-3 mr-1 text-gray-500" />}
+              Bénéficiaire
+            </div>
+            <div className="flex-grow p-2 space-y-1.5">
+              <div className="flex gap-4">
+                <div className="flex items-end flex-1">
+                  <span className="text-xs text-gray-800 mr-2">Nom :</span>
                   <input 
                     type="text"
-                    value={formData.autre_categorie_precision}
-                    onChange={(e) => setFormData({...formData, autre_categorie_precision: e.target.value})}
-                    disabled={formData.categorie !== 'autre'}
-                    className="border-b border-gray-400 flex-grow ml-1 bg-transparent focus:outline-none text-xs disabled:opacity-50"
+                    value={formData.beneficiaire_nom}
+                    onChange={(e) => setFormData({...formData, beneficiaire_nom: e.target.value})}
+                    disabled={!isSection2Enabled}
+                    className="flex-grow border-b border-gray-800 bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold disabled:bg-gray-100"
+                  />
+                </div>
+                <div className="flex items-end flex-1">
+                  <span className="text-xs text-gray-800 mr-2">Prénom :</span>
+                  <input 
+                    type="text"
+                    value={formData.beneficiaire_prenom}
+                    onChange={(e) => setFormData({...formData, beneficiaire_prenom: e.target.value})}
+                    disabled={!isSection2Enabled}
+                    className="flex-grow border-b border-gray-800 bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold disabled:bg-gray-100"
+                  />
+                </div>
+                <div className="flex items-end flex-1">
+                  <span className="text-xs text-gray-800 mr-2">Contact :</span>
+                  <input 
+                    type="text"
+                    value={formData.beneficiaire_contact}
+                    onChange={(e) => setFormData({...formData, beneficiaire_contact: e.target.value})}
+                    disabled={!isSection2Enabled}
+                    className="flex-grow border-b border-gray-800 bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold disabled:bg-gray-100"
                   />
                 </div>
               </div>
@@ -445,8 +616,9 @@ export const CofidecContractCreateOfficial = () => {
           </div>
 
           {/* Section: Souscripteur */}
-          <div className="flex border-b border-[#F48232]">
+          <div className={`flex border-b border-[#F48232] transition-opacity ${!isSection3Enabled ? 'opacity-50 pointer-events-none' : ''}`}>
             <div className="w-28 flex-shrink-0 p-2 bg-orange-50 italic border-r border-[#F48232] flex items-center text-gray-900 text-xs">
+              {!isSection3Enabled && <Lock className="h-3 w-3 mr-1 text-gray-500" />}
               Souscripteur
             </div>
             <div className="flex-grow p-2 space-y-1 text-[10px]">
@@ -465,7 +637,8 @@ export const CofidecContractCreateOfficial = () => {
                     type="text"
                     value={formData.agence}
                     onChange={(e) => setFormData({...formData, agence: e.target.value})}
-                    className="flex-grow border-b border-gray-600 bg-transparent text-[10px] px-1 focus:outline-none focus:bg-orange-50 font-semibold"
+                    disabled={!isSection3Enabled}
+                    className="flex-grow border-b border-gray-600 bg-transparent text-[10px] px-1 focus:outline-none focus:bg-orange-50 font-semibold disabled:bg-gray-100"
                   />
                 </div>
               </div>
@@ -476,8 +649,9 @@ export const CofidecContractCreateOfficial = () => {
           </div>
 
           {/* Section: Garanties */}
-          <div className="flex border-b border-[#F48232]">
+          <div className={`flex border-b border-[#F48232] transition-opacity ${!isSection4Enabled ? 'opacity-50 pointer-events-none' : ''}`}>
             <div className="w-28 flex-shrink-0 p-2 bg-orange-50 italic border-r border-[#F48232] flex items-center text-gray-900 text-xs">
+              {!isSection4Enabled && <Lock className="h-3 w-3 mr-1 text-gray-500" />}
               Garanties
             </div>
             <div className="flex-grow">
@@ -540,8 +714,9 @@ export const CofidecContractCreateOfficial = () => {
           </div>
 
           {/* Section: Cotisations */}
-          <div className="flex bg-orange-50">
+          <div className={`flex bg-orange-50 transition-opacity ${!isSection5Enabled ? 'opacity-50 pointer-events-none' : ''}`}>
             <div className="w-28 flex-shrink-0 p-2 italic border-r border-[#F48232] flex items-center text-gray-900 text-xs">
+              {!isSection5Enabled && <Lock className="h-3 w-3 mr-1 text-gray-500" />}
               Cotisations
             </div>
             <div className="flex-grow p-2">
@@ -616,13 +791,23 @@ export const CofidecContractCreateOfficial = () => {
         <Button
           type="button"
           onClick={handleSubmit}
-          disabled={isPending}
-          className="flex-1 bg-[#F48232] hover:bg-[#e0742a] text-white font-semibold text-lg py-3"
+          disabled={isPending || !isFormComplete}
+          className={`flex-1 text-white font-semibold text-lg py-3 ${
+            isFormComplete 
+              ? 'bg-[#F48232] hover:bg-[#e0742a]' 
+              : 'bg-gray-400 cursor-not-allowed'
+          }`}
+          title={!isFormComplete ? 'Veuillez remplir tous les champs obligatoires' : ''}
         >
           {isPending ? (
             <>
-              <span className="animate-spin mr-2">⏳</span>
-              Création en cours...
+              <LoadingSpinner size="sm" />
+              <span className="ml-2">Création en cours...</span>
+            </>
+          ) : !isFormComplete ? (
+            <>
+              <AlertCircle className="h-5 w-5 mr-2" />
+              Remplir les champs obligatoires
             </>
           ) : (
             <>

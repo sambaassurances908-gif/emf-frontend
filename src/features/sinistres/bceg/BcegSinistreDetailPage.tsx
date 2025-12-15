@@ -46,7 +46,7 @@ export const BcegSinistreDetailPage = () => {
   const { data: sinistre, isLoading, isError } = useQuery({
     queryKey: ['bceg-sinistre', id],
     queryFn: async () => {
-      const response = await axios.get(`/bceg/sinistres/${id}`)
+      const response = await axios.get(`/sinistres/${id}`)
       const rawData = response.data
       if (rawData?.success && rawData?.data) return rawData.data
       if (rawData?.data) return rawData.data

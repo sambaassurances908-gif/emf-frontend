@@ -2,7 +2,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import axios from '@/lib/axios'
 import { sinistreService } from '@/services/sinistre.service'
-import { SinistreCreatePayload, SodecSinistre } from '@/types/sinistre.types'
+import type { SinistreCreatePayload } from '@/types/sinistre.types'
 
 /**
  * Hook pour récupérer les contrats SODEC actifs (pour le sélecteur du formulaire)

@@ -1,7 +1,8 @@
 // src/features/contrats/bceg/BcegContractCreateOfficial.tsx
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Printer, Save, ArrowLeft, CheckCircle, AlertTriangle } from 'lucide-react'
+import { Printer, Save, ArrowLeft, CheckCircle, AlertTriangle, AlertCircle, Lock } from 'lucide-react'
+import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { useAuthStore } from '@/store/authStore'
 import { useCreateBcegContract } from '@/hooks/useBcegContracts'
 import { Button } from '@/components/ui/Button'
@@ -57,10 +58,44 @@ const GarantieRow: React.FC<{
   </tr>
 )
 
+// --- Checkbox Component ---
+interface CheckboxProps {
+  label: string
+  checked?: boolean
+  onChange?: (checked: boolean) => void
+  disabled?: boolean
+}
+
+const Checkbox: React.FC<CheckboxProps> = ({ label, checked = false, onChange, disabled = false }) => (
+  <label className="flex items-center mr-4 cursor-pointer">
+    <input
+      type="checkbox"
+      checked={checked}
+      onChange={(e) => onChange?.(e.target.checked)}
+      disabled={disabled}
+      className="sr-only"
+    />
+    <div className={`w-4 h-4 border-2 border-black mr-2 flex items-center justify-center transition-colors ${checked ? 'bg-black' : 'bg-white'} ${!disabled && 'hover:bg-gray-100'}`}>
+      {checked && <div className="w-2 h-2 bg-white" />}
+    </div>
+    <span className="text-xs text-gray-800">{label}</span>
+  </label>
+)
+
 export const BcegContractCreateOfficial = () => {
   const navigate = useNavigate()
   const { user } = useAuthStore()
-  const emfId = user?.emf_id || 3
+
+  // ═══════════════════════════════════════════════════════════════════
+  // 🔒 VÉRIFICATION EMF - BCEG = emf_id 3
+  // ═══════════════════════════════════════════════════════════════════
+  const userEmfId = user?.emf_id
+  const userEmfSigle = user?.emf?.sigle?.toUpperCase() || ''
+  const isBcegUser = userEmfId === 3 || userEmfSigle.includes('BCEG') || user?.role === 'admin'
+  const emfName = userEmfSigle || (userEmfId === 1 ? 'BAMBOO' : userEmfId === 2 ? 'COFIDEC' : userEmfId === 3 ? 'BCEG' : userEmfId === 4 ? 'EDG' : userEmfId === 5 ? 'SODEC' : 'inconnu')
+
+  // IMPORTANT: Toujours utiliser emf_id = 3 pour BCEG
+  const emfId = 3
 
   const [formData, setFormData] = useState({
     emf_id: emfId,
@@ -70,7 +105,9 @@ export const BcegContractCreateOfficial = () => {
     ville_assure: '',
     telephone_assure: '',
     email_assure: '',
-    numero_police: '509/111.701:0225',
+    categorie: '' as 'commercants' | 'salaries_public' | 'salaries_prive' | 'retraites' | 'autre' | '',
+    autre_categorie_precision: '',
+    numero_police: '', // Auto-généré par le backend (format: BCEG-YYYYMMDD-XXXX)
     montant_pret: '',
     duree_pret_mois: '',
     date_effet: '',
@@ -89,6 +126,35 @@ export const BcegContractCreateOfficial = () => {
   const [submitError, setSubmitError] = useState('')
 
   const { mutate: createContract, isPending, isError, error } = useCreateBcegContract()
+
+  // ═══════════════════════════════════════════════════════════════════
+  // 🔒 VALIDATION PROGRESSIVE - Activation des sections par étapes
+  // ═══════════════════════════════════════════════════════════════════
+  
+  // Section 1: Couverture Prêt (toujours active)
+  const isSection1Complete = Boolean(
+    formData.montant_pret && 
+    formData.duree_pret_mois && 
+    formData.date_effet
+  )
+
+  // Section 2: Assuré (active si Section 1 complète)
+  const isSection2Enabled = isSection1Complete
+  const isSection2Complete = Boolean(
+    formData.nom.trim() && 
+    formData.prenom.trim() && 
+    formData.adresse_assure.trim() && 
+    formData.ville_assure.trim() && 
+    formData.telephone_assure.trim()
+  )
+
+  // Section 3+ (active si Section 2 complète)
+  const isSection3Enabled = isSection2Complete
+  const isSection4Enabled = isSection2Complete
+  const isSection5Enabled = isSection2Complete
+
+  // Bouton de création: actif si tous les champs obligatoires sont remplis
+  const isFormComplete = isSection1Complete && isSection2Complete
 
   // Calculer la date de fin automatiquement
   useEffect(() => {
@@ -148,6 +214,34 @@ export const BcegContractCreateOfficial = () => {
   const dureeMaxPret = 60
   const isContractValid = montant > 0 && montant <= montantMaxPret && duree > 0 && duree <= dureeMaxPret
 
+  // ═══════════════════════════════════════════════════════════════════
+  // 🔒 VÉRIFICATION D'ACCÈS - Après tous les hooks (Rules of Hooks)
+  // ═══════════════════════════════════════════════════════════════════
+  if (!isBcegUser) {
+    return (
+      <div className="min-h-screen bg-gray-100 py-8 px-4">
+        <div className="max-w-[210mm] mx-auto">
+          <div className="bg-red-50 border border-red-300 rounded-lg p-6 text-center">
+            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <h1 className="text-xl font-bold text-red-700 mb-2">Accès non autorisé</h1>
+            <p className="text-red-600 mb-4">
+              Vous êtes connecté avec un compte <strong>{emfName}</strong>.
+              <br />
+              Ce formulaire est réservé aux utilisateurs BCEG.
+            </p>
+            <Button 
+              onClick={() => navigate(-1)} 
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Retour
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     
@@ -192,6 +286,8 @@ export const BcegContractCreateOfficial = () => {
       ville_assure: formData.ville_assure.trim(),
       telephone_assure: formData.telephone_assure.trim(),
       email_assure: formData.email_assure?.trim() || undefined,
+      categorie: formData.categorie || undefined,
+      autre_categorie_precision: formData.categorie === 'autre' ? formData.autre_categorie_precision?.trim() : undefined,
       numero_police: formData.numero_police?.trim() || undefined,
       montant_pret: parseInt(formData.montant_pret),
       duree_pret_mois: parseInt(formData.duree_pret_mois),
@@ -199,8 +295,8 @@ export const BcegContractCreateOfficial = () => {
       beneficiaire_prevoyance_nom_prenom: formData.beneficiaire_prevoyance_nom_prenom.trim(),
       beneficiaire_prevoyance_adresse: formData.beneficiaire_prevoyance_adresse?.trim() || undefined,
       beneficiaire_prevoyance_contact: formData.beneficiaire_prevoyance_contact?.trim() || undefined,
-      garantie_deces_iad: formData.garantie_deces_iad ? 1 : 0,
-      garantie_prevoyance: formData.garantie_prevoyance ? 1 : 0,
+      garantie_deces_iad: formData.garantie_deces_iad,
+      garantie_prevoyance: formData.garantie_prevoyance,
       agence: formData.agence?.trim() || undefined,
       statut: isContractValid ? 'actif' : 'en_attente',
     }
@@ -209,7 +305,7 @@ export const BcegContractCreateOfficial = () => {
     console.log('📤 Payload à envoyer:', JSON.stringify(payload, null, 2))
     console.log('📋 ÉTAPE 3: Envoi au serveur...')
 
-    createContract(payload, {
+    createContract(payload as any, {
       onSuccess: (data) => {
         console.log('═══════════════════════════════════════════════════════════════')
         console.log('✅ SUCCÈS: Contrat BCEG créé avec succès!')
@@ -226,9 +322,20 @@ export const BcegContractCreateOfficial = () => {
         console.error('❌ ERREUR lors de la création du contrat')
         console.error('   Status:', error.response?.status)
         console.error('   Message:', error.response?.data?.message || error.message)
+        console.error('   Erreurs de validation:', error.response?.data?.errors)
+        console.error('   Données reçues:', JSON.stringify(error.response?.data, null, 2))
         console.error('═══════════════════════════════════════════════════════════════')
         
-        setSubmitError(error.response?.data?.message || 'Erreur lors de la création')
+        // Afficher les erreurs de validation détaillées
+        if (error.response?.status === 422 && error.response?.data?.errors) {
+          const validationErrors = error.response.data.errors
+          const errorMessages = Object.entries(validationErrors)
+            .map(([field, msgs]) => `• ${field}: ${Array.isArray(msgs) ? msgs[0] : msgs}`)
+            .join('\n')
+          setSubmitError(`Erreurs de validation:\n${errorMessages}`)
+        } else {
+          setSubmitError(error.response?.data?.message || 'Erreur lors de la création')
+        }
       }
     })
   }
@@ -273,11 +380,30 @@ export const BcegContractCreateOfficial = () => {
           </Button>
           <Button 
             onClick={handleSubmit}
-            disabled={isPending}
-            className="bg-[#F48232] hover:bg-orange-600"
+            disabled={isPending || !isFormComplete}
+            className={`${
+              isFormComplete 
+                ? 'bg-[#F48232] hover:bg-[#e0742a]' 
+                : 'bg-gray-400 cursor-not-allowed'
+            }`}
+            title={!isFormComplete ? 'Veuillez remplir tous les champs obligatoires' : ''}
           >
-            <Save className="h-4 w-4 mr-2" />
-            {isPending ? 'Enregistrement...' : 'Enregistrer'}
+            {isPending ? (
+              <>
+                <LoadingSpinner size="sm" />
+                <span className="ml-2">Création en cours...</span>
+              </>
+            ) : !isFormComplete ? (
+              <>
+                <AlertCircle className="h-4 w-4 mr-2" />
+                Remplir les champs obligatoires
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4 mr-2" />
+                Créer le Contrat BCEG
+              </>
+            )}
           </Button>
         </div>
       </div>
@@ -285,9 +411,43 @@ export const BcegContractCreateOfficial = () => {
       {/* Error Message */}
       {submitError && (
         <div className="w-[210mm] mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded print:hidden">
-          {submitError}
+          <div className="flex items-start gap-2">
+            <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+            <pre className="whitespace-pre-wrap text-sm">{submitError}</pre>
+          </div>
         </div>
       )}
+
+      {/* 🔒 Indicateur de progression */}
+      <div className="w-[210mm] mb-4 bg-white rounded-lg shadow p-4 print:hidden">
+        <div className="flex items-center justify-between text-sm">
+          <span className="font-medium text-gray-700">Progression du formulaire :</span>
+          <div className="flex items-center gap-2">
+            <div className={`flex items-center gap-1 px-2 py-1 rounded ${isSection1Complete ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+              {isSection1Complete ? <CheckCircle className="h-4 w-4" /> : <span className="w-4 h-4 rounded-full border-2 border-current" />}
+              <span>Prêt</span>
+            </div>
+            <div className={`flex items-center gap-1 px-2 py-1 rounded ${isSection2Complete ? 'bg-green-100 text-green-700' : isSection2Enabled ? 'bg-orange-100 text-orange-700' : 'bg-gray-100 text-gray-400'}`}>
+              {isSection2Complete ? <CheckCircle className="h-4 w-4" /> : <span className="w-4 h-4 rounded-full border-2 border-current" />}
+              <span>Assuré</span>
+            </div>
+            <div className={`flex items-center gap-1 px-2 py-1 rounded ${isFormComplete ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'}`}>
+              {isFormComplete ? <CheckCircle className="h-4 w-4" /> : <span className="w-4 h-4 rounded-full border-2 border-current" />}
+              <span>Prêt à créer</span>
+            </div>
+          </div>
+        </div>
+        {!isSection1Complete && (
+          <p className="text-xs text-orange-600 mt-2">
+            ⚠️ Remplissez d'abord les informations du prêt (Montant, Durée, Date d'effet) pour débloquer la section Assuré.
+          </p>
+        )}
+        {isSection1Complete && !isSection2Complete && (
+          <p className="text-xs text-orange-600 mt-2">
+            ⚠️ Remplissez les informations de l'assuré (Nom, Prénom, Adresse, Ville, Téléphone) pour activer le bouton de création.
+          </p>
+        )}
+      </div>
 
       {/* PAGE 1 - Contrat BCEG */}
       <div className="bg-white w-[210mm] min-h-[297mm] p-[10mm] shadow-xl relative flex flex-col print:shadow-none print:p-[8mm]">
@@ -302,14 +462,7 @@ export const BcegContractCreateOfficial = () => {
           </h2>
           <p className="text-[10px] text-black font-semibold">Contrat régi par les dispositions du Code des Assurances CIMA</p>
           <div className="text-xs font-bold text-black mt-1">
-            Visa DNA N°005/24 & 008/24 - Police N°: 
-            <input 
-              type="text"
-              value={formData.numero_police}
-              onChange={(e) => setFormData({...formData, numero_police: e.target.value})}
-              placeholder="Entrez le numéro de police"
-              className="ml-2 border-b border-black bg-transparent text-center w-40 focus:outline-none focus:bg-orange-50"
-            />
+            Visa DNA N°005/24 & 008/24 - Police N°: 509/111.701:0225
           </div>
           <div className="w-full border-b-2 border-[#F48232] mt-2 mb-1"></div>
           <h3 className="text-black text-base font-bold uppercase">
@@ -326,6 +479,13 @@ export const BcegContractCreateOfficial = () => {
               Couverture
             </div>
             <div className="flex-grow p-2 space-y-2 overflow-hidden">
+              {/* Numéro de police - Auto-généré */}
+              <div className="flex items-end">
+                <span className="text-xs text-gray-800 mr-2 whitespace-nowrap">N° Police :</span>
+                <span className="flex-grow border-b border-gray-800 text-xs px-1 font-semibold text-gray-500 italic">
+                  (Auto-généré à la création)
+                </span>
+              </div>
               <div className="flex gap-4">
                 <div className="flex items-end flex-1 min-w-0">
                   <span className="text-xs text-gray-800 mr-2 whitespace-nowrap">Montant du prêt :</span>
@@ -380,8 +540,9 @@ export const BcegContractCreateOfficial = () => {
           </div>
 
           {/* Section: Assuré / Bénéficiaire du prêt */}
-          <div className="flex border-b border-[#F48232]">
+          <div className={`flex border-b border-[#F48232] ${!isSection2Enabled ? 'opacity-50 pointer-events-none' : ''}`}>
             <div className="w-36 flex-shrink-0 p-2 bg-orange-50 italic border-r border-[#F48232] flex items-center text-gray-900 text-xs leading-tight">
+              {!isSection2Enabled && <Lock className="h-3 w-3 mr-1" />}
               Assuré/<br/>Bénéficiaire du prêt
             </div>
             <div className="flex-grow p-2 space-y-1.5">
@@ -391,7 +552,8 @@ export const BcegContractCreateOfficial = () => {
                   type="text"
                   value={formData.nom}
                   onChange={(e) => setFormData({...formData, nom: e.target.value})}
-                  className="flex-grow border-b border-gray-800 bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold"
+                  disabled={!isSection2Enabled}
+                  className="flex-grow border-b border-gray-800 bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold disabled:bg-gray-100"
                 />
               </div>
               <div className="flex items-end">
@@ -400,7 +562,8 @@ export const BcegContractCreateOfficial = () => {
                   type="text"
                   value={formData.prenom}
                   onChange={(e) => setFormData({...formData, prenom: e.target.value})}
-                  className="flex-grow border-b border-gray-800 bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold"
+                  disabled={!isSection2Enabled}
+                  className="flex-grow border-b border-gray-800 bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold disabled:bg-gray-100"
                 />
               </div>
               <div className="flex items-end">
@@ -409,7 +572,8 @@ export const BcegContractCreateOfficial = () => {
                   type="text"
                   value={formData.adresse_assure}
                   onChange={(e) => setFormData({...formData, adresse_assure: e.target.value})}
-                  className="flex-grow border-b border-gray-800 bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold"
+                  disabled={!isSection2Enabled}
+                  className="flex-grow border-b border-gray-800 bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold disabled:bg-gray-100"
                 />
               </div>
               <div className="flex items-end">
@@ -418,7 +582,8 @@ export const BcegContractCreateOfficial = () => {
                   type="text"
                   value={formData.ville_assure}
                   onChange={(e) => setFormData({...formData, ville_assure: e.target.value})}
-                  className="flex-grow border-b border-gray-800 bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold"
+                  disabled={!isSection2Enabled}
+                  className="flex-grow border-b border-gray-800 bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold disabled:bg-gray-100"
                 />
               </div>
               <div className="flex items-end">
@@ -427,7 +592,8 @@ export const BcegContractCreateOfficial = () => {
                   type="text"
                   value={formData.telephone_assure}
                   onChange={(e) => setFormData({...formData, telephone_assure: e.target.value})}
-                  className="flex-1 border-b border-gray-800 bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold"
+                  disabled={!isSection2Enabled}
+                  className="flex-1 border-b border-gray-800 bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold disabled:bg-gray-100"
                   placeholder="Téléphone"
                 />
                 <span className="mx-2 text-gray-400">/</span>
@@ -435,16 +601,66 @@ export const BcegContractCreateOfficial = () => {
                   type="email"
                   value={formData.email_assure}
                   onChange={(e) => setFormData({...formData, email_assure: e.target.value})}
-                  className="flex-1 border-b border-gray-800 bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold"
+                  disabled={!isSection2Enabled}
+                  className="flex-1 border-b border-gray-800 bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold disabled:bg-gray-100"
                   placeholder="Email"
                 />
+              </div>
+              {/* Catégorie socio-professionnelle */}
+              <div className="mt-1">
+                <div className="flex items-start gap-x-3">
+                  <span className="text-xs text-gray-800 whitespace-nowrap pt-0.5">Catégorie :</span>
+                  <div className="grid grid-cols-3 gap-x-4 gap-y-1">
+                    <Checkbox 
+                      label="Commerçants" 
+                      checked={formData.categorie === 'commercants'}
+                      onChange={() => setFormData({...formData, categorie: 'commercants'})}
+                      disabled={!isSection2Enabled}
+                    />
+                    <Checkbox 
+                      label="Sal. public" 
+                      checked={formData.categorie === 'salaries_public'}
+                      onChange={() => setFormData({...formData, categorie: 'salaries_public'})}
+                      disabled={!isSection2Enabled}
+                    />
+                    <Checkbox 
+                      label="Sal. privé" 
+                      checked={formData.categorie === 'salaries_prive'}
+                      onChange={() => setFormData({...formData, categorie: 'salaries_prive'})}
+                      disabled={!isSection2Enabled}
+                    />
+                    <Checkbox 
+                      label="Retraités" 
+                      checked={formData.categorie === 'retraites'}
+                      onChange={() => setFormData({...formData, categorie: 'retraites'})}
+                      disabled={!isSection2Enabled}
+                    />
+                    <div className="flex items-center col-span-2">
+                      <Checkbox 
+                        label="Autre :" 
+                        checked={formData.categorie === 'autre'}
+                        onChange={() => setFormData({...formData, categorie: 'autre'})}
+                        disabled={!isSection2Enabled}
+                      />
+                      <input 
+                        type="text"
+                        value={formData.autre_categorie_precision}
+                        onChange={(e) => setFormData({...formData, autre_categorie_precision: e.target.value})}
+                        className="border-b border-gray-400 flex-grow bg-transparent focus:outline-none focus:border-[#F48232] text-xs ml-1"
+                        placeholder="Préciser..."
+                        disabled={!isSection2Enabled || formData.categorie !== 'autre'}
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
           {/* Section: Souscripteur BCEG */}
-          <div className="flex border-b border-[#F48232]">
+          <div className={`flex border-b border-[#F48232] ${!isSection3Enabled ? 'opacity-50 pointer-events-none' : ''}`}>
             <div className="w-36 flex-shrink-0 p-2 bg-orange-50 italic border-r border-[#F48232] flex items-center text-gray-900 text-xs">
+              {!isSection3Enabled && <Lock className="h-3 w-3 mr-1" />}
               Souscripteur BCEG
             </div>
             <div className="flex-grow p-2 space-y-1 text-[10px]">
@@ -466,7 +682,8 @@ export const BcegContractCreateOfficial = () => {
                   type="text"
                   value={formData.agence}
                   onChange={(e) => setFormData({...formData, agence: e.target.value})}
-                  className="flex-grow border-b border-gray-600 bg-transparent text-[10px] px-1 focus:outline-none focus:bg-orange-50 font-semibold"
+                  disabled={!isSection3Enabled}
+                  className="flex-grow border-b border-gray-600 bg-transparent text-[10px] px-1 focus:outline-none focus:bg-orange-50 font-semibold disabled:bg-gray-100"
                   placeholder="Nom de l'agence"
                 />
               </div>
@@ -474,8 +691,9 @@ export const BcegContractCreateOfficial = () => {
           </div>
 
           {/* Section: Bénéficiaire de la Prévoyance */}
-          <div className="flex border-b border-[#F48232]">
+          <div className={`flex border-b border-[#F48232] ${!isSection4Enabled ? 'opacity-50 pointer-events-none' : ''}`}>
             <div className="w-36 flex-shrink-0 p-2 bg-orange-50 italic border-r border-[#F48232] flex items-center text-gray-900 text-xs leading-tight">
+              {!isSection4Enabled && <Lock className="h-3 w-3 mr-1" />}
               Bénéficiaire de<br/>la Prévoyance
             </div>
             <div className="flex-grow p-2 space-y-1.5">
@@ -485,7 +703,8 @@ export const BcegContractCreateOfficial = () => {
                   type="text"
                   value={formData.beneficiaire_prevoyance_nom_prenom}
                   onChange={(e) => setFormData({...formData, beneficiaire_prevoyance_nom_prenom: e.target.value})}
-                  className="flex-grow border-b border-gray-800 bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold"
+                  disabled={!isSection4Enabled}
+                  className="flex-grow border-b border-gray-800 bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold disabled:bg-gray-100"
                 />
               </div>
               <div className="flex items-end">
@@ -494,7 +713,8 @@ export const BcegContractCreateOfficial = () => {
                   type="text"
                   value={formData.beneficiaire_prevoyance_adresse}
                   onChange={(e) => setFormData({...formData, beneficiaire_prevoyance_adresse: e.target.value})}
-                  className="flex-1 border-b border-gray-800 bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold"
+                  disabled={!isSection4Enabled}
+                  className="flex-1 border-b border-gray-800 bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold disabled:bg-gray-100"
                   placeholder="Adresse"
                 />
                 <span className="mx-2 text-gray-400">/</span>
@@ -502,7 +722,8 @@ export const BcegContractCreateOfficial = () => {
                   type="text"
                   value={formData.beneficiaire_prevoyance_contact}
                   onChange={(e) => setFormData({...formData, beneficiaire_prevoyance_contact: e.target.value})}
-                  className="w-32 border-b border-gray-800 bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold"
+                  disabled={!isSection4Enabled}
+                  className="w-32 border-b border-gray-800 bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold disabled:bg-gray-100"
                   placeholder="Contact"
                 />
               </div>
@@ -510,8 +731,9 @@ export const BcegContractCreateOfficial = () => {
           </div>
 
           {/* Section: Garanties */}
-          <div className="flex border-b border-[#F48232]">
+          <div className={`flex border-b border-[#F48232] ${!isSection5Enabled ? 'opacity-50 pointer-events-none' : ''}`}>
             <div className="w-36 flex-shrink-0 p-2 bg-orange-50 italic border-r border-[#F48232] flex items-center text-gray-900 text-xs">
+              {!isSection5Enabled && <Lock className="h-3 w-3 mr-1" />}
               Garanties
             </div>
             <div className="flex-grow">

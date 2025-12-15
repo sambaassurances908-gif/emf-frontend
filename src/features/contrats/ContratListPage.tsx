@@ -25,6 +25,15 @@ interface Contrat {
   statut: string;
   date_effet: string;
   type_contrat: string;
+  cotisation_totale_ttc?: number;
+  prime_collectee?: number;
+  // Champs supplémentaires pour calcul cotisation
+  cotisation_deces_iad?: number;
+  cotisation_prevoyance?: number;
+  cotisation_perte_emploi?: number;
+  prime_deces?: number;
+  prime_iad?: number;
+  prime_perte_emploi?: number;
   emf: {
     sigle: string;
   };
@@ -92,6 +101,34 @@ export const ContratListPage = () => {
     setTimeout(() => {
       navigate(`/contrats/nouveau/${type}`);
     }, 100);
+  };
+
+  // Fonction pour calculer/récupérer la cotisation d'un contrat
+  const getCotisation = (contrat: Contrat): number | null => {
+    // 1. Si cotisation_totale_ttc est disponible directement
+    if (contrat.cotisation_totale_ttc && contrat.cotisation_totale_ttc > 0) {
+      return contrat.cotisation_totale_ttc;
+    }
+    
+    // 2. Si prime_collectee est disponible
+    if (contrat.prime_collectee && contrat.prime_collectee > 0) {
+      return contrat.prime_collectee;
+    }
+    
+    // 3. Calculer à partir des composants si disponibles
+    const cotisationDeces = contrat.cotisation_deces_iad || contrat.prime_deces || 0;
+    const cotisationPrevoyance = contrat.cotisation_prevoyance || 0;
+    const cotisationPerteEmploi = contrat.cotisation_perte_emploi || contrat.prime_perte_emploi || 0;
+    const cotisationIad = contrat.prime_iad || 0;
+    
+    const total = cotisationDeces + cotisationPrevoyance + cotisationPerteEmploi + cotisationIad;
+    
+    if (total > 0) {
+      return total;
+    }
+    
+    // 4. Pas de cotisation disponible
+    return null;
   };
 
   const getStatusColor = (statut: string) => {
@@ -205,6 +242,7 @@ export const ContratListPage = () => {
                     <TableHead>EMF</TableHead>
                     <TableHead>Type</TableHead>
                     <TableHead>Montant</TableHead>
+                    <TableHead>Cotisation</TableHead>
                     <TableHead>Durée</TableHead>
                     <TableHead>Statut</TableHead>
                     <TableHead>Date Effet</TableHead>
@@ -235,6 +273,26 @@ export const ContratListPage = () => {
                       </TableCell>
                       <TableCell className="font-semibold text-gray-900">
                         {formatCurrency(Number(contrat.montant_pret))}
+                      </TableCell>
+                      <TableCell className="font-semibold">
+                        {(() => {
+                          const cotisation = getCotisation(contrat);
+                          if (cotisation !== null && cotisation > 0) {
+                            return <span className="text-emerald-600">{formatCurrency(cotisation)}</span>;
+                          }
+                          return (
+                            <span 
+                              className="text-xs text-gray-400 hover:text-blue-500 cursor-pointer"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/contrats/${contrat.type_contrat.toLowerCase().replace(/\s+/g, '-')}/${contrat.id}`);
+                              }}
+                              title="Voir le détail pour la cotisation"
+                            >
+                              Voir détail →
+                            </span>
+                          );
+                        })()}
                       </TableCell>
                       <TableCell className="text-gray-600">{contrat.duree_pret_mois} mois</TableCell>
                       <TableCell>

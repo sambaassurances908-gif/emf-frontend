@@ -1,51 +1,66 @@
 // src/features/sinistres/edg/EdgSinistreDeclarationForm.tsx
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { AlertCircle, Upload, X, User, Phone, Mail, FileText, MapPin, DollarSign, CheckCircle } from 'lucide-react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { 
+  AlertCircle, 
+  Upload, 
+  X, 
+  FileText, 
+  MapPin, 
+  DollarSign, 
+  CheckCircle,
+  ArrowLeft,
+  Calendar,
+  Shield,
+  Heart,
+  Briefcase,
+  Store,
+  FileCheck,
+  Info
+} from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { useEdgContratsForSinistre, useCreateEdgSinistre } from '@/hooks/useEdgSinistres'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { Textarea } from '@/components/ui/Textarea'
 import { Label } from '@/components/ui/Label'
+import { Badge } from '@/components/ui/Badge'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { SinistreType, SinistreCreatePayload } from '@/types/sinistre.types'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, cn } from '@/lib/utils'
+
+const SINISTRE_TYPES = [
+  { value: 'deces', label: 'Décès', description: 'Décès de l\'assuré', icon: Heart, color: 'from-gray-600 to-gray-800', bgColor: 'bg-gray-50', borderColor: 'border-gray-300', textColor: 'text-gray-700' },
+  { value: 'iad', label: 'Invalidité (IAD)', description: 'Invalidité Absolue et Définitive', icon: Shield, color: 'from-red-500 to-red-700', bgColor: 'bg-red-50', borderColor: 'border-red-300', textColor: 'text-red-700' },
+  { value: 'perte_emploi', label: 'Perte d\'emploi', description: 'Licenciement involontaire', icon: Briefcase, color: 'from-amber-500 to-amber-700', bgColor: 'bg-amber-50', borderColor: 'border-amber-300', textColor: 'text-amber-700' },
+  { value: 'perte_activite', label: 'Perte d\'activité', description: 'Cessation d\'activité commerciale', icon: Store, color: 'from-orange-500 to-orange-700', bgColor: 'bg-orange-50', borderColor: 'border-orange-300', textColor: 'text-orange-700' },
+]
 
 export const EdgSinistreDeclarationForm = () => {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { user } = useAuthStore()
-  const emfId = user?.emf_id || 1
+  const emfId = user?.emf_id || 4
 
+  const urlContratId = searchParams.get('contrat_id') || ''
   const { data: contrats, isLoading: loadingContrats } = useEdgContratsForSinistre(emfId)
   const { mutate: createSinistre, isPending } = useCreateEdgSinistre()
 
-  // État du contrat sélectionné
   const [selectedContrat, setSelectedContrat] = useState<any>(null)
+  const [isContratPreselected, setIsContratPreselected] = useState(false)
 
-  // Formulaire principal
   const [formData, setFormData] = useState({
     contrat_id: '',
     type_sinistre: '' as SinistreType | '',
     date_sinistre: '',
-    
-    // Informations du déclarant
-    nom_declarant: '',
-    prenom_declarant: '',
-    qualite_declarant: '',
-    telephone_declarant: '',
-    email_declarant: '',
-    
-    // Détails du sinistre
     circonstances: '',
     lieu_sinistre: '',
     capital_restant_du: 0,
     montant_reclame: 0,
   })
 
-  // Documents
   const [documents, setDocuments] = useState<Record<string, File | null>>({
     fichier_tableau_amortissement: null,
     fichier_acte_deces: null,
@@ -61,35 +76,36 @@ export const EdgSinistreDeclarationForm = () => {
 
   const [errors, setErrors] = useState<Record<string, string>>({})
 
-  // Mettre à jour le contrat sélectionné
+  useEffect(() => {
+    if (urlContratId && contrats && !isContratPreselected) {
+      const contrat = contrats.find((c: any) => c.id === parseInt(urlContratId))
+      if (contrat) {
+        setFormData(prev => ({ ...prev, contrat_id: urlContratId }))
+        setSelectedContrat(contrat)
+        setIsContratPreselected(true)
+      }
+    }
+  }, [urlContratId, contrats, isContratPreselected])
+
   useEffect(() => {
     if (formData.contrat_id && contrats) {
       const contrat = contrats.find((c: any) => c.id === parseInt(formData.contrat_id))
       setSelectedContrat(contrat || null)
       if (contrat) {
-        setFormData(prev => ({
-          ...prev,
-          capital_restant_du: contrat.capital_restant_du || contrat.montant_pret || 0,
-        }))
+        setFormData(prev => ({ ...prev, capital_restant_du: contrat.capital_restant_du || contrat.montant_pret || 0 }))
       }
     } else {
       setSelectedContrat(null)
     }
   }, [formData.contrat_id, contrats])
 
-  // Documents requis selon le type de sinistre
   const getRequiredDocuments = (type: SinistreType | ''): string[] => {
     switch (type) {
-      case 'deces':
-        return ['fichier_certificat_deces', 'fichier_acte_deces', 'fichier_piece_identite', 'fichier_certificat_heredite', 'fichier_tableau_amortissement']
-      case 'iad':
-        return ['fichier_certificat_arret_travail', 'fichier_piece_identite', 'fichier_tableau_amortissement']
-      case 'perte_emploi':
-        return ['fichier_certificat_licenciement', 'fichier_piece_identite', 'fichier_tableau_amortissement']
-      case 'perte_activite':
-        return ['fichier_proces_verbal_faillite', 'fichier_piece_identite', 'fichier_tableau_amortissement']
-      default:
-        return []
+      case 'deces': return ['fichier_certificat_deces', 'fichier_acte_deces', 'fichier_piece_identite', 'fichier_certificat_heredite', 'fichier_tableau_amortissement']
+      case 'iad': return ['fichier_certificat_arret_travail', 'fichier_piece_identite', 'fichier_tableau_amortissement']
+      case 'perte_emploi': return ['fichier_certificat_licenciement', 'fichier_piece_identite', 'fichier_tableau_amortissement']
+      case 'perte_activite': return ['fichier_proces_verbal_faillite', 'fichier_piece_identite', 'fichier_tableau_amortissement']
+      default: return []
     }
   }
 
@@ -112,49 +128,43 @@ export const EdgSinistreDeclarationForm = () => {
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {}
-
     if (!formData.contrat_id) newErrors.contrat_id = 'Veuillez sélectionner un contrat'
     if (!formData.type_sinistre) newErrors.type_sinistre = 'Veuillez sélectionner un type de sinistre'
     if (!formData.date_sinistre) newErrors.date_sinistre = 'Veuillez saisir la date du sinistre'
-    if (!formData.nom_declarant) newErrors.nom_declarant = 'Veuillez saisir le nom du déclarant'
-    if (!formData.prenom_declarant) newErrors.prenom_declarant = 'Veuillez saisir le prénom du déclarant'
-    if (!formData.qualite_declarant) newErrors.qualite_declarant = 'Veuillez saisir la qualité du déclarant'
-    if (!formData.telephone_declarant) newErrors.telephone_declarant = 'Veuillez saisir le téléphone du déclarant'
     if (formData.capital_restant_du <= 0) newErrors.capital_restant_du = 'Le capital restant dû doit être supérieur à 0'
-
     if (formData.date_sinistre && new Date(formData.date_sinistre) > new Date()) {
       newErrors.date_sinistre = 'La date du sinistre ne peut pas être dans le futur'
     }
-
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-
     if (!validateForm()) return
 
-    const payload: Omit<SinistreCreatePayload, 'contrat_type'> = {
-      contrat_id: parseInt(formData.contrat_id),
+    // S'assurer que capital_restant_du est un nombre valide
+    const capitalRestantDu = typeof formData.capital_restant_du === 'string'
+      ? parseFloat(formData.capital_restant_du)
+      : Number(formData.capital_restant_du)
+
+    const payload: SinistreCreatePayload = {
+      contrat_type: 'ContratEdg',
+      contrat_id: parseInt(formData.contrat_id, 10),
       type_sinistre: formData.type_sinistre as SinistreType,
       date_sinistre: formData.date_sinistre,
-      nom_declarant: formData.nom_declarant,
-      prenom_declarant: formData.prenom_declarant,
-      qualite_declarant: formData.qualite_declarant,
-      telephone_declarant: formData.telephone_declarant,
-      capital_restant_du: formData.capital_restant_du,
-      contrat_type: 'ContratEdg',
+      capital_restant_du: capitalRestantDu,
     }
 
-    if (formData.email_declarant) payload.email_declarant = formData.email_declarant
-    if (formData.circonstances) payload.circonstances = formData.circonstances
-    if (formData.lieu_sinistre) payload.lieu_sinistre = formData.lieu_sinistre
-    if (formData.montant_reclame > 0) payload.montant_reclame = formData.montant_reclame
+    if (formData.circonstances && formData.circonstances.trim()) payload.circonstances = formData.circonstances.trim()
+    if (formData.lieu_sinistre && formData.lieu_sinistre.trim()) payload.lieu_sinistre = formData.lieu_sinistre.trim()
+    if (formData.montant_reclame && Number(formData.montant_reclame) > 0) payload.montant_reclame = Number(formData.montant_reclame)
 
     Object.entries(documents).forEach(([key, file]) => {
-      if (file) (payload as any)[key] = file
+      if (file instanceof File) (payload as any)[key] = file
     })
+
+    console.log('📋 Payload EDG:', payload)
 
     createSinistre(payload, {
       onSuccess: (response) => {
@@ -162,73 +172,106 @@ export const EdgSinistreDeclarationForm = () => {
         navigate('/sinistres/edg')
       },
       onError: (error: any) => {
-        const message = error?.response?.data?.message || error?.message || 'Erreur lors de la déclaration'
-        alert(`❌ Erreur: ${message}`)
+        const validationErrors = error?.response?.data?.errors
+        if (validationErrors) {
+          const errorMessages = Object.entries(validationErrors)
+            .map(([field, messages]) => `• ${field}: ${(messages as string[]).join(', ')}`)
+            .join('\n')
+          alert(`❌ Erreurs de validation:\n\n${errorMessages}`)
+        } else {
+          const message = error?.response?.data?.message || error?.message || 'Erreur lors de la déclaration'
+          alert(`❌ Erreur: ${message}`)
+        }
       },
     })
   }
 
   if (loadingContrats) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gray-50">
-        <LoadingSpinner size="lg" text="Chargement des contrats..." />
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50">
+        <LoadingSpinner size="lg" text="Chargement des contrats EDG..." />
       </div>
     )
   }
 
   const requiredDocs = getRequiredDocuments(formData.type_sinistre)
+  const selectedTypeInfo = SINISTRE_TYPES.find(t => t.value === formData.type_sinistre)
+
+  const steps = [
+    { num: 1, label: 'Contrat', icon: FileText, completed: !!formData.contrat_id },
+    { num: 2, label: 'Sinistre', icon: AlertCircle, completed: !!formData.type_sinistre && !!formData.date_sinistre },
+    { num: 3, label: 'Documents', icon: Upload, completed: requiredDocs.length > 0 && requiredDocs.some(doc => documents[doc]) },
+  ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-violet-100 p-6">
-      <div className="max-w-4xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-xl p-6 shadow-lg">
-          <h1 className="text-3xl font-bold flex items-center gap-3">
-            <AlertCircle className="h-8 w-8" />
-            Déclaration de Sinistre EDG
-          </h1>
-          <p className="mt-2 text-indigo-100">
-            Remplissez ce formulaire pour déclarer un sinistre sur un contrat EDG.
-          </p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50 to-violet-50">
+      <div className="bg-white border-b border-slate-200 sticky top-0 z-10">
+        <div className="max-w-5xl mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <Button variant="ghost" onClick={() => navigate('/sinistres/edg')} className="flex items-center gap-2 text-slate-600 hover:text-slate-900">
+              <ArrowLeft className="h-4 w-4" />
+              Retour aux sinistres
+            </Button>
+            <Badge className="bg-indigo-100 text-indigo-800 px-3 py-1">⚡ EDG</Badge>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-5xl mx-auto px-4 py-8">
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-indigo-500 to-violet-600 rounded-2xl shadow-lg mb-4">
+            <AlertCircle className="h-8 w-8 text-white" />
+          </div>
+          <h1 className="text-3xl font-bold text-slate-800">Déclaration de Sinistre</h1>
+          <p className="text-slate-500 mt-2 max-w-xl mx-auto">Remplissez ce formulaire pour déclarer un sinistre sur un contrat EDG.</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Sélection du contrat */}
-          <Card className="shadow-lg">
-            <CardHeader className="bg-indigo-50 border-b">
-              <CardTitle className="flex items-center gap-2 text-indigo-700">
-                <FileText className="h-5 w-5" />
-                1. Contrat concerné
-              </CardTitle>
+        <div className="mb-10">
+          <div className="flex items-center justify-center gap-2 md:gap-4">
+            {steps.map((step, index) => (
+              <div key={step.num} className="flex items-center">
+                <div className={cn("flex items-center gap-2 px-3 py-2 rounded-full transition-all", step.completed ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-500")}>
+                  <div className={cn("w-7 h-7 rounded-full flex items-center justify-center text-sm font-semibold", step.completed ? "bg-green-500 text-white" : "bg-slate-300 text-white")}>
+                    {step.completed ? <CheckCircle className="w-4 h-4" /> : step.num}
+                  </div>
+                  <span className="hidden md:inline text-sm font-medium">{step.label}</span>
+                </div>
+                {index < steps.length - 1 && <div className={cn("w-8 md:w-16 h-1 mx-1 rounded-full", step.completed ? "bg-green-300" : "bg-slate-200")} />}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-8">
+          {/* CARD 1: Contrat */}
+          <Card className="overflow-hidden border-0 shadow-xl bg-white">
+            <CardHeader className="bg-gradient-to-r from-indigo-500 to-violet-500 text-white py-5">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center"><FileText className="h-5 w-5" /></div>
+                <div>
+                  <CardTitle className="text-lg">Contrat concerné</CardTitle>
+                  <CardDescription className="text-indigo-100">Sélectionnez le contrat objet du sinistre</CardDescription>
+                </div>
+              </div>
             </CardHeader>
             <CardContent className="p-6">
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="contrat" className="text-gray-700 font-medium">Sélectionnez le contrat *</Label>
-                  <Select
-                    id="contrat"
-                    value={formData.contrat_id}
-                    onChange={(e) => setFormData({ ...formData, contrat_id: e.target.value })}
-                    className={errors.contrat_id ? 'border-red-500' : ''}
-                  >
-                    <option value="">-- Choisir un contrat --</option>
-                    {contrats?.map((c: any) => (
-                      <option key={c.id} value={c.id}>
-                        {c.numero_police} - {c.nom_prenom} ({formatCurrency(c.montant_pret || 0)})
-                      </option>
-                    ))}
+                  <Label className="text-slate-700 font-semibold flex items-center gap-2"><FileText className="h-4 w-4 text-indigo-500" />Contrat EDG *</Label>
+                  <Select id="contrat" value={formData.contrat_id} onChange={(e) => setFormData({ ...formData, contrat_id: e.target.value })} className={cn("mt-2 h-12 text-base", errors.contrat_id ? 'border-red-500' : 'border-slate-300')}>
+                    <option value="">-- Sélectionnez un contrat --</option>
+                    {contrats?.map((c: any) => (<option key={c.id} value={c.id}>#{c.id} - {c.nom_prenom} ({c.numero_police || 'Sans numéro'})</option>))}
                   </Select>
-                  {errors.contrat_id && <p className="text-red-500 text-sm mt-1">{errors.contrat_id}</p>}
+                  {errors.contrat_id && <p className="text-red-500 text-sm mt-1 flex items-center gap-1"><AlertCircle className="h-3 w-3" />{errors.contrat_id}</p>}
                 </div>
-
                 {selectedContrat && (
-                  <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-200">
-                    <h4 className="font-semibold text-indigo-800 mb-2">Informations du contrat</h4>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div><span className="text-gray-600">Assuré:</span><span className="font-medium ml-2">{selectedContrat.nom_prenom}</span></div>
-                      <div><span className="text-gray-600">N° Police:</span><span className="font-medium ml-2">{selectedContrat.numero_police}</span></div>
-                      <div><span className="text-gray-600">Montant:</span><span className="font-medium ml-2 text-indigo-600">{formatCurrency(selectedContrat.montant_pret || 0)}</span></div>
-                      <div><span className="text-gray-600">Statut:</span><span className={`font-medium ml-2 ${selectedContrat.statut === 'actif' ? 'text-green-600' : 'text-orange-600'}`}>{selectedContrat.statut}</span></div>
+                  <div className="mt-4 p-5 bg-gradient-to-br from-indigo-50 to-violet-50 rounded-2xl border border-indigo-200">
+                    <div className="flex items-center gap-2 mb-4"><CheckCircle className="h-5 w-5 text-green-500" /><span className="font-semibold text-slate-800">Contrat sélectionné</span></div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="bg-white p-3 rounded-xl shadow-sm"><div className="text-xs text-slate-500 mb-1">Assuré</div><div className="font-semibold text-slate-800 truncate">{selectedContrat.nom_prenom}</div></div>
+                      <div className="bg-white p-3 rounded-xl shadow-sm"><div className="text-xs text-slate-500 mb-1">N° Police</div><div className="font-mono font-semibold text-slate-800">{selectedContrat.numero_police || 'N/A'}</div></div>
+                      <div className="bg-white p-3 rounded-xl shadow-sm"><div className="text-xs text-slate-500 mb-1">Montant prêt</div><div className="font-bold text-indigo-600">{formatCurrency(selectedContrat.montant_pret || 0)}</div></div>
+                      <div className="bg-white p-3 rounded-xl shadow-sm"><div className="text-xs text-slate-500 mb-1">Statut</div><Badge className={cn("font-medium", selectedContrat.statut === 'actif' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800')}>{selectedContrat.statut?.toUpperCase()}</Badge></div>
                     </div>
                   </div>
                 )}
@@ -236,166 +279,115 @@ export const EdgSinistreDeclarationForm = () => {
             </CardContent>
           </Card>
 
-          {/* Type et date du sinistre */}
-          <Card className="shadow-lg">
-            <CardHeader className="bg-violet-50 border-b">
-              <CardTitle className="flex items-center gap-2 text-violet-700">
-                <AlertCircle className="h-5 w-5" />
-                2. Informations sur le sinistre
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-6 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* CARD 2: Type de sinistre */}
+          <Card className="overflow-hidden border-0 shadow-xl bg-white">
+            <CardHeader className="bg-gradient-to-r from-orange-500 to-red-500 text-white py-5">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center"><AlertCircle className="h-5 w-5" /></div>
                 <div>
-                  <Label htmlFor="type_sinistre" className="text-gray-700 font-medium">Type de sinistre *</Label>
-                  <Select
-                    id="type_sinistre"
-                    value={formData.type_sinistre}
-                    onChange={(e) => setFormData({ ...formData, type_sinistre: e.target.value as SinistreType })}
-                    className={errors.type_sinistre ? 'border-red-500' : ''}
-                  >
-                    <option value="">-- Sélectionner --</option>
-                    <option value="deces">⚫ Décès</option>
-                    <option value="iad">🏥 Invalidité Absolue et Définitive (IAD)</option>
-                    <option value="perte_emploi">💼 Perte d'emploi</option>
-                    <option value="perte_activite">🏪 Perte d'activité</option>
-                  </Select>
-                  {errors.type_sinistre && <p className="text-red-500 text-sm mt-1">{errors.type_sinistre}</p>}
+                  <CardTitle className="text-lg">Type de sinistre</CardTitle>
+                  <CardDescription className="text-orange-100">Sélectionnez le type de sinistre à déclarer</CardDescription>
                 </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                {SINISTRE_TYPES.map((type) => {
+                  const Icon = type.icon
+                  const isSelected = formData.type_sinistre === type.value
+                  return (
+                    <div key={type.value} onClick={() => setFormData({ ...formData, type_sinistre: type.value as SinistreType })} className={cn("relative p-4 rounded-2xl border-2 cursor-pointer transition-all duration-200 hover:shadow-lg", isSelected ? `${type.borderColor} ${type.bgColor} shadow-lg scale-105` : "border-slate-200 bg-white hover:border-slate-300")}>
+                      {isSelected && <div className="absolute -top-2 -right-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center shadow-md"><CheckCircle className="w-4 h-4 text-white" /></div>}
+                      <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center mb-3 mx-auto", isSelected ? `bg-gradient-to-br ${type.color}` : "bg-slate-100")}><Icon className={cn("h-6 w-6", isSelected ? "text-white" : "text-slate-500")} /></div>
+                      <div className="text-center"><div className={cn("font-semibold text-sm", isSelected ? type.textColor : "text-slate-700")}>{type.label}</div><div className="text-xs text-slate-500 mt-1 hidden md:block">{type.description}</div></div>
+                    </div>
+                  )
+                })}
+              </div>
+              {errors.type_sinistre && <p className="text-red-500 text-sm mb-4 flex items-center gap-1"><AlertCircle className="h-3 w-3" />{errors.type_sinistre}</p>}
 
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
                 <div>
-                  <Label htmlFor="date_sinistre" className="text-gray-700 font-medium">Date du sinistre *</Label>
-                  <Input
-                    id="date_sinistre"
-                    type="date"
-                    value={formData.date_sinistre}
-                    onChange={(e) => setFormData({ ...formData, date_sinistre: e.target.value })}
-                    max={new Date().toISOString().split('T')[0]}
-                    className={errors.date_sinistre ? 'border-red-500' : ''}
-                  />
+                  <Label className="text-slate-700 font-semibold flex items-center gap-2"><Calendar className="h-4 w-4 text-orange-500" />Date du sinistre *</Label>
+                  <Input type="date" value={formData.date_sinistre} onChange={(e) => setFormData({ ...formData, date_sinistre: e.target.value })} max={new Date().toISOString().split('T')[0]} className={cn("mt-2 h-12", errors.date_sinistre ? 'border-red-500' : '')} />
                   {errors.date_sinistre && <p className="text-red-500 text-sm mt-1">{errors.date_sinistre}</p>}
                 </div>
+                <div>
+                  <Label className="text-slate-700 font-semibold flex items-center gap-2"><MapPin className="h-4 w-4 text-orange-500" />Lieu du sinistre</Label>
+                  <Input value={formData.lieu_sinistre} onChange={(e) => setFormData({ ...formData, lieu_sinistre: e.target.value })} placeholder="Ex: Libreville, Port-Gentil" className="mt-2 h-12" />
+                </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
                 <div>
-                  <Label htmlFor="lieu_sinistre" className="text-gray-700 font-medium"><MapPin className="h-4 w-4 inline mr-1" />Lieu du sinistre</Label>
-                  <Input id="lieu_sinistre" value={formData.lieu_sinistre} onChange={(e) => setFormData({ ...formData, lieu_sinistre: e.target.value })} placeholder="Ex: Libreville, Port-Gentil" />
-                </div>
-                <div>
-                  <Label htmlFor="capital_restant_du" className="text-gray-700 font-medium"><DollarSign className="h-4 w-4 inline mr-1" />Capital restant dû (FCFA) *</Label>
-                  <Input id="capital_restant_du" type="number" value={formData.capital_restant_du} onChange={(e) => setFormData({ ...formData, capital_restant_du: parseFloat(e.target.value) || 0 })} className={errors.capital_restant_du ? 'border-red-500' : ''} />
+                  <Label className="text-slate-700 font-semibold flex items-center gap-2"><DollarSign className="h-4 w-4 text-orange-500" />Capital restant dû (FCFA) *</Label>
+                  <Input type="number" value={formData.capital_restant_du} onChange={(e) => setFormData({ ...formData, capital_restant_du: parseFloat(e.target.value) || 0 })} className={cn("mt-2 h-12", errors.capital_restant_du ? 'border-red-500' : '')} />
                   {errors.capital_restant_du && <p className="text-red-500 text-sm mt-1">{errors.capital_restant_du}</p>}
                 </div>
+                <div>
+                  <Label className="text-slate-700 font-semibold flex items-center gap-2"><DollarSign className="h-4 w-4 text-slate-400" />Montant réclamé (optionnel)</Label>
+                  <Input type="number" value={formData.montant_reclame || ''} onChange={(e) => setFormData({ ...formData, montant_reclame: parseFloat(e.target.value) || 0 })} placeholder="0" className="mt-2 h-12" />
+                </div>
               </div>
 
-              <div>
-                <Label htmlFor="circonstances" className="text-gray-700 font-medium">Circonstances du sinistre</Label>
-                <Textarea id="circonstances" rows={4} value={formData.circonstances} onChange={(e) => setFormData({ ...formData, circonstances: e.target.value })} placeholder="Décrivez les circonstances du sinistre..." />
+              <div className="mt-4">
+                <Label className="text-slate-700 font-semibold">Circonstances du sinistre</Label>
+                <Textarea value={formData.circonstances} onChange={(e) => setFormData({ ...formData, circonstances: e.target.value })} placeholder="Décrivez les circonstances du sinistre en détail..." rows={4} className="mt-2" />
               </div>
             </CardContent>
           </Card>
 
-          {/* Informations du déclarant */}
-          <Card className="shadow-lg">
-            <CardHeader className="bg-green-50 border-b">
-              <CardTitle className="flex items-center gap-2 text-green-700">
-                <User className="h-5 w-5" />
-                3. Informations du déclarant
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-6 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* CARD 3: Documents */}
+          <Card className="overflow-hidden border-0 shadow-xl bg-white">
+            <CardHeader className="bg-gradient-to-r from-purple-500 to-indigo-500 text-white py-5">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center"><Upload className="h-5 w-5" /></div>
                 <div>
-                  <Label htmlFor="nom_declarant" className="text-gray-700 font-medium">Nom *</Label>
-                  <Input id="nom_declarant" value={formData.nom_declarant} onChange={(e) => setFormData({ ...formData, nom_declarant: e.target.value })} placeholder="Nom du déclarant" className={errors.nom_declarant ? 'border-red-500' : ''} />
-                  {errors.nom_declarant && <p className="text-red-500 text-sm mt-1">{errors.nom_declarant}</p>}
-                </div>
-                <div>
-                  <Label htmlFor="prenom_declarant" className="text-gray-700 font-medium">Prénom *</Label>
-                  <Input id="prenom_declarant" value={formData.prenom_declarant} onChange={(e) => setFormData({ ...formData, prenom_declarant: e.target.value })} placeholder="Prénom du déclarant" className={errors.prenom_declarant ? 'border-red-500' : ''} />
-                  {errors.prenom_declarant && <p className="text-red-500 text-sm mt-1">{errors.prenom_declarant}</p>}
+                  <CardTitle className="text-lg">Documents justificatifs</CardTitle>
+                  <CardDescription className="text-purple-100">Joignez les pièces requises pour votre déclaration</CardDescription>
                 </div>
               </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="qualite_declarant" className="text-gray-700 font-medium">Qualité / Lien avec l'assuré *</Label>
-                  <Select id="qualite_declarant" value={formData.qualite_declarant} onChange={(e) => setFormData({ ...formData, qualite_declarant: e.target.value })} className={errors.qualite_declarant ? 'border-red-500' : ''}>
-                    <option value="">-- Sélectionner --</option>
-                    <option value="assure">Assuré lui-même</option>
-                    <option value="conjoint">Conjoint(e)</option>
-                    <option value="enfant">Enfant</option>
-                    <option value="parent">Parent</option>
-                    <option value="beneficiaire">Bénéficiaire désigné</option>
-                    <option value="mandataire">Mandataire</option>
-                    <option value="autre">Autre</option>
-                  </Select>
-                  {errors.qualite_declarant && <p className="text-red-500 text-sm mt-1">{errors.qualite_declarant}</p>}
-                </div>
-                <div>
-                  <Label htmlFor="telephone_declarant" className="text-gray-700 font-medium"><Phone className="h-4 w-4 inline mr-1" />Téléphone *</Label>
-                  <Input id="telephone_declarant" type="tel" value={formData.telephone_declarant} onChange={(e) => setFormData({ ...formData, telephone_declarant: e.target.value })} placeholder="Ex: +241 XX XX XX XX" className={errors.telephone_declarant ? 'border-red-500' : ''} />
-                  {errors.telephone_declarant && <p className="text-red-500 text-sm mt-1">{errors.telephone_declarant}</p>}
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="email_declarant" className="text-gray-700 font-medium"><Mail className="h-4 w-4 inline mr-1" />Email (optionnel)</Label>
-                <Input id="email_declarant" type="email" value={formData.email_declarant} onChange={(e) => setFormData({ ...formData, email_declarant: e.target.value })} placeholder="email@exemple.com" />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Documents justificatifs */}
-          <Card className="shadow-lg">
-            <CardHeader className="bg-purple-50 border-b">
-              <CardTitle className="flex items-center gap-2 text-purple-700">
-                <Upload className="h-5 w-5" />
-                4. Documents justificatifs
-              </CardTitle>
             </CardHeader>
             <CardContent className="p-6">
               {formData.type_sinistre ? (
-                <div className="space-y-4">
-                  <p className="text-sm text-gray-600 mb-4">
-                    Les documents marqués d'un <span className="text-red-500 font-bold">*</span> sont requis pour ce type de sinistre.
-                  </p>
+                <>
+                  <div className="mb-6 p-4 bg-indigo-50 rounded-xl border border-indigo-200 flex items-start gap-3">
+                    <Info className="h-5 w-5 text-indigo-600 mt-0.5" />
+                    <div>
+                      <p className="font-medium text-indigo-800">Documents requis pour: {selectedTypeInfo?.label}</p>
+                      <p className="text-sm text-indigo-600 mt-1">Les documents marqués d'un <span className="text-red-500 font-bold">*</span> sont obligatoires.</p>
+                    </div>
+                  </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {Object.entries(documentLabels).map(([key, label]) => {
                       const isRequired = requiredDocs.includes(key)
                       const file = documents[key]
                       return (
-                        <div key={key} className={`p-4 border rounded-lg ${isRequired ? 'border-indigo-300 bg-indigo-50' : 'border-gray-200 bg-gray-50'}`}>
-                          <Label className="text-gray-700 font-medium flex items-center gap-2">{label}{isRequired && <span className="text-red-500">*</span>}</Label>
-                          <div className="mt-2 flex items-center gap-2">
-                            <Input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => handleFileChange(key, e.target.files?.[0] || null)} className="text-sm" />
-                            {file && (
-                              <div className="flex items-center gap-2">
-                                <CheckCircle className="h-5 w-5 text-green-500" />
-                                <Button type="button" variant="outline" size="sm" onClick={() => handleFileChange(key, null)} className="text-red-500 hover:bg-red-50"><X className="h-4 w-4" /></Button>
-                              </div>
-                            )}
+                        <div key={key} className={cn("p-4 rounded-xl border-2 transition-all", file ? "border-green-300 bg-green-50" : isRequired ? "border-purple-300 bg-purple-50" : "border-slate-200 bg-slate-50")}>
+                          <div className="flex items-center justify-between mb-2">
+                            <Label className="font-medium text-slate-700 flex items-center gap-2"><FileCheck className={cn("h-4 w-4", file ? "text-green-500" : isRequired ? "text-purple-500" : "text-slate-400")} />{label}{isRequired && <span className="text-red-500">*</span>}</Label>
+                            {file && <Button type="button" variant="ghost" size="sm" onClick={() => handleFileChange(key, null)} className="text-red-500 hover:bg-red-100 h-7 w-7 p-0"><X className="h-4 w-4" /></Button>}
                           </div>
-                          {file && <p className="text-xs text-green-600 mt-1">{file.name}</p>}
+                          {file ? <div className="flex items-center gap-2 text-green-700"><CheckCircle className="h-5 w-5" /><span className="text-sm truncate">{file.name}</span></div> : <Input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => handleFileChange(key, e.target.files?.[0] || null)} className="text-sm h-10 cursor-pointer" />}
                         </div>
                       )
                     })}
                   </div>
-                </div>
+                </>
               ) : (
-                <div className="text-center py-8 text-gray-500">
-                  <Upload className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-                  <p>Veuillez d'abord sélectionner un type de sinistre pour voir les documents requis.</p>
+                <div className="text-center py-12 text-slate-500">
+                  <div className="w-16 h-16 mx-auto mb-4 bg-slate-100 rounded-2xl flex items-center justify-center"><Upload className="h-8 w-8 text-slate-300" /></div>
+                  <p className="font-medium">Veuillez d'abord sélectionner un type de sinistre</p>
+                  <p className="text-sm mt-1">Les documents requis s'afficheront ici.</p>
                 </div>
               )}
             </CardContent>
           </Card>
 
-          {/* Boutons d'action */}
-          <div className="flex gap-4 justify-end">
-            <Button type="button" variant="outline" onClick={() => navigate('/sinistres/edg')} disabled={isPending} className="border-gray-400">Annuler</Button>
-            <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700 px-8" disabled={isPending}>
+          {/* Boutons */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-end pt-4">
+            <Button type="button" variant="outline" onClick={() => navigate('/sinistres/edg')} disabled={isPending} className="h-12 px-6 border-slate-300"><ArrowLeft className="h-4 w-4 mr-2" />Annuler</Button>
+            <Button type="submit" className="h-12 px-8 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 shadow-lg" disabled={isPending}>
               {isPending ? (<><LoadingSpinner size="sm" /><span className="ml-2">Envoi en cours...</span></>) : (<><CheckCircle className="h-5 w-5 mr-2" />Déclarer le sinistre</>)}
             </Button>
           </div>

@@ -11,6 +11,7 @@ import { Select } from '@/components/ui/Select'
 import { Checkbox } from '@/components/ui/Checkbox'
 import { Label } from '@/components/ui/Label'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
+import { LimitesDepasseesModal, type ContratCreationResponse } from '@/components/ui/LimitesDepasseesModal'
 import { formatCurrency } from '@/lib/utils'
 import axios from '@/lib/axios'
 
@@ -57,6 +58,8 @@ export const BcegContractCreate = () => {
   const [simulation, setSimulation] = useState<SimulationResult | null>(null)
   const [isSimulating, setIsSimulating] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [showLimitesModal, setShowLimitesModal] = useState(false)
+  const [createdContrat, setCreatedContrat] = useState<ContratCreationResponse | null>(null)
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target
@@ -156,9 +159,15 @@ export const BcegContractCreate = () => {
     }
 
     createContract(payload, {
-      onSuccess: (data) => {
-        alert('Contrat BCEG créé avec succès !')
-        navigate(`/contrats/bceg/${data.id}`)
+      onSuccess: (data: any) => {
+        setCreatedContrat({
+          id: data.data?.id || data.id,
+          numero_police: data.data?.numero_police || data.numero_police,
+          statut: data.data?.statut || data.statut,
+          limites_depassees: data.data?.limites_depassees || data.limites_depassees || false,
+          motif_attente: data.data?.motif_attente || data.motif_attente || null
+        })
+        setShowLimitesModal(true)
       },
       onError: (error: any) => {
         const errorMessage = error?.response?.data?.message || 'Erreur lors de la création du contrat'
@@ -592,6 +601,21 @@ export const BcegContractCreate = () => {
             </Button>
           </div>
         </form>
+
+        {/* Modal de résultat de création */}
+        <LimitesDepasseesModal
+          isOpen={showLimitesModal}
+          onClose={() => setShowLimitesModal(false)}
+          onNavigate={() => {
+            if (createdContrat) {
+              navigate(`/contrats/bceg/${createdContrat.id}`, {
+                state: { success: createdContrat.statut === 'actif' ? 'Contrat créé avec succès !' : 'Contrat créé en attente de validation.' }
+              })
+            }
+          }}
+          contrat={createdContrat}
+          emfType="bceg"
+        />
       </div>
     </div>
   )

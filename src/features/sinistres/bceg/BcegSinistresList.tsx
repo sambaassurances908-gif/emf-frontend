@@ -58,10 +58,11 @@ export const BcegSinistresList = () => {
     queryFn: async () => {
       const params = new URLSearchParams({
         emf_id: emfId.toString(),
+        contrat_type: 'ContratBceg',
         ...(search && { search }),
         per_page: '50'
       })
-      const response = await axios.get(`/bceg/sinistres?${params}`)
+      const response = await axios.get(`/sinistres?${params}`)
       const rawData = response.data
       if (rawData?.data?.data) return rawData.data.data
       if (Array.isArray(rawData?.data)) return rawData.data

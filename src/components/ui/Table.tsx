@@ -13,8 +13,8 @@ interface TableRowProps extends HTMLAttributes<HTMLTableRowElement> {
 
 export const Table = ({ children, className }: TableProps) => {
   return (
-    <div className="overflow-x-auto">
-      <table className={cn('min-w-full divide-y divide-gray-200', className)}>
+    <div className="overflow-x-auto rounded-2xl border border-gray-100">
+      <table className={cn('min-w-full divide-y divide-gray-100', className)}>
         {children}
       </table>
     </div>
@@ -23,7 +23,7 @@ export const Table = ({ children, className }: TableProps) => {
 
 export const TableHeader = ({ children, className }: TableProps) => {
   return (
-    <thead className={cn('bg-gray-50', className)}>
+    <thead className={cn('bg-gray-50/50', className)}>
       {children}
     </thead>
   );
@@ -31,7 +31,7 @@ export const TableHeader = ({ children, className }: TableProps) => {
 
 export const TableBody = ({ children, className }: TableProps) => {
   return (
-    <tbody className={cn('bg-white divide-y divide-gray-200', className)}>
+    <tbody className={cn('bg-white divide-y divide-gray-100', className)}>
       {children}
     </tbody>
   );
@@ -39,7 +39,7 @@ export const TableBody = ({ children, className }: TableProps) => {
 
 export const TableRow = ({ children, className, ...props }: TableRowProps) => {
   return (
-    <tr className={cn('hover:bg-gray-50 transition-colors', className)} {...props}>
+    <tr className={cn('hover:bg-gray-50/50 transition-colors', className)} {...props}>
       {children}
     </tr>
   );
@@ -49,7 +49,7 @@ export const TableHead = ({ children, className }: TableProps) => {
   return (
     <th
       className={cn(
-        'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider',
+        'px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider',
         className
       )}
     >
@@ -60,7 +60,7 @@ export const TableHead = ({ children, className }: TableProps) => {
 
 export const TableCell = ({ children, className }: TableProps) => {
   return (
-    <td className={cn('px-6 py-4 whitespace-nowrap text-sm text-gray-900', className)}>
+    <td className={cn('px-6 py-4 whitespace-nowrap text-sm text-gray-700', className)}>
       {children}
     </td>
   );

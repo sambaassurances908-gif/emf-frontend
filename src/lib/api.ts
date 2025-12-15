@@ -47,9 +47,10 @@ api.interceptors.request.use(
       config.headers.set('Authorization', `Bearer ${token}`);
     }
 
-    // Ajout automatique de l'emf_id UNIQUEMENT si pas déjà dans les params
+    // Ajout automatique de l'emf_id UNIQUEMENT pour les requêtes GET
+    // NE PAS ajouter pour POST/PUT/DELETE (le backend gère via les relations)
     const emfId = localStorage.getItem('emf_id');
-    if (emfId) {
+    if (emfId && config.method?.toLowerCase() === 'get') {
       // Vérifier si emf_id est déjà dans les params de la requête
       const hasEmfIdInParams = config.params && config.params.emf_id !== undefined;
       const hasEmfIdInUrl = config.url && config.url.includes('emf_id');

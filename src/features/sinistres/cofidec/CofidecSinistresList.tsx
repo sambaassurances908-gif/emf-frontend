@@ -60,10 +60,11 @@ export const CofidecSinistresList = () => {
     queryFn: async () => {
       const params = new URLSearchParams({
         emf_id: emfId.toString(),
+        contrat_type: 'ContratCofidec',
         ...(search && { search }),
         per_page: '50'
       })
-      const response = await axios.get(`/cofidec/sinistres?${params}`)
+      const response = await axios.get(`/sinistres?${params}`)
       
       const rawData = response.data
       if (rawData?.data?.data) return rawData.data.data

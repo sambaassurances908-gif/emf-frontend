@@ -1,5 +1,5 @@
 import api from '../lib/api';
-import { User, UserStats } from '@/types/user.types';
+import { User, UserStats, CreateUserPayload } from '@/types/user.types';
 import { PaginatedResponse } from '@/types/common.types';
 
 interface UserSearchParams {
@@ -21,8 +21,8 @@ export const userService = {
     return response.data;
   },
 
-  create: async (data: Partial<User> & { password: string; password_confirmation?: string }) => {
-    const response = await api.post<{ data: User }>('/users', data);
+  create: async (data: CreateUserPayload) => {
+    const response = await api.post<{ data: User }>('/auth/register', data);
     return response.data;
   },
 

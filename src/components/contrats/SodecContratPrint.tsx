@@ -3,54 +3,7 @@ import React from 'react'
 import { Mail, Phone, MapPin } from 'lucide-react'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import logoSamba from '@/assets/logo-samba.png'
-
-// Types
-interface SodecContratData {
-  id: number
-  numero_police?: string
-  numero_convention?: string
-  nom_prenom?: string
-  adresse_assure?: string
-  ville_assure?: string
-  telephone_assure?: string
-  email_assure?: string
-  montant_pret_assure?: number
-  duree_pret_mois?: number
-  date_effet?: string
-  date_fin_echeance?: string
-  option_prevoyance?: string
-  garantie_perte_emploi?: boolean
-  garantie_prevoyance?: boolean
-  garantie_deces_iad?: boolean
-  cotisation_totale?: number
-  cotisation_totale_ttc?: number
-  categorie?: string  // Le backend envoie 'categorie' pas 'categorie_assure'
-  agence?: string
-  assures_associes?: AssureAssocie[]
-  beneficiaire_deces?: string
-  beneficiaire_deces_nom?: string
-  beneficiaire_deces_prenom?: string
-  beneficiaire_nom?: string
-  beneficiaire_prenom?: string
-  beneficiaire_date_naissance?: string
-  beneficiaire_lieu_naissance?: string
-  beneficiaire_contact?: string
-  lieu_signature?: string
-  date_signature?: string
-  created_at?: string  // Date d'émission du contrat
-  [key: string]: any
-}
-
-interface AssureAssocie {
-  id?: number
-  type_assure?: string
-  nom?: string
-  prenom?: string
-  date_naissance?: string
-  lieu_naissance?: string
-  contact?: string
-  adresse?: string
-}
+import type { SodecContrat } from '@/types/sodec'
 
 // --- Logo Component ---
 const Logo: React.FC = () => {
@@ -133,7 +86,7 @@ const Footer: React.FC<{ pageNum?: number }> = ({ pageNum = 1 }) => {
 
 // --- Main Print Component ---
 interface SodecContratPrintProps {
-  contrat: SodecContratData
+  contrat: SodecContrat
 }
 
 export const SodecContratPrint: React.FC<SodecContratPrintProps> = ({ contrat }) => {
@@ -143,9 +96,18 @@ export const SodecContratPrint: React.FC<SodecContratPrintProps> = ({ contrat })
   const conjoint = assuresAssocies.find(a => a.type_assure?.toLowerCase().includes('conjoint'))
   const enfants = assuresAssocies.filter(a => a.type_assure?.toLowerCase().includes('enfant')).slice(0, 4)
   
-  // Remplir les enfants manquants
-  while (enfants.length < 4) {
-    enfants.push({ type_assure: `Enfant ${enfants.length + 1}` })
+  // Remplir les enfants manquants avec des objets pour l'affichage
+  interface EnfantDisplay {
+    type_assure?: string
+    nom?: string
+    prenom?: string
+    date_naissance?: string
+    lieu_naissance?: string
+    contact?: string
+  }
+  const enfantsDisplay: EnfantDisplay[] = [...enfants]
+  while (enfantsDisplay.length < 4) {
+    enfantsDisplay.push({ type_assure: `Enfant ${enfantsDisplay.length + 1}` })
   }
 
   // Catégories avec les clés exactes du backend
@@ -164,9 +126,9 @@ export const SodecContratPrint: React.FC<SodecContratPrintProps> = ({ contrat })
   const isOptionB = contrat.option_prevoyance?.toLowerCase() === 'option_b'
   
   // Extraire le bénéficiaire (peut être un string complet ou séparé)
-  // Priorité: beneficiaire_nom > beneficiaire_deces_nom > split de beneficiaire_deces
-  const beneficiaireNom = contrat.beneficiaire_nom || contrat.beneficiaire_deces_nom || contrat.beneficiaire_deces?.split(' ')[0] || ''
-  const beneficiairePrenom = contrat.beneficiaire_prenom || contrat.beneficiaire_deces_prenom || contrat.beneficiaire_deces?.split(' ').slice(1).join(' ') || ''
+  // Priorité: beneficiaire_nom > split de beneficiaire_deces
+  const beneficiaireNom = contrat.beneficiaire_nom || contrat.beneficiaire_deces?.split(' ')[0] || ''
+  const beneficiairePrenom = contrat.beneficiaire_prenom || contrat.beneficiaire_deces?.split(' ').slice(1).join(' ') || ''
   const beneficiaireDateNaissance = contrat.beneficiaire_date_naissance || ''
   const beneficiaireLieuNaissance = contrat.beneficiaire_lieu_naissance || ''
   const beneficiaireContact = contrat.beneficiaire_contact || ''
@@ -238,19 +200,20 @@ export const SodecContratPrint: React.FC<SodecContratPrintProps> = ({ contrat })
                   />
                 )
               })}
-              <div className="flex items-center ml-1">
-                {(() => {
-                  const isOther = selectedCategorie === 'autre'
-                  return (
-                    <>
-                      <Checkbox label="Autre à préciser :" checked={isOther} />
-                      <span className="border-b border-gray-400 w-24 ml-1 text-xs font-semibold">
+              {(() => {
+                const isOther = selectedCategorie === 'autre'
+                return (
+                  <>
+                    <Checkbox label="Autre" checked={isOther} />
+                    <div className="flex items-center">
+                      <span className="text-[10px] text-gray-800 mr-1">à préciser :</span>
+                      <span className="border-b border-gray-400 w-24 text-xs font-semibold">
                         {isOther ? (contrat.autre_categorie_precision || '') : ''}
                       </span>
-                    </>
-                  )
-                })()}
-              </div>
+                    </div>
+                  </>
+                )
+              })()}
             </div>
           </div>
         </div>
@@ -311,7 +274,7 @@ export const SodecContratPrint: React.FC<SodecContratPrintProps> = ({ contrat })
                 </tr>
                 
                 {/* Enfants */}
-                {enfants.map((enfant, idx) => (
+                {enfantsDisplay.map((enfant, idx) => (
                   <tr key={idx} className="h-5">
                     <td className="border-b border-r border-[#F48232] p-0.5 font-bold bg-orange-50/50">Enfant {idx + 1}</td>
                     <td className="border-b border-r border-[#F48232] p-0.5 font-semibold">{enfant?.nom || ''}</td>
@@ -415,9 +378,7 @@ export const SodecContratPrint: React.FC<SodecContratPrintProps> = ({ contrat })
               <span className="flex-grow mx-2 border-b-2 border-black text-center font-extrabold text-lg">
                 {contrat.cotisation_totale_ttc 
                   ? formatCurrency(Number(contrat.cotisation_totale_ttc)) 
-                  : contrat.cotisation_totale 
-                    ? formatCurrency(Number(contrat.cotisation_totale))
-                    : ''}
+                  : ''}
               </span>
               <span className="text-[10px]">FCFA TTC (Montant prêt x taux) + Cotisation Prévoyance ({isOptionA ? 'Option A' : isOptionB ? 'Option B' : 'A ou B'})</span>
             </div>

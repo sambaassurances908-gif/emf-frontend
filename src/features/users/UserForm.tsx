@@ -11,14 +11,12 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { ArrowLeft, Save, Eye, EyeOff } from 'lucide-react';
 import { userService } from '@/services/user.service';
-import { emfService } from '@/services/emf.service';
-import { Emf } from '@/types/emf.types';
 import toast from 'react-hot-toast';
 
 const userSchema = z.object({
   name: z.string().min(2, 'Nom requis'),
   email: z.string().email('Email invalide'),
-  role: z.enum(['admin', 'emf_user', 'bank_user', 'assureur']),
+  role: z.enum(['admin', 'gestionnaire', 'agent']),
   emf_id: z.string().optional(),
   statut: z.enum(['actif', 'inactif', 'suspendu']),
   password: z.string().min(6, 'Mot de passe minimum 6 caractères').optional(),
@@ -38,7 +36,7 @@ type UserFormData = z.infer<typeof userSchema>;
 interface UserCreateData {
   name: string;
   email: string;
-  role: 'admin' | 'emf_user' | 'bank_user' | 'assureur';
+  role: 'admin' | 'gestionnaire' | 'agent';
   statut: 'actif' | 'inactif' | 'suspendu';
   emf_id?: number;
   password?: string;
@@ -61,15 +59,6 @@ export const UserForm = () => {
 
   const user = userResponse?.data;
 
-  const { data: emfsResponse } = useQuery({
-    queryKey: ['emfs-all'],
-    queryFn: async () => {
-      return await emfService.getAll({ per_page: 100 });
-    },
-  });
-
-  const emfs = emfsResponse?.data;
-
   const {
     register,
     handleSubmit,
@@ -79,7 +68,7 @@ export const UserForm = () => {
   } = useForm<UserFormData>({
     resolver: zodResolver(userSchema),
     defaultValues: {
-      role: 'emf_user',
+      role: 'agent',
       statut: 'actif',
     },
   });
@@ -106,8 +95,16 @@ export const UserForm = () => {
       toast.success('Utilisateur créé avec succès');
       navigate(`/users/${response.data.id}`);
     },
-    onError: (error: AxiosError<{ message?: string }>) => {
-      toast.error(error.response?.data?.message || 'Erreur lors de la création');
+    onError: (error: AxiosError<{ message?: string; errors?: Record<string, string[]> }>) => {
+      const errorMsg = error.response?.data?.message || 'Erreur lors de la création';
+      const errors = error.response?.data?.errors;
+      if (errors) {
+        const firstError = Object.values(errors)[0]?.[0];
+        toast.error(firstError || errorMsg);
+        console.error('Validation errors:', errors);
+      } else {
+        toast.error(errorMsg);
+      }
     },
   });
 
@@ -131,19 +128,21 @@ export const UserForm = () => {
       emf_id: data.emf_id ? parseInt(data.emf_id) : undefined,
     };
 
-    if (!isEdit && data.password) {
+    if (!isEdit) {
+      if (!data.password) {
+        toast.error('Le mot de passe est requis');
+        return;
+      }
       const createData = {
         ...formattedData,
         password: data.password,
         password_confirmation: data.password_confirmation,
       } as UserCreateData & { password: string };
       createMutation.mutate(createData);
-    } else if (isEdit) {
+    } else {
       updateMutation.mutate(formattedData);
     }
   };
-
-  const needsEmf = role === 'emf_user' || role === 'bank_user';
 
   return (
     <div className="space-y-6">
@@ -199,9 +198,8 @@ export const UserForm = () => {
                 label="Rôle"
                 options={[
                   { value: 'admin', label: 'Administrateur (Accès complet)' },
-                  { value: 'emf_user', label: 'Utilisateur EMF' },
-                  { value: 'bank_user', label: 'Utilisateur Banque' },
-                  { value: 'assureur', label: 'Assureur' },
+                  { value: 'gestionnaire', label: 'Gestionnaire' },
+                  { value: 'agent', label: 'Agent' },
                 ]}
                 error={errors.role?.message}
                 {...register('role')}
@@ -218,15 +216,17 @@ export const UserForm = () => {
               />
             </div>
 
-            {needsEmf && (
+            {/* Sélecteur EMF pour gestionnaires et agents */}
+            {(role === 'gestionnaire' || role === 'agent') && (
               <Select
-                label="EMF/Banque associé(e)"
+                label="EMF associé"
                 options={[
-                  { value: '', label: 'Sélectionnez...' },
-                  ...(emfs?.map((emf: Emf) => ({
-                    value: emf.id.toString(),
-                    label: `${emf.sigle} - ${emf.raison_sociale}`,
-                  })) || []),
+                  { value: '', label: 'Aucun (Accès global)' },
+                  { value: '1', label: 'BAMBOO' },
+                  { value: '2', label: 'COFIDEC' },
+                  { value: '3', label: 'BCEG' },
+                  { value: '4', label: 'EDG' },
+                  { value: '5', label: 'SODEC' },
                 ]}
                 error={errors.emf_id?.message}
                 {...register('emf_id')}
@@ -245,25 +245,18 @@ export const UserForm = () => {
                     <li>• Validation et traitement des sinistres</li>
                   </>
                 )}
-                {role === 'emf_user' && (
+                {role === 'gestionnaire' && (
                   <>
-                    <li>• Création et gestion des contrats de son EMF</li>
-                    <li>• Déclaration des sinistres</li>
-                    <li>• Consultation des statistiques</li>
+                    <li>• Gestion des contrats et sinistres</li>
+                    <li>• Validation des déclarations</li>
+                    <li>• Accès aux statistiques</li>
                   </>
                 )}
-                {role === 'bank_user' && (
+                {role === 'agent' && (
                   <>
-                    <li>• Création et gestion des contrats de sa banque</li>
+                    <li>• Saisie et consultation des données</li>
                     <li>• Déclaration des sinistres</li>
-                    <li>• Consultation des statistiques</li>
-                  </>
-                )}
-                {role === 'assureur' && (
-                  <>
-                    <li>• Validation et traitement des sinistres</li>
-                    <li>• Consultation de tous les contrats</li>
-                    <li>• Accès aux statistiques globales</li>
+                    <li>• Consultation des contrats</li>
                   </>
                 )}
               </ul>

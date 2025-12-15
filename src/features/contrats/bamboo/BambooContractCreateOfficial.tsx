@@ -114,7 +114,17 @@ const Footer: React.FC = () => {
 export const BambooContractCreateOfficial = () => {
   const navigate = useNavigate()
   const { user } = useAuthStore()
-  const emfId = user?.emf_id || 1 // BAMBOO = 1
+
+  // ═══════════════════════════════════════════════════════════════════
+  // 🔒 VÉRIFICATION EMF - BAMBOO = emf_id 1
+  // ═══════════════════════════════════════════════════════════════════
+  const userEmfId = user?.emf_id
+  const userEmfSigle = user?.emf?.sigle?.toUpperCase() || ''
+  const isBambooUser = userEmfId === 1 || userEmfSigle.includes('BAMBOO') || user?.role === 'admin'
+  const emfName = userEmfSigle || (userEmfId === 1 ? 'BAMBOO' : userEmfId === 2 ? 'COFIDEC' : userEmfId === 3 ? 'BCEG' : userEmfId === 4 ? 'EDG' : userEmfId === 5 ? 'SODEC' : 'inconnu')
+
+  // IMPORTANT: Toujours utiliser emf_id = 1 pour BAMBOO
+  const emfId = 1
 
   const [formData, setFormData] = useState({
     emf_id: emfId,
@@ -142,6 +152,35 @@ export const BambooContractCreateOfficial = () => {
 
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [submitError, setSubmitError] = useState('')
+
+  // ═══════════════════════════════════════════════════════════════════
+  // 🔒 VALIDATION PROGRESSIVE - Activation des sections par étapes
+  // ═══════════════════════════════════════════════════════════════════
+  
+  // Section 1: Couverture Prêt (toujours active)
+  const isSection1Complete = Boolean(
+    formData.montant_pret_assure && 
+    formData.duree_pret_mois && 
+    formData.date_effet
+  )
+
+  // Section 2: Assuré (active si Section 1 complète)
+  const isSection2Enabled = isSection1Complete
+  const isSection2Complete = Boolean(
+    formData.nom_prenom.trim() && 
+    formData.adresse_assure.trim() && 
+    formData.ville_assure.trim() && 
+    formData.telephone_assure.trim() &&
+    formData.categorie
+  )
+
+  // Section 3+ (active si Section 2 complète)
+  const isSection3Enabled = isSection2Complete
+  const isSection4Enabled = isSection2Complete
+  const isSection5Enabled = isSection2Complete
+
+  // Bouton de création: actif si tous les champs obligatoires sont remplis
+  const isFormComplete = isSection1Complete && isSection2Complete
 
   const { mutate: createContract, isPending, isSuccess, isError, error } = useCreateBambooContract()
 
@@ -228,6 +267,34 @@ export const BambooContractCreateOfficial = () => {
   }
 
   const categorieLabel = getCategorieLabel()
+
+  // ═══════════════════════════════════════════════════════════════════
+  // 🔒 VÉRIFICATION D'ACCÈS - Après tous les hooks (Rules of Hooks)
+  // ═══════════════════════════════════════════════════════════════════
+  if (!isBambooUser) {
+    return (
+      <div className="min-h-screen bg-gray-100 py-8 px-4">
+        <div className="max-w-[210mm] mx-auto">
+          <div className="bg-red-50 border border-red-300 rounded-lg p-6 text-center">
+            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <h1 className="text-xl font-bold text-red-700 mb-2">Accès non autorisé</h1>
+            <p className="text-red-600 mb-4">
+              Vous êtes connecté avec un compte <strong>{emfName}</strong>.
+              <br />
+              Ce formulaire est réservé aux utilisateurs BAMBOO.
+            </p>
+            <Button 
+              onClick={() => navigate(-1)} 
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Retour
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -398,6 +465,37 @@ export const BambooContractCreateOfficial = () => {
         </span>
       </div>
 
+      {/* 🔒 Indicateur de progression */}
+      <div className="max-w-[210mm] mx-auto mb-4 bg-white rounded-lg shadow p-4">
+        <div className="flex items-center justify-between text-sm">
+          <span className="font-medium text-gray-700">Progression du formulaire :</span>
+          <div className="flex items-center gap-2">
+            <div className={`flex items-center gap-1 px-2 py-1 rounded ${isSection1Complete ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+              {isSection1Complete ? <CheckCircle className="h-4 w-4" /> : <span className="w-4 h-4 rounded-full border-2 border-current" />}
+              <span>Prêt</span>
+            </div>
+            <div className={`flex items-center gap-1 px-2 py-1 rounded ${isSection2Complete ? 'bg-green-100 text-green-700' : isSection2Enabled ? 'bg-orange-100 text-orange-700' : 'bg-gray-100 text-gray-400'}`}>
+              {isSection2Complete ? <CheckCircle className="h-4 w-4" /> : <span className="w-4 h-4 rounded-full border-2 border-current" />}
+              <span>Assuré</span>
+            </div>
+            <div className={`flex items-center gap-1 px-2 py-1 rounded ${isFormComplete ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'}`}>
+              {isFormComplete ? <CheckCircle className="h-4 w-4" /> : <span className="w-4 h-4 rounded-full border-2 border-current" />}
+              <span>Prêt à créer</span>
+            </div>
+          </div>
+        </div>
+        {!isSection1Complete && (
+          <p className="text-xs text-orange-600 mt-2">
+            ⚠️ Remplissez d'abord les informations du prêt (Montant, Durée, Date d'effet) pour débloquer la section Assuré.
+          </p>
+        )}
+        {isSection1Complete && !isSection2Complete && (
+          <p className="text-xs text-orange-600 mt-2">
+            ⚠️ Remplissez les informations de l'assuré (Nom, Adresse, Ville, Téléphone, Catégorie) pour activer le bouton de création.
+          </p>
+        )}
+      </div>
+
       {/* Formulaire style contrat officiel */}
       <form onSubmit={handleSubmit}>
         <div className="bg-white w-[210mm] min-h-[297mm] p-[6mm] shadow-xl relative flex flex-col mx-auto">
@@ -428,6 +526,13 @@ export const BambooContractCreateOfficial = () => {
                 Couverture
               </div>
               <div className="flex-grow p-1.5 grid grid-cols-2 gap-x-4 gap-y-1">
+                {/* Numéro de police - Auto-généré */}
+                <div className="col-span-2 flex items-end">
+                  <span className="mr-1 whitespace-nowrap text-[11px] text-gray-800">N° Police :</span>
+                  <span className="flex-grow border-b-2 border-gray-400 text-[11px] px-1 py-0.5 font-semibold text-gray-500 italic">
+                    (Auto-généré à la création)
+                  </span>
+                </div>
                 <FormInput 
                   label="Montant du prêt assuré :" 
                   value={formData.montant_pret_assure}
@@ -463,9 +568,10 @@ export const BambooContractCreateOfficial = () => {
             </div>
 
             {/* Section: Assuré/Emprunteur */}
-            <div className="flex border-b border-[#F48232]">
+            <div className={`flex border-b border-[#F48232] ${!isSection2Enabled ? 'opacity-50 pointer-events-none' : ''}`}>
               <div className="w-28 flex-shrink-0 p-1.5 bg-orange-50 italic border-r border-[#F48232] flex flex-col justify-center text-xs">
                 Assuré/Emprunteur
+                {!isSection2Enabled && <span className="text-[10px] text-orange-600 mt-1">🔒 Remplir Prêt</span>}
               </div>
               <div className="flex-grow p-1.5 space-y-1">
                 <FormInput 
@@ -475,6 +581,7 @@ export const BambooContractCreateOfficial = () => {
                   placeholder="Ex: Jean NGUEMA"
                   required
                   error={errors.nom_prenom}
+                  disabled={!isSection2Enabled}
                 />
                 <div className="flex gap-2">
                   <FormInput 
@@ -485,6 +592,7 @@ export const BambooContractCreateOfficial = () => {
                     required
                     error={errors.adresse_assure}
                     className="flex-grow-[2]"
+                    disabled={!isSection2Enabled}
                   />
                   <FormInput 
                     label="Ville :" 
@@ -494,6 +602,7 @@ export const BambooContractCreateOfficial = () => {
                     required
                     error={errors.ville_assure}
                     className="flex-grow-[1]"
+                    disabled={!isSection2Enabled}
                   />
                 </div>
                 <div className="flex gap-2">
@@ -505,6 +614,7 @@ export const BambooContractCreateOfficial = () => {
                     required
                     error={errors.telephone_assure}
                     className="flex-grow-[1]"
+                    disabled={!isSection2Enabled}
                   />
                   <FormInput 
                     label="Email:" 
@@ -513,9 +623,10 @@ export const BambooContractCreateOfficial = () => {
                     placeholder="Ex: email@example.com"
                     type="email"
                     className="flex-grow-[2]"
+                    disabled={!isSection2Enabled}
                   />
                 </div>
-                <div className="flex flex-wrap items-center mt-1 gap-y-1">
+                <div className="flex flex-wrap items-center mt-1 gap-x-4 gap-y-1">
                   <span className="mr-1 text-xs">Catégorie{errors.categorie && <span className="text-red-500">*</span>} :</span>
                   {categories.map(cat => (
                     <Checkbox 
@@ -523,20 +634,23 @@ export const BambooContractCreateOfficial = () => {
                       label={cat.label} 
                       checked={formData.categorie === cat.key}
                       onChange={() => setFormData({...formData, categorie: cat.key})}
+                      disabled={!isSection2Enabled}
                     />
                   ))}
-                  <div className="flex items-center ml-1">
-                    <Checkbox 
-                      label="Autre à préciser :" 
-                      checked={formData.categorie === 'autre'}
-                      onChange={() => setFormData({...formData, categorie: 'autre'})}
-                    />
+                  <Checkbox 
+                    label="Autre" 
+                    checked={formData.categorie === 'autre'}
+                    onChange={() => setFormData({...formData, categorie: 'autre'})}
+                    disabled={!isSection2Enabled}
+                  />
+                  <div className="flex items-center">
+                    <span className="text-[10px] text-gray-800 mr-1">à préciser :</span>
                     <input
                       type="text"
                       value={formData.autre_categorie_precision}
                       onChange={(e) => setFormData({...formData, autre_categorie_precision: e.target.value})}
-                      className="border-b border-gray-400 w-24 ml-1 text-xs font-semibold bg-transparent focus:outline-none focus:border-[#F48232]"
-                      disabled={formData.categorie !== 'autre'}
+                      className="border-b border-gray-400 w-24 text-xs font-semibold bg-transparent focus:outline-none focus:border-[#F48232]"
+                      disabled={!isSection2Enabled || formData.categorie !== 'autre'}
                     />
                   </div>
                 </div>
@@ -547,27 +661,31 @@ export const BambooContractCreateOfficial = () => {
                   </div>
                 )}
                 {/* Type de contrat de travail */}
-                <div className="flex flex-wrap items-center mt-1 gap-y-1">
+                <div className="flex flex-wrap items-center mt-1 gap-x-4 gap-y-1">
                   <span className="mr-1 text-xs">Type de contrat de travail{errors.type_contrat_travail && <span className="text-red-500">*</span>} :</span>
                   <Checkbox 
                     label="CDI" 
                     checked={formData.type_contrat_travail === 'cdi'}
                     onChange={() => setFormData({...formData, type_contrat_travail: 'cdi'})}
+                    disabled={!isSection2Enabled}
                   />
                   <Checkbox 
                     label="CDD > 9 mois" 
                     checked={formData.type_contrat_travail === 'cdd_plus_9_mois'}
                     onChange={() => setFormData({...formData, type_contrat_travail: 'cdd_plus_9_mois'})}
+                    disabled={!isSection2Enabled}
                   />
                   <Checkbox 
                     label="CDD < 9 mois" 
                     checked={formData.type_contrat_travail === 'cdd_moins_9_mois'}
                     onChange={() => setFormData({...formData, type_contrat_travail: 'cdd_moins_9_mois'})}
+                    disabled={!isSection2Enabled}
                   />
                   <Checkbox 
                     label="Non applicable" 
                     checked={formData.type_contrat_travail === 'non_applicable'}
                     onChange={() => setFormData({...formData, type_contrat_travail: 'non_applicable'})}
+                    disabled={!isSection2Enabled}
                   />
                 </div>
                 {/* Bénéficiaire Prévoyance */}
@@ -577,15 +695,17 @@ export const BambooContractCreateOfficial = () => {
                     value={formData.beneficiaire_prevoyance}
                     onChange={(v) => setFormData({...formData, beneficiaire_prevoyance: v})}
                     placeholder="Ex: Marie NGUEMA (épouse)"
+                    disabled={!isSection2Enabled}
                   />
                 </div>
               </div>
             </div>
 
             {/* Section: Souscripteur / EMF */}
-            <div className="flex border-b border-[#F48232]">
-              <div className="w-28 flex-shrink-0 p-1.5 bg-orange-50 italic border-r border-[#F48232] flex items-center text-xs">
+            <div className={`flex border-b border-[#F48232] ${!isSection3Enabled ? 'opacity-50 pointer-events-none' : ''}`}>
+              <div className="w-28 flex-shrink-0 p-1.5 bg-orange-50 italic border-r border-[#F48232] flex flex-col justify-center text-xs">
                 Souscripteur / EMF
+                {!isSection3Enabled && <span className="text-[10px] text-orange-600 mt-1">🔒 Remplir Assuré</span>}
               </div>
               <div className="flex-grow p-1.5 space-y-1">
                 <div className="flex items-end">
@@ -603,6 +723,7 @@ export const BambooContractCreateOfficial = () => {
                     onChange={(v) => setFormData({...formData, agence: v})}
                     placeholder="Ex: Agence Centre"
                     className="w-32"
+                    disabled={!isSection3Enabled}
                   />
                 </div>
                 <div className="flex items-end">
@@ -617,9 +738,10 @@ export const BambooContractCreateOfficial = () => {
             </div>
 
             {/* Section: Garanties */}
-            <div className="flex border-b border-[#F48232]">
-              <div className="w-28 flex-shrink-0 p-1.5 bg-orange-50 italic border-r border-[#F48232] flex items-center text-xs">
+            <div className={`flex border-b border-[#F48232] ${!isSection4Enabled ? 'opacity-50 pointer-events-none' : ''}`}>
+              <div className="w-28 flex-shrink-0 p-1.5 bg-orange-50 italic border-r border-[#F48232] flex flex-col justify-center text-xs">
                 Garanties
+                {!isSection4Enabled && <span className="text-[10px] text-orange-600 mt-1">🔒 Remplir Assuré</span>}
               </div>
               <div className="flex-grow">
                 <table className="w-full text-center text-[10px] border-collapse">
@@ -699,9 +821,10 @@ export const BambooContractCreateOfficial = () => {
             </div>
 
             {/* Section: Cotisations */}
-            <div className="flex bg-orange-50/50">
-              <div className="w-28 flex-shrink-0 p-1.5 bg-orange-50 italic border-r border-[#F48232] flex items-center text-xs">
+            <div className={`flex bg-orange-50/50 ${!isSection5Enabled ? 'opacity-50 pointer-events-none' : ''}`}>
+              <div className="w-28 flex-shrink-0 p-1.5 bg-orange-50 italic border-r border-[#F48232] flex flex-col justify-center text-xs">
                 Cotisations
+                {!isSection5Enabled && <span className="text-[10px] text-orange-600 mt-1">🔒 Remplir Assuré</span>}
               </div>
               <div className="flex-grow p-2">
                 <div className="font-bold flex items-end">
@@ -784,18 +907,28 @@ export const BambooContractCreateOfficial = () => {
           </Button>
           <Button
             type="submit"
-            disabled={isPending}
-            className="flex-1 bg-[#F48232] hover:bg-[#e0742a] text-white font-semibold text-lg py-3"
+            disabled={isPending || !isFormComplete}
+            className={`flex-1 text-white font-semibold text-lg py-3 ${
+              isFormComplete 
+                ? 'bg-[#F48232] hover:bg-[#e0742a]' 
+                : 'bg-gray-400 cursor-not-allowed'
+            }`}
+            title={!isFormComplete ? 'Veuillez remplir tous les champs obligatoires' : ''}
           >
             {isPending ? (
               <>
                 <LoadingSpinner size="sm" />
                 <span className="ml-2">Création en cours...</span>
               </>
+            ) : !isFormComplete ? (
+              <>
+                <AlertCircle className="h-5 w-5 mr-2" />
+                Remplir les champs obligatoires
+              </>
             ) : (
               <>
                 <Save className="h-5 w-5 mr-2" />
-                Créer le Contrat BAMBOO-EMF
+                Créer le Contrat BAMBOO
               </>
             )}
           </Button>

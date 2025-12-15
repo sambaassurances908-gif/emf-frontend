@@ -1,9 +1,11 @@
+export type UserRole = 'admin' | 'gestionnaire' | 'agent' | 'emf_user' | 'bank_user' | 'assureur';
+
 export interface User {
   id: number;
   name: string;
   email: string;
-  role: 'admin' | 'emf_user' | 'bank_user' | 'assureur';
-  emf_id?: number; // Ajouté ici, optionnel
+  role: UserRole;
+  emf_id?: number | null;
   emf?: {
     id: number;
     raison_sociale: string;
@@ -14,6 +16,27 @@ export interface User {
   last_login?: string;
   created_at: string;
 }
+
+export interface CreateUserPayload {
+  name: string;
+  email: string;
+  password: string;
+  password_confirmation: string;
+  role: UserRole;
+  emf_id?: number | null;
+  statut?: 'actif' | 'inactif' | 'suspendu';
+}
+
+export const USER_ROLES = [
+  { value: 'admin' as const, label: 'Administrateur', description: 'Accès complet à toutes les fonctionnalités' },
+  { value: 'gestionnaire' as const, label: 'Gestionnaire', description: 'Gestion des contrats et sinistres' },
+  { value: 'agent' as const, label: 'Agent', description: 'Saisie et consultation des données' },
+] as const;
+
+export const EMF_USER_ROLES = [
+  { value: 'gestionnaire' as const, label: 'Gestionnaire EMF', description: 'Gestion complète pour cet EMF' },
+  { value: 'agent' as const, label: 'Agent EMF', description: 'Saisie et consultation pour cet EMF' },
+] as const;
 
 
 export interface UserStats {

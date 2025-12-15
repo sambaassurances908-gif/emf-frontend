@@ -58,10 +58,11 @@ export const SodecSinistresList = () => {
     queryFn: async () => {
       const params = new URLSearchParams({
         emf_id: emfId.toString(),
+        contrat_type: 'ContratSodec',
         ...(search && { search }),
         per_page: '50'
       })
-      const response = await axios.get(`/sodec/sinistres?${params}`)
+      const response = await axios.get(`/sinistres?${params}`)
       const rawData = response.data
       if (rawData?.data?.data) return rawData.data.data
       if (Array.isArray(rawData?.data)) return rawData.data

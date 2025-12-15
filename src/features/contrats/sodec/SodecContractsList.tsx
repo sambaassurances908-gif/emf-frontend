@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { 
-  Search, FileText, Filter, Plus, Eye, Edit, Trash2, Download 
+  Search, FileText, Filter, Plus, Eye, Edit 
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -11,12 +11,9 @@ import { useSodecContracts } from '@/hooks/useSodecContracts'
 import { useAuthStore } from '@/store/authStore'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { formatCurrency, formatDate } from '@/lib/utils'
-import { SodecContrat } from '@/types/sodec'
+import type { SodecContrat } from '@/types/sodec'
 
-// Fonctions utilitaires sécurisées
-const getStatusColor = (status?: string) => 
-  status === 'actif' ? 'bg-green-100 text-green-800 border-green-200' : 'bg-gray-100 text-gray-800 border-gray-200'
-
+// Fonction utilitaire sécurisée
 const getOptionColor = (option?: string) => 
   option === 'option_a' ? 'bg-purple-100 text-purple-800 border-purple-200' : 'bg-blue-100 text-blue-800 border-blue-200'
 
@@ -26,7 +23,7 @@ export const SodecContractsList = () => {
   const emfId = user?.emf_id || 5
 
   const [search, setSearch] = useState('')
-  const [filters, setFilters] = useState({
+  const [filters] = useState({
     statut: '',
     option: '',
     categorie: ''

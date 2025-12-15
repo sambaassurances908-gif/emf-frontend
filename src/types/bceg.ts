@@ -84,6 +84,8 @@ export interface BcegContrat {
   ville_assure: string
   telephone_assure: string
   email_assure?: string
+  categorie?: string  // Catégorie socio-professionnelle
+  autre_categorie_precision?: string  // Précision si "autre"
   
   // Bénéficiaire prévoyance
   beneficiaire_prevoyance_nom_prenom?: string
@@ -123,6 +125,8 @@ export interface BcegContrat {
   
   // Statut
   statut: string
+  motif_attente?: string | null
+  limites_depassees?: boolean
   
   // Délais contractuels
   delai_couverture_maladie_mois?: number
@@ -183,6 +187,8 @@ export interface BcegContratFormData {
   ville_assure: string
   telephone_assure: string
   email_assure?: string
+  categorie?: string  // Catégorie socio-professionnelle
+  autre_categorie_precision?: string  // Précision si "autre"
   
   // Bénéficiaire prévoyance
   beneficiaire_prevoyance_nom_prenom?: string
@@ -213,8 +219,16 @@ export interface BcegDashboardStats {
   montant_total_assure: number
   cotisation_totale: number
   avec_prevoyance: number
+  avec_perte_emploi?: number
   expire_30_jours: number
   par_agence?: {
     [agence: string]: number
+  }
+  par_categorie?: {
+    commercants?: number
+    salaries_public?: number
+    salaries_prive?: number
+    retraites?: number
+    autre?: number
   }
 }

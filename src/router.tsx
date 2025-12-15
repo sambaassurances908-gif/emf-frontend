@@ -30,6 +30,7 @@ import { EdgContractCreateOfficial } from '@/features/contrats/edg/EdgContractCr
 import { SinistreListPage } from '@/features/sinistres/SinistreListPage'
 import { SinistreDetailPage } from '@/features/sinistres/SinistreDetailPage'
 import { SinistreDeclarationForm } from '@/features/sinistres/SinistreDeclarationForm'
+import { SinistreTraitementPage } from '@/features/sinistres/SinistreTraitementPage'
 
 // ✅ Pages de déclaration de sinistre par EMF
 import { BambooSinistreDeclarationForm } from '@/features/sinistres/bamboo/BambooSinistreDeclarationForm'
@@ -222,15 +223,18 @@ export const router = createBrowserRouter([
           { path: 'nouveau/bceg', element: <BcegSinistreDeclarationForm /> },
           { path: 'nouveau/edg', element: <EdgSinistreDeclarationForm /> },
           
-          // ✅ Détails dédiés par EMF
-          { path: 'bamboo/:id', element: <BambooSinistreDetailPage /> },
-          { path: 'cofidec/:id', element: <CofidecSinistreDetailPage /> },
-          { path: 'bceg/:id', element: <BcegSinistreDetailPage /> },
-          { path: 'edg/:id', element: <EdgSinistreDetailPage /> },
-          { path: 'sodec/:id', element: <SodecSinistreDetailPage /> },
+          // ✅ Page de traitement admin (route principale)
+          { path: 'traitement/:id', element: <SinistreTraitementPage /> },
+          
+          // ✅ Traitement par EMF (avec contexte EMF)
+          { path: 'bamboo/:id', element: <SinistreTraitementPage /> },
+          { path: 'cofidec/:id', element: <SinistreTraitementPage /> },
+          { path: 'bceg/:id', element: <SinistreTraitementPage /> },
+          { path: 'edg/:id', element: <SinistreTraitementPage /> },
+          { path: 'sodec/:id', element: <SinistreTraitementPage /> },
           
           // Détail générique d'un sinistre (fallback)
-          { path: ':id', element: <SinistreDetailPage /> },
+          { path: ':id', element: <SinistreTraitementPage /> },
         ],
       },
 
@@ -239,11 +243,6 @@ export const router = createBrowserRouter([
       // ========================================
       {
         path: 'emfs',
-        element: (
-          <ProtectedRoute requiredRole={['admin']}>
-            <div />
-          </ProtectedRoute>
-        ),
         children: [
           { index: true, element: <EmfListPage /> },
           { path: 'nouveau', element: <EmfForm /> },
@@ -257,11 +256,6 @@ export const router = createBrowserRouter([
       // ========================================
       {
         path: 'users',
-        element: (
-          <ProtectedRoute requiredRole={['admin']}>
-            <div />
-          </ProtectedRoute>
-        ),
         children: [
           { index: true, element: <UserListPage /> },
           { path: 'nouveau', element: <UserForm /> },

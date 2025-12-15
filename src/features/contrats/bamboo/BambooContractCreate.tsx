@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/Badge'
 import { useAuthStore } from '@/store/authStore'
 import { useCreateBambooContract } from '@/hooks/useBambooContracts'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
+import { LimitesDepasseesModal, type ContratCreationResponse } from '@/components/ui/LimitesDepasseesModal'
 import { formatCurrency } from '@/lib/utils'
 
 export const BambooContractCreate = () => {
@@ -26,6 +27,8 @@ export const BambooContractCreate = () => {
   })
 
   const { mutate: createContract, isPending } = useCreateBambooContract()
+  const [showLimitesModal, setShowLimitesModal] = useState(false)
+  const [createdContrat, setCreatedContrat] = useState<ContratCreationResponse | null>(null)
 
   useEffect(() => {
     const today = new Date().toISOString().split('T')[0]
@@ -42,7 +45,14 @@ export const BambooContractCreate = () => {
     }
     createContract(payload, {
       onSuccess: (data: any) => {
-        navigate(`/contrats/bamboo/${data.data.id}`)
+        setCreatedContrat({
+          id: data.data.id,
+          numero_police: data.data.numero_police,
+          statut: data.data.statut,
+          limites_depassees: data.data.limites_depassees || false,
+          motif_attente: data.data.motif_attente || null
+        })
+        setShowLimitesModal(true)
       },
     })
   }
@@ -136,6 +146,21 @@ export const BambooContractCreate = () => {
             disabled={isPending}
           >
             Annuler
+
+      {/* Modal de résultat de création */}
+      <LimitesDepasseesModal
+        isOpen={showLimitesModal}
+        onClose={() => setShowLimitesModal(false)}
+        onNavigate={() => {
+          if (createdContrat) {
+            navigate(`/contrats/bamboo/${createdContrat.id}`, {
+              state: { success: createdContrat.statut === 'actif' ? 'Contrat créé avec succès !' : 'Contrat créé en attente de validation.' }
+            })
+          }
+        }}
+        contrat={createdContrat}
+        emfType="bamboo"
+      />
           </Button>
           <Button type="submit" disabled={isPending}>
             {isPending ? <LoadingSpinner size="sm" /> : <Save className="h-4 w-4 mr-2" />}

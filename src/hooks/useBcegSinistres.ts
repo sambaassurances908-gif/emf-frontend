@@ -2,7 +2,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { sinistreService } from '@/services/sinistre.service'
-import { SinistreCreatePayload, BcegSinistre, Sinistre } from '@/types/sinistre.types'
+import { SinistreCreatePayload, BcegSinistre, Sinistre, BcegSinistreCreatePayload } from '@/types/sinistre.types'
+
+// Re-export du type pour faciliter l'import dans les formulaires
+export type { BcegSinistreCreatePayload }
 
 /**
  * Hook pour récupérer les contrats BCEG actifs (pour le sélecteur du formulaire)

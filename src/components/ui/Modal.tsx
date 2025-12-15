@@ -36,7 +36,7 @@ export const Modal = ({ isOpen, onClose, title, children, size = 'md' }: ModalPr
     <div className="fixed inset-0 z-50 overflow-y-auto">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
+        className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm transition-opacity animate-fade-in"
         onClick={onClose}
       />
 
@@ -44,21 +44,21 @@ export const Modal = ({ isOpen, onClose, title, children, size = 'md' }: ModalPr
       <div className="flex min-h-full items-center justify-center p-4">
         <div
           className={cn(
-            'relative bg-white rounded-lg shadow-xl w-full',
+            'relative bg-white rounded-3xl shadow-card border border-gray-100 w-full animate-slide-up',
             sizes[size]
           )}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
           {title && (
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <h3 className="text-xl font-semibold text-gray-900">{title}</h3>
+            <div className="flex items-center justify-between p-6 border-b border-gray-100">
+              <h3 className="text-xl font-bold text-gray-900">{title}</h3>
               <button
                 onClick={onClose}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                className="w-10 h-10 flex items-center justify-center rounded-xl text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all"
                 aria-label="Fermer la modale"
               >
-                <X className="h-6 w-6" />
+                <X className="h-5 w-5" />
               </button>
             </div>
           )}

@@ -63,6 +63,8 @@ export interface CofidecContrat {
   
   // Statut et observations
   statut: string
+  motif_attente?: string | null
+  limites_depassees?: boolean
   observations?: string
   lieu_signature?: string
   

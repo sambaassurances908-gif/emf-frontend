@@ -12,12 +12,15 @@ export const UserDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
+  const userId = id ? parseInt(id, 10) : NaN;
+
   const { data: user, isLoading } = useQuery({
-    queryKey: ['user', id],
+    queryKey: ['user', userId],
     queryFn: async () => {
-      const response = await userService.getById(Number(id));
+      const response = await userService.getById(userId);
       return response.data;
     },
+    enabled: !isNaN(userId) && userId > 0,
   });
 
   if (isLoading) {
