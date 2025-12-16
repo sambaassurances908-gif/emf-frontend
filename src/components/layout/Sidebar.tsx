@@ -18,6 +18,7 @@ type MenuItem = {
   path: string;
   emfPath?: string;
   adminOnly?: boolean;
+  roles?: string[];  // Rôles autorisés (si défini, restreint l'accès)
 };
 
 const EMF_SLUGS: Record<number, string> = {
@@ -84,8 +85,12 @@ export const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
   ];
 
   const filteredMenuItems = menuItems.filter((item) => {
-    if (!user) return !item.adminOnly;
+    if (!user) return !item.adminOnly && !item.roles;
     if (item.adminOnly) return isAdmin();
+    if (item.roles) {
+      const userRole = user.role || '';
+      return isAdmin() || item.roles.includes(userRole);
+    }
     return true;
   });
 

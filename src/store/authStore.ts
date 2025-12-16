@@ -2,7 +2,13 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import toast from 'react-hot-toast'
 import { authService } from '@/services/auth.service'
-import type { User, LoginCredentials } from '@/types/auth.types'
+import type { User, LoginCredentials, UserRole } from '@/types/auth.types'
+
+// Rôles avec permissions spécifiques pour les sinistres
+const ROLES_VALIDATION_SINISTRE: UserRole[] = ['admin', 'fpdg', 'gestionnaire']
+const ROLES_PAIEMENT_QUITTANCE: UserRole[] = ['admin', 'fpdg', 'comptable']
+const ROLES_CLOTURE_SINISTRE: UserRole[] = ['admin', 'fpdg']
+const ROLES_LECTURE_SEULE: UserRole[] = ['lecteur']
 
 interface AuthState {
   user: User | null
@@ -10,7 +16,13 @@ interface AuthState {
   isAuthenticated: boolean
   isLoading: boolean
   isAdmin: () => boolean
-  getDashboardPath: () => string  // ← NOUVEAU
+  getDashboardPath: () => string
+  // Permissions sinistres (Règle D)
+  peutValiderSinistre: () => boolean
+  peutPayerQuittance: () => boolean
+  peutCloturerSinistre: () => boolean
+  estLecteurSeul: () => boolean
+  hasRole: (roles: UserRole | UserRole[]) => boolean
   login: (credentials: LoginCredentials) => Promise<void>
   logout: () => void
   setUser: (user: User) => void
@@ -27,12 +39,25 @@ export const useAuthStore = create<AuthState>()(
 
       isAdmin: () => get().user?.role === 'admin',
 
-      // ← NOUVEAU : Fonction pour obtenir le chemin du dashboard selon l'EMF
+      // ← NOUVEAU : Fonction pour obtenir le chemin du dashboard selon le rôle et l'EMF
       getDashboardPath: () => {
         const user = get().user
         
         if (!user) return '/login'
 
+        // ============================================
+        // 1. REDIRECTION PAR RÔLE SPÉCIFIQUE
+        // ============================================
+        
+        // Comptable → Dashboard comptable directement
+        if (user.role === 'comptable') {
+          return '/comptable'
+        }
+
+        // ============================================
+        // 2. REDIRECTION PAR EMF (pour les autres rôles)
+        // ============================================
+        
         // Mapping des EMF vers leurs dashboards
         const emfDashboardMap: Record<number, string> = {
           1: '/dashboard/bamboo',
@@ -47,8 +72,59 @@ export const useAuthStore = create<AuthState>()(
           return emfDashboardMap[user.emf_id]
         }
 
-        // Sinon, dashboard général (pour les admins SAMBA sans EMF)
+        // ============================================
+        // 3. DASHBOARD GÉNÉRAL (admin, fpdg, gestionnaire sans EMF)
+        // ============================================
         return '/dashboard'
+      },
+
+      // ==========================================
+      // Permissions Sinistres (Règle D)
+      // ==========================================
+
+      /**
+       * Vérifie si l'utilisateur peut valider un sinistre
+       * Rôles autorisés: admin, fpdg, gestionnaire
+       */
+      peutValiderSinistre: () => {
+        const role = get().user?.role
+        return role ? ROLES_VALIDATION_SINISTRE.includes(role) : false
+      },
+
+      /**
+       * Vérifie si l'utilisateur peut payer une quittance
+       * Rôles autorisés: admin, fpdg, comptable
+       */
+      peutPayerQuittance: () => {
+        const role = get().user?.role
+        return role ? ROLES_PAIEMENT_QUITTANCE.includes(role) : false
+      },
+
+      /**
+       * Vérifie si l'utilisateur peut clôturer un sinistre
+       * Rôles autorisés: admin, fpdg uniquement
+       */
+      peutCloturerSinistre: () => {
+        const role = get().user?.role
+        return role ? ROLES_CLOTURE_SINISTRE.includes(role) : false
+      },
+
+      /**
+       * Vérifie si l'utilisateur est en lecture seule
+       */
+      estLecteurSeul: () => {
+        const role = get().user?.role
+        return role ? ROLES_LECTURE_SEULE.includes(role) : false
+      },
+
+      /**
+       * Vérifie si l'utilisateur a un ou plusieurs rôles
+       */
+      hasRole: (roles: UserRole | UserRole[]) => {
+        const userRole = get().user?.role
+        if (!userRole) return false
+        const rolesArray = Array.isArray(roles) ? roles : [roles]
+        return rolesArray.includes(userRole)
       },
 
       initialize: () => {

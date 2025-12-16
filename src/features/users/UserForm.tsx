@@ -16,7 +16,7 @@ import toast from 'react-hot-toast';
 const userSchema = z.object({
   name: z.string().min(2, 'Nom requis'),
   email: z.string().email('Email invalide'),
-  role: z.enum(['admin', 'gestionnaire', 'agent']),
+  role: z.enum(['admin', 'gestionnaire', 'agent', 'comptable', 'fpdg', 'lecteur']),
   emf_id: z.string().optional(),
   statut: z.enum(['actif', 'inactif', 'suspendu']),
   password: z.string().min(6, 'Mot de passe minimum 6 caractères').optional(),
@@ -36,7 +36,7 @@ type UserFormData = z.infer<typeof userSchema>;
 interface UserCreateData {
   name: string;
   email: string;
-  role: 'admin' | 'gestionnaire' | 'agent';
+  role: 'admin' | 'gestionnaire' | 'agent' | 'comptable' | 'fpdg' | 'lecteur';
   statut: 'actif' | 'inactif' | 'suspendu';
   emf_id?: number;
   password?: string;
@@ -198,8 +198,11 @@ export const UserForm = () => {
                 label="Rôle"
                 options={[
                   { value: 'admin', label: 'Administrateur (Accès complet)' },
+                  { value: 'fpdg', label: 'FPDG (Direction Générale)' },
                   { value: 'gestionnaire', label: 'Gestionnaire' },
+                  { value: 'comptable', label: 'Comptable' },
                   { value: 'agent', label: 'Agent' },
+                  { value: 'lecteur', label: 'Lecteur (Consultation seule)' },
                 ]}
                 error={errors.role?.message}
                 {...register('role')}
@@ -216,8 +219,8 @@ export const UserForm = () => {
               />
             </div>
 
-            {/* Sélecteur EMF pour gestionnaires et agents */}
-            {(role === 'gestionnaire' || role === 'agent') && (
+            {/* Sélecteur EMF pour certains rôles */}
+            {(role === 'gestionnaire' || role === 'agent' || role === 'comptable' || role === 'lecteur') && (
               <Select
                 label="EMF associé"
                 options={[
@@ -243,20 +246,44 @@ export const UserForm = () => {
                     <li>• Accès complet à toutes les fonctionnalités</li>
                     <li>• Gestion des EMFs, utilisateurs et paramètres</li>
                     <li>• Validation et traitement des sinistres</li>
+                    <li>• Paiement des quittances et clôture</li>
+                  </>
+                )}
+                {role === 'fpdg' && (
+                  <>
+                    <li>• Accès direction générale</li>
+                    <li>• Validation des quittances</li>
+                    <li>• Paiement et clôture des sinistres</li>
+                    <li>• Dashboard comptable</li>
                   </>
                 )}
                 {role === 'gestionnaire' && (
                   <>
                     <li>• Gestion des contrats et sinistres</li>
-                    <li>• Validation des déclarations</li>
-                    <li>• Accès aux statistiques</li>
+                    <li>• Validation des déclarations et quittances</li>
+                    <li>• Accès aux statistiques et dashboard comptable</li>
+                  </>
+                )}
+                {role === 'comptable' && (
+                  <>
+                    <li>• Dashboard comptable complet</li>
+                    <li>• Paiement des quittances validées</li>
+                    <li>• Historique et rapports financiers</li>
+                    <li>• Export des données de paiement</li>
                   </>
                 )}
                 {role === 'agent' && (
                   <>
                     <li>• Saisie et consultation des données</li>
                     <li>• Déclaration des sinistres</li>
-                    <li>• Consultation des contrats</li>
+                    <li>• Création de contrats</li>
+                  </>
+                )}
+                {role === 'lecteur' && (
+                  <>
+                    <li>• Consultation seule (lecture)</li>
+                    <li>• Visualisation des contrats et sinistres</li>
+                    <li>• Aucune modification possible</li>
                   </>
                 )}
               </ul>

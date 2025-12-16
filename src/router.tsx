@@ -29,6 +29,7 @@ import { EdgContractCreateOfficial } from '@/features/contrats/edg/EdgContractCr
 
 import { SinistreListPage } from '@/features/sinistres/SinistreListPage'
 import { SinistreDetailPage } from '@/features/sinistres/SinistreDetailPage'
+import { SinistreDetailPageV2 } from '@/features/sinistres/SinistreDetailPageV2'
 import { SinistreDeclarationForm } from '@/features/sinistres/SinistreDeclarationForm'
 import { SinistreTraitementPage } from '@/features/sinistres/SinistreTraitementPage'
 
@@ -94,6 +95,10 @@ import { BcegContratPrintPage } from '@/features/contrats/bceg/BcegContratPrintP
 // ✅ Pages EDG
 import { EdgContractsList } from '@/features/contrats/edg/EdgContractsList'
 import { EdgContratDetailPage } from '@/features/contrats/edg/EdgContratDetailPage'
+
+// ✅ Pages Comptable
+import { ComptableDashboard, HistoriquePaiementsPage, RapportFinancierPage, QuittancesPage } from '@/features/comptable'
+import { ComptableLayout } from '@/components/layout/ComptableLayout'
 
 /**
  * Configuration du routeur de l'application SAMBA Assurances
@@ -226,15 +231,18 @@ export const router = createBrowserRouter([
           // ✅ Page de traitement admin (route principale)
           { path: 'traitement/:id', element: <SinistreTraitementPage /> },
           
-          // ✅ Traitement par EMF (avec contexte EMF)
-          { path: 'bamboo/:id', element: <SinistreTraitementPage /> },
-          { path: 'cofidec/:id', element: <SinistreTraitementPage /> },
-          { path: 'bceg/:id', element: <SinistreTraitementPage /> },
-          { path: 'edg/:id', element: <SinistreTraitementPage /> },
-          { path: 'sodec/:id', element: <SinistreTraitementPage /> },
+          // ✅ Page de détail V2 avec quittances et délais (route dédiée)
+          { path: 'detail/:id', element: <SinistreDetailPageV2 /> },
           
-          // Détail générique d'un sinistre (fallback)
-          { path: ':id', element: <SinistreTraitementPage /> },
+          // ✅ Traitement par EMF (avec contexte EMF)
+          { path: 'bamboo/:id', element: <SinistreDetailPageV2 /> },
+          { path: 'cofidec/:id', element: <SinistreDetailPageV2 /> },
+          { path: 'bceg/:id', element: <SinistreDetailPageV2 /> },
+          { path: 'edg/:id', element: <SinistreDetailPageV2 /> },
+          { path: 'sodec/:id', element: <SinistreDetailPageV2 /> },
+          
+          // Détail générique d'un sinistre (V2 avec quittances)
+          { path: ':id', element: <SinistreDetailPageV2 /> },
         ],
       },
 
@@ -273,12 +281,34 @@ export const router = createBrowserRouter([
       },
 
       // ========================================
+      // ESPACE COMPTABLE - Déplacé vers layout dédié
+      // ========================================
+
+      // ========================================
       // PARAMÈTRES
       // ========================================
       {
         path: 'settings',
         element: <SettingsPage />,
       },
+    ],
+  },
+
+  // ========================================
+  // ESPACE COMPTABLE (Layout dédié, réservé aux comptables)
+  // ========================================
+  {
+    path: '/comptable',
+    element: (
+      <ProtectedRoute>
+        <ComptableLayout />
+      </ProtectedRoute>
+    ),
+    children: [
+      { index: true, element: <ComptableDashboard /> },
+      { path: 'quittances', element: <QuittancesPage /> },
+      { path: 'historique', element: <HistoriquePaiementsPage /> },
+      { path: 'rapport', element: <RapportFinancierPage /> },
     ],
   },
 

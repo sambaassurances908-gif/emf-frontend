@@ -2,9 +2,20 @@
 
 /**
  * Types de sinistre supportés par l'API
- * Correspond à: 'deces', 'iad', 'perte_emploi', 'perte_activite'
+ * Correspond à: 'deces', 'iad', 'perte_emploi', 'perte_activite', 'maladie'
  */
-export type SinistreType = 'deces' | 'iad' | 'perte_emploi' | 'perte_activite'
+export type SinistreType = 'deces' | 'iad' | 'perte_emploi' | 'perte_activite' | 'maladie'
+
+/**
+ * Enum pour les types de sinistre (pour une utilisation plus stricte)
+ */
+export enum TypeSinistre {
+  DECES = 'deces',
+  IAD = 'iad',
+  PERTE_EMPLOI = 'perte_emploi',
+  PERTE_ACTIVITE = 'perte_activite',
+  MALADIE = 'maladie'
+}
 
 /**
  * Statuts de sinistre supportés par l'API Laravel
@@ -18,6 +29,136 @@ export type SinistreStatut =
   | 'paye'              // Indemnisation versée
   | 'rejete'            // Sinistre refusé
   | 'cloture'           // Dossier clôturé
+
+/**
+ * Enum pour les statuts de sinistre (pour une utilisation plus stricte)
+ */
+export enum SinistreStatutEnum {
+  EN_COURS = 'en_cours',
+  EN_INSTRUCTION = 'en_instruction',
+  EN_REGLEMENT = 'en_reglement',
+  EN_PAIEMENT = 'en_paiement',
+  PAYE = 'paye',
+  REJETE = 'rejete',
+  CLOTURE = 'cloture'
+}
+
+/**
+ * Types de quittance supportés
+ */
+export type TypeQuittance = 
+  | 'capital_sans_interets'  // Capital sans intérêts (EMF)
+  | 'capital_restant_du'     // Capital restant dû
+  | 'capital_prevoyance'     // Capital prévoyance (Bénéficiaire)
+  | 'indemnite_journaliere'  // Indemnité journalière
+  | 'frais_medicaux'         // Frais médicaux
+
+/**
+ * Enum pour les types de quittance
+ */
+export enum TypeQuittanceEnum {
+  CAPITAL_SANS_INTERETS = 'capital_sans_interets',
+  CAPITAL_RESTANT_DU = 'capital_restant_du',
+  CAPITAL_PREVOYANCE = 'capital_prevoyance',
+  INDEMNITE_JOURNALIERE = 'indemnite_journaliere',
+  FRAIS_MEDICAUX = 'frais_medicaux'
+}
+
+/**
+ * Statuts de quittance
+ */
+export type QuittanceStatut = 'en_attente' | 'validee' | 'payee' | 'annulee'
+
+/**
+ * Modes de paiement supportés
+ */
+export type ModePaiement = 'virement' | 'cheque' | 'especes' | 'mobile_money'
+
+/**
+ * Utilisateur simplifié pour les relations
+ */
+export interface UserSimple {
+  id: number
+  name: string
+  email?: string
+}
+
+/**
+ * Quittance de sinistre (Règle B)
+ */
+export interface Quittance {
+  id: number
+  sinistre_id: number
+  reference: string
+  type: TypeQuittance
+  beneficiaire: string
+  montant: number
+  statut: QuittanceStatut
+  date_validation?: string
+  date_paiement?: string
+  mode_paiement?: ModePaiement
+  numero_transaction?: string
+  valideur?: UserSimple
+  payeur?: UserSimple
+  created_at: string
+  updated_at?: string
+}
+
+/**
+ * Délai de paiement (Règle C - 10 jours)
+ */
+export interface DelaiPaiement {
+  date_debut: string
+  date_echeance: string
+  jours_restants: number
+  depasse: boolean
+}
+
+/**
+ * Résumé du règlement d'un sinistre
+ */
+export interface ResumeReglement {
+  sinistre_id: number
+  avec_prevoyance: boolean
+  montant_total: number
+  quittances: Quittance[]
+  nombre_quittances: number
+}
+
+/**
+ * Payload pour payer une quittance
+ */
+export interface PaiementQuittancePayload {
+  mode_paiement: ModePaiement
+  numero_transaction?: string
+}
+
+/**
+ * Erreur de validation sinistre (Règle A)
+ */
+export interface SinistreValidationError {
+  success: false
+  error: {
+    code: string
+    message: string
+    context?: Record<string, any>
+  }
+}
+
+/**
+ * Codes d'erreur de validation connus
+ */
+export type SinistreErrorCode = 
+  | 'SINISTRE_DECES_HORS_COUVERTURE'
+  | 'SINISTRE_MALADIE_DELAI_CARENCE'
+  | 'CONTRAT_NON_VALIDE'
+  | 'CONTRAT_EXPIRE'
+  | 'SINISTRE_NON_MODIFIABLE'
+  | 'TRANSITION_NON_AUTORISEE'
+  | 'QUITTANCE_NON_TROUVEE'
+  | 'QUITTANCE_DEJA_VALIDEE'
+  | 'QUITTANCE_DEJA_PAYEE'
+  | 'PERMISSION_REFUSEE'
 
 /**
  * Types de contrat supportés par l'API pour les sinistres
@@ -66,6 +207,17 @@ export interface Sinistre {
   statut: SinistreStatut
   motif_rejet?: string
   observations?: string
+  
+  // Délai de paiement (Règle C)
+  date_debut_delai_paiement?: string
+  date_echeance_paiement?: string
+  delai_paiement?: DelaiPaiement
+  
+  // Archivage (Règle E)
+  est_archive: boolean
+  est_modifiable?: boolean
+  date_cloture?: string
+  fichier_archive?: string
   
   // Dates
   date_reception_documents?: string
@@ -121,6 +273,7 @@ export interface Sinistre {
     garantie_prevoyance?: boolean | number
     garantie_prevoyance_deces_iad?: boolean | number
     garantie_perte_emploi?: boolean | number
+    avec_prevoyance?: boolean
     // Cotisations
     cotisation_deces_iad?: number
     cotisation_perte_emploi?: number
@@ -131,9 +284,10 @@ export interface Sinistre {
     cotisation_prevoyance?: number
   }
   documents?: SinistreDocument[]
-  declarePar?: { id: number; name: string }
-  traitePar?: { id: number; name: string }
-  validePar?: { id: number; name: string }
+  quittances?: Quittance[]
+  declarePar?: UserSimple
+  traitePar?: UserSimple
+  validePar?: UserSimple
   
   created_at: string
   updated_at: string
@@ -221,11 +375,13 @@ export interface SinistreStats {
   payes: number
   rejetes: number
   clotures: number
+  archives?: number
   par_type: {
     deces: number
     iad: number
     perte_emploi: number
     perte_activite: number
+    maladie?: number
   }
   montants: {
     total_indemnisations: number
@@ -235,7 +391,45 @@ export interface SinistreStats {
   delais: {
     delai_moyen_traitement: number
     delai_moyen_declaration: number
+    sinistres_delai_depasse?: number
   }
+  quittances?: {
+    total: number
+    en_attente: number
+    validees: number
+    payees: number
+    montant_total: number
+  }
+}
+
+/**
+ * Paramètres de recherche pour la liste des sinistres
+ */
+export interface SinistreSearchParams {
+  search?: string
+  statut?: SinistreStatut
+  type_sinistre?: SinistreType
+  contrat_type?: ContratType
+  contrat_id?: number
+  emf_id?: number
+  date_debut?: string
+  date_fin?: string
+  inclure_archives?: boolean
+  page?: number
+  per_page?: number
+}
+
+/**
+ * Réponse détaillée d'un sinistre
+ */
+export interface SinistreDetailResponse {
+  success: boolean
+  data: Sinistre
+  quittances?: Quittance[]
+  delai_paiement?: DelaiPaiement
+  documents_complets: boolean
+  delai_traitement_ecoule: string | number
+  est_modifiable?: boolean
 }
 
 // ========================

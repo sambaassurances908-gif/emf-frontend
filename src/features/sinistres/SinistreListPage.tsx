@@ -9,9 +9,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/Badge';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { EmptyState } from '@/components/shared/EmptyState';
-import { Plus, Search, Eye, Settings } from 'lucide-react';
+import { SinistreStatutBadge, TypeSinistreBadge, ArchiveBadge } from '@/components/sinistres';
+import { Plus, Search, Eye, Settings, Archive, Filter, X } from 'lucide-react';
 import { formatCurrency, formatDate } from '@/lib/utils';
-import { Sinistre } from '@/types/sinistre.types';
+import { Sinistre, SinistreStatut } from '@/types/sinistre.types';
 import { sinistreService } from '@/services/sinistre.service';
 import { useAuthStore } from '@/store/authStore';
 
@@ -50,26 +51,45 @@ export const SinistreListPage = () => {
   const [statutFilter, setStatutFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [selectedEmfId, setSelectedEmfId] = useState<number | null>(null);
+  const [showArchives, setShowArchives] = useState(false);
   
   // Vérification des droits admin
-  const { isAdmin } = useAuthStore();
+  const { isAdmin, peutCloturerSinistre } = useAuthStore();
   const isAdminUser = isAdmin();
+  const canViewArchives = peutCloturerSinistre();
 
   // Récupérer tous les sinistres (une seule requête)
   const { data: allSinistresData, isLoading } = useQuery({
-    queryKey: ['all-sinistres', statutFilter],
+    queryKey: ['all-sinistres', statutFilter, showArchives],
     queryFn: async () => {
       const response = await sinistreService.getAll({
-        statut: statutFilter || undefined,
+        statut: statutFilter as SinistreStatut || undefined,
+        inclure_archives: showArchives,
         per_page: 500, // Récupérer tous les sinistres
       });
       return response;
     },
   });
 
+  // Récupérer les sinistres archivés séparément si demandé
+  const { data: archivesData, isLoading: isLoadingArchives } = useQuery({
+    queryKey: ['sinistres-archives'],
+    queryFn: () => sinistreService.getArchives({ per_page: 100 }),
+    enabled: showArchives && canViewArchives,
+  });
+
   const allSinistres = useMemo(() => {
-    return Array.isArray(allSinistresData?.data) ? allSinistresData.data : [];
-  }, [allSinistresData]);
+    let sinistres = Array.isArray(allSinistresData?.data) ? allSinistresData.data : [];
+    
+    // Ajouter les archives si activé
+    if (showArchives && archivesData?.data) {
+      const archiveIds = new Set(sinistres.filter((s: Sinistre) => s.est_archive).map((s: Sinistre) => s.id));
+      const newArchives = (archivesData.data as Sinistre[]).filter((s: Sinistre) => !archiveIds.has(s.id));
+      sinistres = [...sinistres, ...newArchives];
+    }
+    
+    return sinistres;
+  }, [allSinistresData, archivesData, showArchives]);
 
   // Statistiques par EMF basées sur emf_id
   const emfStats = useMemo(() => {
@@ -94,6 +114,7 @@ export const SinistreListPage = () => {
 
   const totalSinistres = allSinistres.length;
   const totalMontant = allSinistres.reduce((acc: number, s: Sinistre) => acc + (s.montant_reclame || 0), 0);
+  const totalArchives = allSinistres.filter((s: Sinistre) => s.est_archive).length;
 
   // Sinistres filtrés selon l'EMF sélectionné et les filtres de recherche
   const filteredSinistres = useMemo(() => {
@@ -122,21 +143,13 @@ export const SinistreListPage = () => {
       sinistres = sinistres.filter((s: Sinistre) => s.type_sinistre === typeFilter);
     }
 
-    return sinistres;
-  }, [selectedEmfId, allSinistres, search, typeFilter]);
+    // Filtre archives : si showArchives est false, exclure les archivés
+    if (!showArchives) {
+      sinistres = sinistres.filter((s: Sinistre) => !s.est_archive);
+    }
 
-  const getStatusColor = (statut: string) => {
-    const colors: Record<string, string> = {
-      en_cours: 'bg-yellow-100 text-yellow-800',
-      en_instruction: 'bg-blue-100 text-blue-800',
-      en_reglement: 'bg-indigo-100 text-indigo-800',
-      en_paiement: 'bg-purple-100 text-purple-800',
-      paye: 'bg-emerald-100 text-emerald-800',
-      rejete: 'bg-red-100 text-red-800',
-      cloture: 'bg-gray-100 text-gray-800',
-    };
-    return colors[statut] || 'bg-gray-100 text-gray-800';
-  };
+    return sinistres;
+  }, [selectedEmfId, allSinistres, search, typeFilter, showArchives]);
 
   const getStatusLabel = (statut: string) => {
     const labels: Record<string, string> = {
@@ -149,16 +162,6 @@ export const SinistreListPage = () => {
       cloture: 'Clôturé',
     };
     return labels[statut] || statut;
-  };
-
-  const getTypeColor = (type: string) => {
-    const colors: Record<string, string> = {
-      deces: 'bg-black text-white',
-      iad: 'bg-orange-100 text-orange-800',
-      perte_emploi: 'bg-indigo-100 text-indigo-800',
-      perte_activite: 'bg-cyan-100 text-cyan-800',
-    };
-    return colors[type] || 'bg-gray-100 text-gray-800';
   };
 
   const getTypeLabel = (type: string) => {
@@ -181,8 +184,16 @@ export const SinistreListPage = () => {
   const handleSinistreClick = (sinistre: Sinistre) => {
     const emfId = sinistre.emf_id || sinistre.contrat?.emf_id;
     const emfConfig = getEmfConfig(emfId);
-    // Navigation vers la page de détail appropriée selon l'EMF
-    navigate(`/sinistres/${emfConfig.routePrefix || 'detail'}/${sinistre.id}`);
+    // Navigation vers la page de détail V2 (avec quittances et délais)
+    navigate(`/sinistres/${sinistre.id}`);
+  };
+
+  const clearFilters = () => {
+    setSearch('');
+    setStatutFilter('');
+    setTypeFilter('');
+    setSelectedEmfId(null);
+    setShowArchives(false);
   };
 
   return (
@@ -195,10 +206,22 @@ export const SinistreListPage = () => {
             Gestion des déclarations de sinistres par EMF
           </p>
         </div>
-        <Button onClick={() => navigate('/sinistres/nouveau')}>
-          <Plus className="h-4 w-4 mr-2" />
-          Déclarer un Sinistre
-        </Button>
+        <div className="flex items-center gap-3">
+          {canViewArchives && (
+            <Button 
+              variant={showArchives ? "default" : "outline"}
+              onClick={() => setShowArchives(!showArchives)}
+              className={showArchives ? "bg-purple-600 hover:bg-purple-700" : ""}
+            >
+              <Archive className="h-4 w-4 mr-2" />
+              Archives {totalArchives > 0 && `(${totalArchives})`}
+            </Button>
+          )}
+          <Button onClick={() => navigate('/sinistres/nouveau')}>
+            <Plus className="h-4 w-4 mr-2" />
+            Déclarer un Sinistre
+          </Button>
+        </div>
       </div>
 
       {/* Stats Cards par EMF */}
@@ -265,19 +288,48 @@ export const SinistreListPage = () => {
       </Card>
 
       {/* Selected EMF indicator */}
-      {selectedEmfId !== null && (
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-600">Filtre actif:</span>
-          <Badge className={`${selectedEmfConfig.bgLight} ${selectedEmfConfig.textColor}`}>
-            {selectedEmfConfig.label}
-          </Badge>
+      {(selectedEmfId !== null || showArchives || search || statutFilter || typeFilter) && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-sm text-gray-600">Filtres actifs:</span>
+          {selectedEmfId !== null && (
+            <Badge className={`${selectedEmfConfig.bgLight} ${selectedEmfConfig.textColor}`}>
+              {selectedEmfConfig.label}
+              <button onClick={() => setSelectedEmfId(null)} className="ml-1 hover:opacity-70">
+                <X size={12} />
+              </button>
+            </Badge>
+          )}
+          {showArchives && (
+            <Badge className="bg-purple-100 text-purple-700">
+              Archives inclus
+              <button onClick={() => setShowArchives(false)} className="ml-1 hover:opacity-70">
+                <X size={12} />
+              </button>
+            </Badge>
+          )}
+          {statutFilter && (
+            <Badge className="bg-gray-100 text-gray-700">
+              Statut: {getStatusLabel(statutFilter)}
+              <button onClick={() => setStatutFilter('')} className="ml-1 hover:opacity-70">
+                <X size={12} />
+              </button>
+            </Badge>
+          )}
+          {typeFilter && (
+            <Badge className="bg-gray-100 text-gray-700">
+              Type: {getTypeLabel(typeFilter)}
+              <button onClick={() => setTypeFilter('')} className="ml-1 hover:opacity-70">
+                <X size={12} />
+              </button>
+            </Badge>
+          )}
           <Button 
             variant="ghost" 
             size="sm" 
-            onClick={() => setSelectedEmfId(null)}
+            onClick={clearFilters}
             className="text-gray-500 hover:text-gray-700"
           >
-            × Effacer
+            Effacer tout
           </Button>
         </div>
       )}
@@ -323,23 +375,30 @@ export const SinistreListPage = () => {
                 {filteredSinistres.map((sinistre: Sinistre) => {
                   const emfId = sinistre.emf_id || sinistre.contrat?.emf_id;
                   const emfConfig = getEmfConfig(emfId);
+                  const isArchived = sinistre.est_archive;
                   return (
-                    <TableRow key={sinistre.id} className="hover:bg-gray-50">
+                    <TableRow 
+                      key={sinistre.id} 
+                      className={`hover:bg-gray-50 ${isArchived ? 'bg-purple-50/30' : ''}`}
+                    >
                       <TableCell>
                         <Badge className={`${emfConfig.bgLight} ${emfConfig.textColor}`}>
                           {emfConfig.label}
                         </Badge>
                       </TableCell>
                       <TableCell className="font-mono text-sm font-semibold">
-                        {sinistre.numero_sinistre}
+                        <div className="flex items-center gap-2">
+                          {sinistre.numero_sinistre}
+                          {isArchived && (
+                            <Archive size={14} className="text-purple-500" title="Archivé" />
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="font-mono text-sm">
                         {sinistre.numero_police}
                       </TableCell>
                       <TableCell>
-                        <Badge className={getTypeColor(sinistre.type_sinistre)}>
-                          {getTypeLabel(sinistre.type_sinistre)}
-                        </Badge>
+                        <TypeSinistreBadge type={sinistre.type_sinistre} size="sm" />
                       </TableCell>
                       <TableCell>
                         <div>
@@ -352,9 +411,7 @@ export const SinistreListPage = () => {
                         {formatCurrency(sinistre.montant_reclame || sinistre.capital_restant_du)}
                       </TableCell>
                       <TableCell>
-                        <Badge className={getStatusColor(sinistre.statut)}>
-                          {getStatusLabel(sinistre.statut)}
-                        </Badge>
+                        <SinistreStatutBadge statut={sinistre.statut} size="sm" />
                       </TableCell>
                       <TableCell>
                         {sinistre.delai_traitement_jours !== undefined && sinistre.delai_traitement_jours !== null ? (
@@ -370,14 +427,16 @@ export const SinistreListPage = () => {
                       <TableCell>
                         <Button
                           size="sm"
-                          variant={isAdminUser ? "default" : "ghost"}
+                          variant={isAdminUser && !isArchived ? "default" : "ghost"}
                           onClick={(e) => {
                             e.stopPropagation();
                             handleSinistreClick(sinistre);
                           }}
-                          title={isAdminUser ? "Traiter le sinistre" : "Voir les détails"}
+                          title={isArchived ? "Consulter l'archive" : (isAdminUser ? "Traiter le sinistre" : "Voir les détails")}
                         >
-                          {isAdminUser ? (
+                          {isArchived ? (
+                            <Archive className="h-4 w-4" />
+                          ) : isAdminUser ? (
                             <Settings className="h-4 w-4" />
                           ) : (
                             <Eye className="h-4 w-4" />

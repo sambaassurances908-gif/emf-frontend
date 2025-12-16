@@ -1,19 +1,19 @@
 import api from '../lib/api';
-import { Sinistre, SinistreStats, SinistreCreatePayload, SinistreCreateResponse, ContratType } from '@/types/sinistre.types';
+import { 
+  Sinistre, 
+  SinistreStats, 
+  SinistreCreatePayload, 
+  SinistreCreateResponse, 
+  ContratType,
+  SinistreSearchParams,
+  SinistreDetailResponse,
+  Quittance,
+  ResumeReglement,
+  PaiementQuittancePayload,
+  SinistreStatut,
+  SinistreType
+} from '@/types/sinistre.types';
 import { PaginatedResponse } from '@/types/common.types';
-
-interface SinistreSearchParams {
-  search?: string;
-  statut?: string;
-  type_sinistre?: string;
-  contrat_type?: ContratType;
-  contrat_id?: number;
-  emf_id?: number;
-  date_debut?: string;
-  date_fin?: string;
-  page?: number;
-  per_page?: number;
-}
 
 export const sinistreService = {
   /**
@@ -25,10 +25,10 @@ export const sinistreService = {
   },
 
   /**
-   * Récupère un sinistre par son ID
+   * Récupère un sinistre par son ID avec quittances et délai de paiement
    */
-  getById: async (id: number): Promise<{ data: Sinistre; documents_complets: boolean; delai_traitement_ecoule: string | number }> => {
-    const response = await api.get<{ success: boolean; data: Sinistre; documents_complets: boolean; delai_traitement_ecoule: string | number }>(`/sinistres/${id}`);
+  getById: async (id: number): Promise<SinistreDetailResponse> => {
+    const response = await api.get<SinistreDetailResponse>(`/sinistres/${id}`);
     return response.data;
   },
 
@@ -195,14 +195,98 @@ export const sinistreService = {
   /**
    * Récupère les statistiques globales des sinistres
    */
-  getStats: async (): Promise<SinistreStats> => {
-    const response = await api.get<{ success: boolean; data: SinistreStats }>('/sinistres/statistiques/global');
+  getStats: async (params?: { emf_id?: number; inclure_archives?: boolean }): Promise<SinistreStats> => {
+    const response = await api.get<{ success: boolean; data: SinistreStats }>('/sinistres/statistiques/global', { params });
     return response.data.data;
   },
 
-  // ========================
+  // ==========================================
+  // RÈGLEMENT ET QUITTANCES (Règles B & C)
+  // ==========================================
+
+  /**
+   * Calculer le règlement et générer les quittances
+   */
+  calculerReglement: async (id: number): Promise<ResumeReglement> => {
+    const response = await api.get<{ success: boolean; data: ResumeReglement }>(`/sinistres/${id}/reglement`);
+    return response.data.data;
+  },
+
+  /**
+   * Liste des quittances d'un sinistre
+   */
+  getQuittances: async (id: number): Promise<Quittance[]> => {
+    const response = await api.get<{ success: boolean; data: { quittances: Quittance[] } }>(`/sinistres/${id}/quittances`);
+    return response.data.data.quittances;
+  },
+
+  /**
+   * Valider une quittance (ADMIN, FPDG, GESTIONNAIRE)
+   */
+  validerQuittance: async (sinistreId: number, quittanceId: number): Promise<{ success: boolean; message: string; data: Quittance }> => {
+    const response = await api.post<{ success: boolean; message: string; data: Quittance }>(
+      `/sinistres/${sinistreId}/quittances/${quittanceId}/valider`
+    );
+    return response.data;
+  },
+
+  /**
+   * Payer une quittance (ADMIN, FPDG, COMPTABLE)
+   */
+  payerQuittance: async (
+    sinistreId: number, 
+    quittanceId: number,
+    paiement: PaiementQuittancePayload
+  ): Promise<{ success: boolean; message: string; data: Quittance }> => {
+    const response = await api.post<{ success: boolean; message: string; data: Quittance }>(
+      `/sinistres/${sinistreId}/quittances/${quittanceId}/payer`,
+      paiement
+    );
+    return response.data;
+  },
+
+  // ==========================================
+  // CLÔTURE ET ARCHIVAGE (Règle E)
+  // ==========================================
+
+  /**
+   * Clôturer un sinistre (ADMIN, FPDG uniquement)
+   */
+  cloturer: async (id: number, format: 'json' | 'pdf' = 'json'): Promise<{ success: boolean; message: string; data: Sinistre }> => {
+    const response = await api.post<{ success: boolean; message: string; data: Sinistre }>(
+      `/sinistres/${id}/cloturer`, 
+      { format }
+    );
+    return response.data;
+  },
+
+  /**
+   * Liste des sinistres archivés
+   */
+  getArchives: async (params?: {
+    emf_id?: number;
+    date_debut?: string;
+    date_fin?: string;
+    page?: number;
+    per_page?: number;
+  }): Promise<PaginatedResponse<Sinistre>> => {
+    const response = await api.get<{ success: boolean; data: PaginatedResponse<Sinistre> }>('/sinistres/archives', { params });
+    return response.data.data;
+  },
+
+  /**
+   * Télécharger l'archive d'un sinistre clôturé
+   */
+  telechargerArchive: async (id: number): Promise<Blob> => {
+    const response = await api.get(`/sinistres/${id}/archive/telecharger`, {
+      responseType: 'blob'
+    });
+    return response.data;
+  },
+
+  // ==========================================
   // Méthodes legacy pour compatibilité
-  // ========================
+  // ==========================================
   
   valider: async (id: number, data: { montant_accorde: number; observations?: string }) => {
     const response = await api.put(`/sinistres/${id}`, {

@@ -3,13 +3,33 @@
  */
 
 /**
+ * Rôles utilisateur supportés
+ */
+export type UserRole = 'admin' | 'gestionnaire' | 'agent' | 'comptable' | 'fpdg' | 'lecteur' | 'emf_user' | 'bank_user' | 'assureur'
+
+/**
+ * Enum pour les rôles utilisateur
+ */
+export enum UserRoleEnum {
+  ADMIN = 'admin',
+  GESTIONNAIRE = 'gestionnaire',
+  AGENT = 'agent',
+  COMPTABLE = 'comptable',
+  FPDG = 'fpdg',
+  LECTEUR = 'lecteur',
+  EMF_USER = 'emf_user',
+  BANK_USER = 'bank_user',
+  ASSUREUR = 'assureur'
+}
+
+/**
  * Interface User - Utilisateur de l'application
  */
 export interface User {
   id: number
   name: string
   email: string
-  role: 'admin' | 'emf_user' | 'bank_user' | 'assureur'
+  role: UserRole
   emf_id?: number | null
   emf?: {
     id: number
@@ -56,7 +76,7 @@ export interface RegisterData {
   email: string
   password: string
   password_confirmation: string
-  role?: 'admin' | 'emf_user' | 'bank_user' | 'assureur'
+  role?: UserRole
   emf_id?: number | null
 }
 

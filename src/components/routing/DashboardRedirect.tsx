@@ -2,7 +2,11 @@ import { Navigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
 
 /**
- * Composant de redirection vers le dashboard spécifique à l'EMF
+ * Composant de redirection vers le dashboard approprié
+ * Priorité de redirection :
+ * 1. Rôle spécifique (comptable → /comptable)
+ * 2. EMF associé (emf_id → /dashboard/{emf})
+ * 3. Dashboard général (/dashboard)
  */
 export const DashboardRedirect = () => {
   const { user, isAuthenticated } = useAuthStore()
@@ -12,7 +16,37 @@ export const DashboardRedirect = () => {
     return <Navigate to="/login" replace />
   }
 
-  // Redirection selon l'EMF de l'utilisateur
+  // ============================================
+  // 1. REDIRECTION PAR RÔLE SPÉCIFIQUE
+  // ============================================
+  
+  // Comptable → Dashboard comptable directement
+  if (user.role === 'comptable') {
+    return <Navigate to="/comptable" replace />
+  }
+
+  // Lecteur → Dashboard en lecture seule (dashboard général)
+  if (user.role === 'lecteur') {
+    // Si le lecteur a un EMF associé, rediriger vers ce dashboard
+    if (user.emf_id && user.emf_id > 0) {
+      const emfDashboardMap: Record<number, string> = {
+        1: '/dashboard/bamboo',
+        2: '/dashboard/cofidec',
+        3: '/dashboard/bceg',
+        4: '/dashboard/edg',
+        5: '/dashboard/sodec',
+      }
+      if (emfDashboardMap[user.emf_id]) {
+        return <Navigate to={emfDashboardMap[user.emf_id]} replace />
+      }
+    }
+    return <Navigate to="/dashboard" replace />
+  }
+
+  // ============================================
+  // 2. REDIRECTION PAR EMF (système existant)
+  // ============================================
+  
   const emfDashboardMap: Record<number, string> = {
     1: '/dashboard/bamboo',   // BAMBOO EMF
     2: '/dashboard/cofidec',  // COFIDEC
@@ -26,6 +60,8 @@ export const DashboardRedirect = () => {
     return <Navigate to={emfDashboardMap[user.emf_id]} replace />
   }
 
-  // Sinon (admin SAMBA ou sans EMF), dashboard général
+  // ============================================
+  // 3. DASHBOARD GÉNÉRAL (admin, fpdg, gestionnaire sans EMF)
+  // ============================================
   return <Navigate to="/dashboard" replace />
 }
