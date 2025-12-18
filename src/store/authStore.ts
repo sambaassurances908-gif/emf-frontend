@@ -49,6 +49,11 @@ export const useAuthStore = create<AuthState>()(
         // 1. REDIRECTION PAR RÔLE SPÉCIFIQUE
         // ============================================
         
+        // FPDG (Fondé de Pouvoir Délégué Général) → Dashboard FPDG
+        if (user.role === 'fpdg') {
+          return '/fpdg'
+        }
+        
         // Comptable → Dashboard comptable directement
         if (user.role === 'comptable') {
           return '/comptable'

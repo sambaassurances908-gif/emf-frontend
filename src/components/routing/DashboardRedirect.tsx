@@ -20,6 +20,11 @@ export const DashboardRedirect = () => {
   // 1. REDIRECTION PAR RÔLE SPÉCIFIQUE
   // ============================================
   
+  // FPDG (Fondé de Pouvoir Délégué Général) → Dashboard FPDG
+  if (user.role === 'fpdg') {
+    return <Navigate to="/fpdg" replace />
+  }
+  
   // Comptable → Dashboard comptable directement
   if (user.role === 'comptable') {
     return <Navigate to="/comptable" replace />

@@ -78,6 +78,18 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
       originalRequest._retry = true;
 
+      // NE PAS faire de refresh automatique pour les requêtes POST/PUT/DELETE
+      // Laisser le composant gérer l'erreur et afficher un message approprié
+      const isModifyingRequest = ['post', 'put', 'patch', 'delete'].includes(
+        originalRequest.method?.toLowerCase() || ''
+      );
+      
+      if (isModifyingRequest) {
+        console.warn('⚠️ 401 sur une requête modificatrice - pas de refresh automatique');
+        // Retourner l'erreur sans rediriger
+        return Promise.reject(error);
+      }
+
       try {
         console.log('🔄 Refresh token en cours...');
         

@@ -19,10 +19,8 @@ import { Badge } from '@/components/ui/Badge';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { Modal } from '@/components/ui/Modal';
-import { comptableService } from '@/services/comptable.service';
 import { sinistreService } from '@/services/sinistre.service';
 import { formatCurrency } from '@/lib/utils';
-import { QuittanceEnAttente } from '@/types/comptable.types';
 import toast from 'react-hot-toast';
 
 // Options de filtrage
@@ -47,25 +45,68 @@ export const QuittancesPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedEmf, setSelectedEmf] = useState('');
   const [selectedUrgence, setSelectedUrgence] = useState('');
-  const [page, setPage] = useState(1);
   
   // Modal de paiement
-  const [selectedQuittance, setSelectedQuittance] = useState<QuittanceEnAttente | null>(null);
+  const [selectedQuittance, setSelectedQuittance] = useState<any | null>(null);
   const [paymentData, setPaymentData] = useState({
     reference_paiement: '',
     mode_paiement: 'virement',
     date_paiement: new Date().toISOString().split('T')[0],
   });
 
-  // Récupération des quittances
+  // Récupération des sinistres avec leurs quittances via le bon endpoint
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ['comptable', 'quittances', selectedEmf, page],
-    queryFn: () => comptableService.getQuittancesEnAttente({
-      emf_id: selectedEmf ? Number(selectedEmf) : undefined,
-      page,
-      per_page: 20,
-    }),
+    queryKey: ['comptable', 'sinistres-quittances', selectedEmf],
+    queryFn: async () => {
+      // 1. Récupérer tous les sinistres
+      const response = await sinistreService.getAll({
+        emf_id: selectedEmf ? Number(selectedEmf) : undefined,
+        per_page: 100,
+      });
+      console.log('📋 Sinistres récupérés (Comptable):', response);
+      
+      // 2. Pour chaque sinistre, utiliser l'endpoint GET /sinistres/{id}/quittances
+      const sinistresAvecQuittances = await Promise.all(
+        (response.data || []).map(async (sinistre: any) => {
+          try {
+            const quittances = await sinistreService.getQuittances(sinistre.id);
+            console.log(`📋 Sinistre ${sinistre.id} - ${quittances.length} quittance(s)`);
+            return {
+              ...sinistre,
+              quittances: quittances || []
+            };
+          } catch (e: any) {
+            if (e.response?.status !== 404) {
+              console.warn(`⚠️ Erreur récupération quittances sinistre ${sinistre.id}`);
+            }
+            return { ...sinistre, quittances: [] };
+          }
+        })
+      );
+      
+      console.log('✅ Sinistres avec quittances (Comptable):', sinistresAvecQuittances.filter((s: any) => s.quittances.length > 0).length);
+      return { ...response, data: sinistresAvecQuittances };
+    },
   });
+
+  // Extraire les quittances validées (prêtes pour paiement) de tous les sinistres
+  const sinistres = data?.data || [];
+  const allQuittances = sinistres.flatMap((sinistre: any) => {
+    const quittances = sinistre.quittances || [];
+    // Comptable voit uniquement les quittances validées (prêtes à payer)
+    return quittances
+      .filter((q: any) => q.statut === 'validee')
+      .map((q: any) => ({
+        ...q,
+        sinistre_id: sinistre.id,
+        sinistre_reference: sinistre.numero_sinistre,
+        emf_nom: sinistre.contrat?.emf?.sigle || sinistre.contrat?.emf?.nom || 'N/A',
+        beneficiaire: q.beneficiaire_nom || q.beneficiaire,
+        niveau_urgence: 'normal'
+      }));
+  });
+
+  console.log('📦 Quittances validées (Comptable):', allQuittances);
 
   // Mutation pour payer une quittance
   const payerMutation = useMutation({
@@ -75,23 +116,20 @@ export const QuittancesPage = () => {
       toast.success('Paiement enregistré avec succès');
       setSelectedQuittance(null);
       queryClient.invalidateQueries({ queryKey: ['comptable'] });
+      queryClient.invalidateQueries({ queryKey: ['sinistre'] });
     },
     onError: () => {
       toast.error('Erreur lors du paiement');
     },
   });
 
-  const rawData = data?.data as any;
-  const quittances: QuittanceEnAttente[] = Array.isArray(rawData) ? rawData : (rawData?.data || []);
-  const meta = rawData?.meta;
-
   // Filtrage local par recherche et urgence
-  const filteredQuittances = quittances.filter((q) => {
+  const filteredQuittances = allQuittances.filter((q: any) => {
     const matchSearch = !searchTerm || 
       q.reference?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       q.beneficiaire?.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchUrgence = !selectedUrgence || (q as any).niveau_urgence === selectedUrgence;
+    const matchUrgence = !selectedUrgence || q.niveau_urgence === selectedUrgence;
     
     return matchSearch && matchUrgence;
   });
@@ -253,28 +291,12 @@ export const QuittancesPage = () => {
         </div>
       )}
 
-      {/* Pagination */}
-      {meta && meta.last_page > 1 && (
+      {/* Pagination - simplifiée car on charge tout */}
+      {filteredQuittances.length > 20 && (
         <div className="flex items-center justify-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setPage(p => Math.max(1, p - 1))}
-            disabled={page === 1}
-          >
-            Précédent
-          </Button>
           <span className="text-sm text-gray-600">
-            Page {page} sur {meta.last_page}
+            Affichage de {filteredQuittances.length} quittances
           </span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setPage(p => p + 1)}
-            disabled={page >= meta.last_page}
-          >
-            Suivant
-          </Button>
         </div>
       )}
 

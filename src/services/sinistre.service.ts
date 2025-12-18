@@ -4,14 +4,11 @@ import {
   SinistreStats, 
   SinistreCreatePayload, 
   SinistreCreateResponse, 
-  ContratType,
   SinistreSearchParams,
   SinistreDetailResponse,
   Quittance,
   ResumeReglement,
-  PaiementQuittancePayload,
-  SinistreStatut,
-  SinistreType
+  PaiementQuittancePayload
 } from '@/types/sinistre.types';
 import { PaginatedResponse } from '@/types/common.types';
 
@@ -29,6 +26,7 @@ export const sinistreService = {
    */
   getById: async (id: number): Promise<SinistreDetailResponse> => {
     const response = await api.get<SinistreDetailResponse>(`/sinistres/${id}`);
+    console.log(`🔍 Réponse sinistre ${id}:`, JSON.stringify(response.data, null, 2));
     return response.data;
   },
 
@@ -213,15 +211,116 @@ export const sinistreService = {
   },
 
   /**
+   * Créer une quittance pour un sinistre
+   */
+  creerQuittance: async (sinistreId: number, data: {
+    type: string;
+    beneficiaire: string;
+    beneficiaire_type?: 'emf' | 'personne';
+    montant: number;
+    description?: string;
+  }): Promise<{ success: boolean; message: string; data: Quittance }> => {
+    // Déterminer beneficiaire_type automatiquement si non fourni
+    const beneficiaireType = data.beneficiaire_type || 
+      (data.type === 'capital_sans_interets' || data.type === 'capital_restant_du' ? 'emf' : 'personne');
+    
+    const payload = {
+      type: data.type,
+      beneficiaire_type: beneficiaireType,
+      beneficiaire_nom: data.beneficiaire,
+      montant: data.montant,
+      description: data.description
+    };
+    console.log('📤 Payload creerQuittance:', payload);
+    const response = await api.post<{ success: boolean; message: string; data: Quittance }>(
+      `/sinistres/${sinistreId}/quittances`,
+      payload
+    );
+    return response.data;
+  },
+
+  /**
+   * Générer les quittances pour un sinistre (EMF + Prévoyance si applicable)
+   */
+  genererQuittances: async (sinistreId: number, quittances: Array<{
+    type: string;
+    beneficiaire: string;
+    beneficiaire_type?: 'emf' | 'personne';
+    montant: number;
+    description?: string;
+  }>): Promise<{ success: boolean; message: string; data: { quittances: Quittance[]; montant_total: number } }> => {
+    // Le backend attend beneficiaire_nom et beneficiaire_type
+    const payload = quittances.map(q => {
+      // Déterminer beneficiaire_type automatiquement si non fourni
+      const beneficiaireType = q.beneficiaire_type || 
+        (q.type === 'capital_sans_interets' || q.type === 'capital_restant_du' ? 'emf' : 'personne');
+      
+      return {
+        type: q.type,
+        beneficiaire_type: beneficiaireType,
+        beneficiaire_nom: q.beneficiaire,
+        montant: q.montant,
+        description: q.description
+      };
+    });
+    console.log('📤 Payload genererQuittances:', payload);
+    const response = await api.post<{ success: boolean; message: string; data: { quittances: Quittance[]; montant_total: number } }>(
+      `/sinistres/${sinistreId}/quittances/generer`,
+      { quittances: payload }
+    );
+    return response.data;
+  },
+
+  /**
+   * Supprimer une quittance (uniquement si statut = 'en_attente')
+   */
+  supprimerQuittance: async (sinistreId: number, quittanceId: number): Promise<{ success: boolean; message: string }> => {
+    const response = await api.delete<{ success: boolean; message: string }>(
+      `/sinistres/${sinistreId}/quittances/${quittanceId}`
+    );
+    return response.data;
+  },
+
+  /**
    * Liste des quittances d'un sinistre
+   * GET /api/sinistres/{sinistreId}/quittances
    */
   getQuittances: async (id: number): Promise<Quittance[]> => {
-    const response = await api.get<{ success: boolean; data: { quittances: Quittance[] } }>(`/sinistres/${id}/quittances`);
-    return response.data.data.quittances;
+    const response = await api.get<{ 
+      success: boolean; 
+      data: { 
+        sinistre_id: number;
+        numero_sinistre: string;
+        quittances: Quittance[];
+        resume?: ResumeReglement;
+      } 
+    }>(`/sinistres/${id}/quittances`);
+    console.log(`📋 GET /sinistres/${id}/quittances response:`, response.data);
+    return response.data.data.quittances || [];
+  },
+
+  /**
+   * Détail d'une quittance avec transitions possibles
+   * GET /api/sinistres/{sinistreId}/quittances/{quittanceId}
+   */
+  getQuittanceDetail: async (sinistreId: number, quittanceId: number): Promise<{
+    quittance: Quittance;
+    sinistre: { id: number; numero_sinistre: string; statut: string };
+    transitions_possibles: Array<{
+      statut: string;
+      label: string;
+      action: 'valider' | 'payer' | 'annuler' | 'statut';
+    }>;
+  }> => {
+    const response = await api.get<{ success: boolean; data: any }>(
+      `/sinistres/${sinistreId}/quittances/${quittanceId}`
+    );
+    return response.data.data;
   },
 
   /**
    * Valider une quittance (ADMIN, FPDG, GESTIONNAIRE)
+   * POST /api/sinistres/{sinistreId}/quittances/{quittanceId}/valider
    */
   validerQuittance: async (sinistreId: number, quittanceId: number): Promise<{ success: boolean; message: string; data: Quittance }> => {
     const response = await api.post<{ success: boolean; message: string; data: Quittance }>(
@@ -232,6 +331,7 @@ export const sinistreService = {
 
   /**
    * Payer une quittance (ADMIN, FPDG, COMPTABLE)
+   * POST /api/sinistres/{sinistreId}/quittances/{quittanceId}/payer
    */
   payerQuittance: async (
     sinistreId: number, 
@@ -241,6 +341,43 @@ export const sinistreService = {
     const response = await api.post<{ success: boolean; message: string; data: Quittance }>(
       `/sinistres/${sinistreId}/quittances/${quittanceId}/payer`,
       paiement
+    );
+    return response.data;
+  },
+
+  /**
+   * Annuler une quittance
+   * POST /api/sinistres/{sinistreId}/quittances/{quittanceId}/annuler
+   */
+  annulerQuittance: async (
+    sinistreId: number,
+    quittanceId: number,
+    motif?: string
+  ): Promise<{ success: boolean; message: string; data: Quittance }> => {
+    const response = await api.post<{ success: boolean; message: string; data: Quittance }>(
+      `/sinistres/${sinistreId}/quittances/${quittanceId}/annuler`,
+      { motif }
+    );
+    return response.data;
+  },
+
+  /**
+   * Modifier le statut d'une quittance manuellement
+   * PUT /api/sinistres/{sinistreId}/quittances/{quittanceId}/statut
+   */
+  modifierStatutQuittance: async (
+    sinistreId: number,
+    quittanceId: number,
+    data: {
+      statut: 'en_attente' | 'validee' | 'payee' | 'annulee';
+      observations?: string;
+      mode_paiement?: string;
+      numero_transaction?: string;
+    }
+  ): Promise<{ success: boolean; message: string; data: Quittance }> => {
+    const response = await api.put<{ success: boolean; message: string; data: Quittance }>(
+      `/sinistres/${sinistreId}/quittances/${quittanceId}/statut`,
+      data
     );
     return response.data;
   },
@@ -288,11 +425,26 @@ export const sinistreService = {
   // Méthodes legacy pour compatibilité
   // ==========================================
   
+  /**
+   * Valider un sinistre (passage de en_cours → en_instruction)
+   * Pour passer à en_reglement, utiliser passerEnReglement()
+   */
   valider: async (id: number, data: { montant_accorde: number; observations?: string }) => {
     const response = await api.put(`/sinistres/${id}`, {
-      statut: 'accepte',
+      statut: 'en_instruction',
       montant_indemnisation: data.montant_accorde,
       observations: data.observations,
+    });
+    return response.data;
+  },
+
+  /**
+   * Passer un sinistre en instruction → en_reglement
+   */
+  passerEnReglement: async (id: number, data?: { observations?: string }) => {
+    const response = await api.put(`/sinistres/${id}`, {
+      statut: 'en_reglement',
+      ...data,
     });
     return response.data;
   },

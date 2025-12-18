@@ -45,7 +45,7 @@ const SidebarItem = ({
     className={cn(
       'flex items-center gap-4 px-4 py-3.5 rounded-xl cursor-pointer transition-all duration-200 group',
       active 
-        ? 'bg-emerald-500 text-white font-bold shadow-lg shadow-emerald-500/20' 
+        ? 'bg-emerald-600 text-white font-bold shadow-lg shadow-emerald-600/30' 
         : 'text-gray-600 hover:bg-emerald-50 hover:text-emerald-700',
       collapsed && 'justify-center px-3'
     )}
@@ -58,7 +58,7 @@ const SidebarItem = ({
           {label}
         </span>
         {description && !active && (
-          <span className="text-xs text-gray-400 group-hover:text-blue-500">
+          <span className="text-xs text-gray-400 group-hover:text-emerald-500">
             {description}
           </span>
         )}
@@ -123,7 +123,7 @@ export const ComptableSidebar = ({ isOpen, onToggle }: ComptableSidebarProps) =>
       )}>
         {isOpen ? (
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
+            <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-600/20">
               <img src={logoSamba} alt="SAMB'A" className="h-8 w-auto" />
             </div>
             <div>
@@ -132,7 +132,7 @@ export const ComptableSidebar = ({ isOpen, onToggle }: ComptableSidebarProps) =>
             </div>
           </div>
         ) : (
-          <div className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
+          <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-600/20">
             <img src={logoSamba} alt="SAMB'A" className="h-7 w-auto" />
           </div>
         )}
@@ -178,7 +178,7 @@ export const ComptableSidebar = ({ isOpen, onToggle }: ComptableSidebarProps) =>
       {/* Aide */}
       {isOpen && (
         <div className="mx-4 mb-4">
-          <div className="bg-gradient-to-br from-emerald-50 to-green-50 rounded-2xl p-5 border border-emerald-100">
+          <div className="bg-emerald-50 rounded-2xl p-5 border border-emerald-100">
             <div className="flex items-center gap-2 mb-2">
               <HelpCircle size={18} className="text-emerald-600" />
               <h4 className="font-bold text-gray-900">Besoin d'aide ?</h4>
@@ -190,7 +190,7 @@ export const ComptableSidebar = ({ isOpen, onToggle }: ComptableSidebarProps) =>
               href="https://wa.me/241060086262" 
               target="_blank" 
               rel="noopener noreferrer"
-              className="w-full bg-emerald-500 text-white text-xs font-bold py-2.5 rounded-xl shadow-lg shadow-emerald-500/20 hover:bg-emerald-600 transition-colors flex items-center justify-center gap-2"
+              className="w-full bg-emerald-600 text-white text-xs font-bold py-2.5 rounded-xl shadow-lg shadow-emerald-600/20 hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2"
             >
               Contacter le support
             </a>

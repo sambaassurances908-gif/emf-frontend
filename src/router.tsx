@@ -100,6 +100,19 @@ import { EdgContratDetailPage } from '@/features/contrats/edg/EdgContratDetailPa
 import { ComptableDashboard, HistoriquePaiementsPage, RapportFinancierPage, QuittancesPage } from '@/features/comptable'
 import { ComptableLayout } from '@/components/layout/ComptableLayout'
 
+// ✅ Pages FPDG (Fondé de Pouvoir Délégué Général)
+import { 
+  FpdgDashboard, 
+  FpdgSinistresPage, 
+  FpdgValidationPage, 
+  FpdgCloturePage, 
+  FpdgQuittancesPage,
+  FpdgStatistiquesPage,
+  FpdgHistoriquePage,
+  FpdgRapportsPage 
+} from '@/features/fpdg'
+import { FpdgLayout } from '@/components/layout/FpdgLayout'
+
 /**
  * Configuration du routeur de l'application SAMBA Assurances
  */
@@ -309,6 +322,29 @@ export const router = createBrowserRouter([
       { path: 'quittances', element: <QuittancesPage /> },
       { path: 'historique', element: <HistoriquePaiementsPage /> },
       { path: 'rapport', element: <RapportFinancierPage /> },
+    ],
+  },
+
+  // ========================================
+  // ESPACE FPDG (Fondé de Pouvoir Délégué Général)
+  // Super-utilisateur: validation, paiement, clôture
+  // ========================================
+  {
+    path: '/fpdg',
+    element: (
+      <ProtectedRoute>
+        <FpdgLayout />
+      </ProtectedRoute>
+    ),
+    children: [
+      { index: true, element: <FpdgDashboard /> },
+      { path: 'statistiques', element: <FpdgStatistiquesPage /> },
+      { path: 'sinistres', element: <FpdgSinistresPage /> },
+      { path: 'validation', element: <FpdgValidationPage /> },
+      { path: 'cloture', element: <FpdgCloturePage /> },
+      { path: 'quittances', element: <FpdgQuittancesPage /> },
+      { path: 'historique', element: <FpdgHistoriquePage /> },
+      { path: 'rapports', element: <FpdgRapportsPage /> },
     ],
   },
 

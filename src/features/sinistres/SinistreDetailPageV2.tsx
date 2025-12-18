@@ -40,7 +40,9 @@ import {
   Lock,
   Wallet,
   Building2,
-  FileCheck
+  FileCheck,
+  Settings,
+  History
 } from 'lucide-react';
 
 export const SinistreDetailPageV2 = () => {
@@ -52,8 +54,12 @@ export const SinistreDetailPageV2 = () => {
   const { 
     peutValiderSinistre, 
     peutCloturerSinistre,
-    estLecteurSeul 
+    estLecteurSeul,
+    isAdmin
   } = useAuthStore();
+  
+  // Vérifier si l'utilisateur peut traiter les sinistres (admin ou gestionnaire)
+  const canTraiterSinistre = isAdmin() || peutValiderSinistre();
   
   // Hook de validation pour les messages d'erreur
   const { getErrorMessage } = useSinistreValidation();
@@ -90,9 +96,11 @@ export const SinistreDetailPageV2 = () => {
     );
   }, [sinistre]);
 
-  // Permissions calculées
-  const canValider = peutValiderSinistre() && sinistre?.statut === 'en_cours' && estModifiable;
-  const canRejeter = peutValiderSinistre() && sinistre?.statut === 'en_cours' && estModifiable;
+  // Permissions calculées - étendues pour tous les statuts
+  const canPasserEnInstruction = canTraiterSinistre && sinistre?.statut === 'en_cours' && estModifiable;
+  const canPasserEnReglement = canTraiterSinistre && sinistre?.statut === 'en_instruction' && estModifiable;
+  const canValiderEnPaiement = canTraiterSinistre && sinistre?.statut === 'en_reglement' && estModifiable;
+  const canRejeter = canTraiterSinistre && ['en_cours', 'en_instruction', 'en_reglement'].includes(sinistre?.statut || '') && estModifiable;
   const canCloturer = peutCloturerSinistre() && sinistre?.statut === 'paye' && !sinistre?.est_archive;
   const isReadOnly = estLecteurSeul() || !estModifiable;
 
@@ -100,16 +108,28 @@ export const SinistreDetailPageV2 = () => {
   // MUTATIONS
   // ==========================================
 
-  // Valider sinistre
+  // Valider sinistre (passage en instruction)
   const validerMutation = useMutation({
     mutationFn: (data: { montant_accorde: number; observations?: string }) => 
       sinistreService.valider(Number(id), data),
     onSuccess: () => {
-      toast.success('Sinistre validé avec succès');
+      toast.success('Sinistre passé en instruction');
       queryClient.invalidateQueries({ queryKey: ['sinistre', id] });
       setShowValiderModal(false);
       setMontantAccorde('');
       setObservations('');
+    },
+    onError: (error) => {
+      toast.error(getErrorMessage(error));
+    },
+  });
+
+  // Passer en règlement
+  const passerEnReglementMutation = useMutation({
+    mutationFn: () => sinistreService.passerEnReglement(Number(id)),
+    onSuccess: () => {
+      toast.success('Sinistre passé en règlement');
+      queryClient.invalidateQueries({ queryKey: ['sinistre', id] });
     },
     onError: (error) => {
       toast.error(getErrorMessage(error));
@@ -327,18 +347,51 @@ export const SinistreDetailPageV2 = () => {
         
         {/* Actions */}
         <div className="flex flex-wrap items-center gap-2">
-          {canValider && (
-            <Button variant="outline" onClick={() => setShowValiderModal(true)}>
-              <CheckCircle className="h-4 w-4 mr-2" />
-              Valider
+          {/* Bouton vers page de traitement complète */}
+          {canTraiterSinistre && estModifiable && (
+            <Button 
+              variant="outline" 
+              onClick={() => navigate(`/sinistres/traitement/${id}`)}
+              className="border-amber-300 text-amber-700 hover:bg-amber-50"
+            >
+              <Settings className="h-4 w-4 mr-2" />
+              Traitement complet
             </Button>
           )}
+          
+          {/* Actions selon le statut */}
+          {canPasserEnInstruction && (
+            <Button onClick={() => setShowValiderModal(true)} className="bg-blue-600 hover:bg-blue-700">
+              <FileCheck className="h-4 w-4 mr-2" />
+              Passer en Instruction
+            </Button>
+          )}
+          
+          {canPasserEnReglement && (
+            <Button 
+              onClick={() => passerEnReglementMutation.mutate()}
+              disabled={passerEnReglementMutation.isPending}
+              className="bg-indigo-600 hover:bg-indigo-700"
+            >
+              <History className="h-4 w-4 mr-2" />
+              {passerEnReglementMutation.isPending ? 'En cours...' : 'Passer en Règlement'}
+            </Button>
+          )}
+          
+          {canValiderEnPaiement && (
+            <Button onClick={() => setShowValiderModal(true)} className="bg-green-600 hover:bg-green-700">
+              <CheckCircle className="h-4 w-4 mr-2" />
+              Valider (En paiement)
+            </Button>
+          )}
+          
           {canRejeter && (
             <Button variant="danger" onClick={() => setShowRejeterModal(true)}>
               <XCircle className="h-4 w-4 mr-2" />
               Rejeter
             </Button>
           )}
+          
           {canCloturer && (
             <Button 
               variant="outline" 

@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AxiosError } from 'axios';
@@ -15,13 +15,19 @@ import {
   FileText, Download, Eye, Clock,
   User, Phone, Mail, AlertCircle, Shield, Building2,
   CreditCard, History, Send, FileCheck, Ban, Lock,
-  X, Maximize2, Briefcase, FileImage
+  X, Maximize2, Briefcase, FileImage, Printer, Receipt
 } from 'lucide-react';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { sinistreService } from '@/services/sinistre.service';
 import { SinistreStatut } from '@/types/sinistre.types';
 import { useAuthStore } from '@/store/authStore';
 import toast from 'react-hot-toast';
+import { 
+  QuittancePrint, 
+  QuittanceGenerationModal,
+  QuittanceListItem,
+  type QuittanceData 
+} from '@/components/quittances';
 
 // Configuration des statuts avec workflow - Correspond au backend Laravel
 const STATUTS_CONFIG: Record<SinistreStatut, { 
@@ -112,9 +118,12 @@ export const SinistreTraitementPage = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   
-  // Vérification des droits admin
-  const { isAdmin } = useAuthStore();
-  const isAdminUser = isAdmin();
+  // Vérification des droits - Admin, FPDG ou Gestionnaire peuvent traiter les sinistres
+  const { isAdmin, peutValiderSinistre, user } = useAuthStore();
+  const canAccessPage = isAdmin() || peutValiderSinistre();
+  
+  // Debug: afficher les infos utilisateur
+  console.log('👤 User:', user?.name, '| Role:', user?.role, '| canAccessPage:', canAccessPage);
   
   // États des modals
   const [showStatutModal, setShowStatutModal] = useState(false);
@@ -124,6 +133,11 @@ export const SinistreTraitementPage = () => {
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [previewDocument, setPreviewDocument] = useState<{ url: string; name: string; type: string } | null>(null);
   const [previewError, setPreviewError] = useState(false);
+  
+  // États pour les quittances
+  const [showQuittanceModal, setShowQuittanceModal] = useState(false);
+  const [quittances, setQuittances] = useState<QuittanceData[]>([]);
+  const [previewQuittance, setPreviewQuittance] = useState<QuittanceData | null>(null);
   
   // États des formulaires
   const [newStatut, setNewStatut] = useState<SinistreStatut | ''>('');
@@ -137,8 +151,8 @@ export const SinistreTraitementPage = () => {
   // URL de base du storage Laravel (sans /api)
   const storageBaseUrl = (import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api').replace('/api', '') + '/storage/';
 
-  // Vérification d'accès - Si pas admin, afficher page d'accès refusé
-  if (!isAdminUser) {
+  // Vérification d'accès - Si pas autorisé (admin, fpdg, gestionnaire), afficher page d'accès refusé
+  if (!canAccessPage) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6">
         <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center">
@@ -183,6 +197,51 @@ export const SinistreTraitementPage = () => {
   const documentsComplets = sinistreResponse?.documents_complets;
   const delaiTraitement = sinistreResponse?.delai_traitement_ecoule;
 
+  // Debug: afficher les infos du sinistre
+  console.log('📋 Sinistre:', sinistre?.numero_sinistre, '| Statut:', sinistre?.statut, '| ID:', id);
+
+  // Requête dédiée pour charger les quittances via GET /sinistres/{id}/quittances
+  const { data: quittancesFromApi, refetch: refetchQuittances } = useQuery({
+    queryKey: ['sinistre-quittances', id],
+    queryFn: async () => {
+      if (!id) return [];
+      try {
+        const quittances = await sinistreService.getQuittances(Number(id));
+        console.log(`✅ Quittances chargées via API: ${quittances.length}`);
+        return quittances;
+      } catch (e: any) {
+        if (e.response?.status !== 404) {
+          console.warn('⚠️ Erreur chargement quittances:', e.message);
+        }
+        return [];
+      }
+    },
+    enabled: !!id && !!sinistre,
+  });
+
+  // Convertir les quittances API en QuittanceData pour le composant
+  useEffect(() => {
+    if (quittancesFromApi && quittancesFromApi.length > 0 && sinistre) {
+      const quittancesData = quittancesFromApi.map((q: any) => ({
+        reference: q.reference,
+        type: (q.type === 'capital_sans_interets' || q.type === 'capital_restant_du' ? 'emf' : 'prevoyance') as 'emf' | 'prevoyance',
+        sinistre: sinistre,
+        montant: q.montant,
+        montantEnLettres: `${formatCurrency(q.montant)} CFA`,
+        beneficiaire: q.beneficiaire_nom || q.beneficiaire,
+        statut: q.statut,
+        dateCreation: q.created_at,
+        dateValidation: q.date_validation,
+        datePaiement: q.date_paiement,
+        id: q.id
+      })) as QuittanceData[];
+      setQuittances(quittancesData);
+    } else if (quittancesFromApi && quittancesFromApi.length === 0) {
+      // Pas de quittances pour ce sinistre
+      setQuittances([]);
+    }
+  }, [quittancesFromApi, sinistre]);
+
   // Configuration du statut actuel
   const currentStatutConfig = useMemo(() => {
     if (!sinistre?.statut) return null;
@@ -217,6 +276,24 @@ export const SinistreTraitementPage = () => {
     },
     onError: (error: AxiosError<{ message?: string }>) => {
       toast.error(error.response?.data?.message || 'Erreur lors de la mise à jour');
+    },
+  });
+
+  // Mutation pour clôturer le sinistre
+  const cloturerMutation = useMutation({
+    mutationFn: async () => {
+      return await sinistreService.cloturer(Number(id));
+    },
+    onSuccess: () => {
+      toast.success('Sinistre clôturé avec succès');
+      queryClient.invalidateQueries({ queryKey: ['sinistre-traitement', id] });
+      queryClient.invalidateQueries({ queryKey: ['all-sinistres'] });
+      setShowStatutModal(false);
+      setNewStatut('');
+      setObservations('');
+    },
+    onError: (error: AxiosError<{ message?: string }>) => {
+      toast.error(error.response?.data?.message || 'Erreur lors de la clôture');
     },
   });
 
@@ -289,7 +366,13 @@ export const SinistreTraitementPage = () => {
       toast.error('Veuillez sélectionner un nouveau statut');
       return;
     }
-    updateStatutMutation.mutate({ statut: newStatut, observations: observations || undefined });
+    
+    // Utiliser l'endpoint dédié pour la clôture
+    if (newStatut === 'cloture') {
+      cloturerMutation.mutate();
+    } else {
+      updateStatutMutation.mutate({ statut: newStatut, observations: observations || undefined });
+    }
   };
 
   const handleValider = () => {
@@ -334,8 +417,8 @@ export const SinistreTraitementPage = () => {
     return sinistre[fieldName as keyof typeof sinistre] as string | null;
   }, [sinistre]);
 
-  // Handler pour prévisualiser un document - URL directe storage
-  const handlePreviewDocument = useCallback((doc: { type_document: string; nom_fichier: string; extension: string; chemin_fichier?: string }) => {
+  // Handler pour prévisualiser un document - Via l'API pour contourner CORS/symlink
+  const handlePreviewDocument = useCallback(async (doc: { type_document: string; nom_fichier: string; extension: string; chemin_fichier?: string }) => {
     const filePath = getFilePath(doc);
     
     if (!filePath) {
@@ -343,20 +426,54 @@ export const SinistreTraitementPage = () => {
       return;
     }
 
-    const fileUrl = storageBaseUrl + filePath;
     const fileType = doc.extension?.toLowerCase() || filePath.split('.').pop()?.toLowerCase() || 'pdf';
-
-    setPreviewDocument({
-      url: fileUrl,
-      name: doc.nom_fichier || doc.type_document,
-      type: fileType
+    
+    console.log('📄 Preview document:', { 
+      originalFilePath: filePath, 
+      typeDocument: doc.type_document,
+      fileType,
+      sinistreId: id
     });
-    setPreviewError(false);
-    setShowPreviewModal(true);
-  }, [getFilePath, storageBaseUrl]);
 
-  // Handler pour télécharger un document - Ouvrir dans un nouvel onglet
-  const handleDownloadDocument = useCallback((doc: { type_document: string; nom_fichier: string; chemin_fichier?: string }) => {
+    try {
+      // Télécharger via l'API pour contourner les problèmes de CORS/symlink
+      toast.loading('Chargement du document...', { id: 'preview-loading' });
+      const blob = await sinistreService.downloadDocumentByPath(Number(id), filePath);
+      const blobUrl = URL.createObjectURL(blob);
+      toast.dismiss('preview-loading');
+      
+      setPreviewDocument({
+        url: blobUrl,
+        name: doc.nom_fichier || doc.type_document,
+        type: fileType
+      });
+      setPreviewError(false);
+      setShowPreviewModal(true);
+    } catch (error) {
+      toast.dismiss('preview-loading');
+      console.error('❌ Erreur prévisualisation:', error);
+      
+      // Fallback: essayer l'URL directe du storage
+      let cleanPath = filePath.replace(/\/+/g, '/').replace(/^\//, '');
+      if (cleanPath.startsWith('storage/')) {
+        cleanPath = cleanPath.replace('storage/', '');
+      }
+      const fileUrl = storageBaseUrl + cleanPath;
+      
+      console.log('🔄 Fallback URL directe:', fileUrl);
+      
+      setPreviewDocument({
+        url: fileUrl,
+        name: doc.nom_fichier || doc.type_document,
+        type: fileType
+      });
+      setPreviewError(false);
+      setShowPreviewModal(true);
+    }
+  }, [getFilePath, storageBaseUrl, id]);
+
+  // Handler pour télécharger un document - Via l'API pour contourner CORS/symlink
+  const handleDownloadDocument = useCallback(async (doc: { type_document: string; nom_fichier: string; chemin_fichier?: string }) => {
     const filePath = getFilePath(doc);
     
     if (!filePath) {
@@ -364,9 +481,37 @@ export const SinistreTraitementPage = () => {
       return;
     }
 
-    const fileUrl = storageBaseUrl + filePath;
-    window.open(fileUrl, '_blank');
-  }, [getFilePath, storageBaseUrl]);
+    console.log('📥 Download document:', { filePath, typeDocument: doc.type_document, sinistreId: id });
+
+    try {
+      toast.loading('Téléchargement...', { id: 'download-loading' });
+      const blob = await sinistreService.downloadDocumentByPath(Number(id), filePath);
+      toast.dismiss('download-loading');
+      
+      // Créer un lien de téléchargement
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = doc.nom_fichier || `${doc.type_document}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(blobUrl);
+      toast.success('Document téléchargé');
+    } catch (error) {
+      toast.dismiss('download-loading');
+      console.error('❌ Erreur téléchargement:', error);
+      
+      // Fallback: ouvrir l'URL directe
+      let cleanPath = filePath.replace(/\/+/g, '/').replace(/^\//, '');
+      if (cleanPath.startsWith('storage/')) {
+        cleanPath = cleanPath.replace('storage/', '');
+      }
+      const fileUrl = storageBaseUrl + cleanPath;
+      console.log('🔄 Fallback URL directe:', fileUrl);
+      window.open(fileUrl, '_blank');
+    }
+  }, [getFilePath, storageBaseUrl, id]);
 
   // Fermer la modal de prévisualisation
   const closePreviewModal = useCallback(() => {
@@ -436,8 +581,56 @@ export const SinistreTraitementPage = () => {
             </Button>
           )}
           
+          {/* Actions pour statut en_cours */}
+          {sinistre.statut === 'en_cours' && (
+            <>
+              <Button 
+                onClick={() => {
+                  setNewStatut('en_instruction');
+                  setShowStatutModal(true);
+                }} 
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                <FileCheck className="h-4 w-4 mr-2" />
+                Passer en Instruction
+              </Button>
+              <Button variant="danger" onClick={() => setShowRejeterModal(true)}>
+                <XCircle className="h-4 w-4 mr-2" />
+                Rejeter
+              </Button>
+            </>
+          )}
+          
+          {/* Actions pour statut en_instruction */}
+          {sinistre.statut === 'en_instruction' && (
+            <>
+              <Button 
+                onClick={() => {
+                  setNewStatut('en_reglement');
+                  setShowStatutModal(true);
+                }} 
+                className="bg-indigo-600 hover:bg-indigo-700"
+              >
+                <History className="h-4 w-4 mr-2" />
+                Passer en Règlement
+              </Button>
+              <Button variant="danger" onClick={() => setShowRejeterModal(true)}>
+                <XCircle className="h-4 w-4 mr-2" />
+                Rejeter
+              </Button>
+            </>
+          )}
+          
           {sinistre.statut === 'en_reglement' && (
             <>
+              {/* Bouton Générer Quittances */}
+              <Button 
+                onClick={() => setShowQuittanceModal(true)} 
+                className="bg-amber-600 hover:bg-amber-700"
+              >
+                <Receipt className="h-4 w-4 mr-2" />
+                Générer Quittances
+              </Button>
               <Button onClick={() => setShowValiderModal(true)} className="bg-green-600 hover:bg-green-700">
                 <CheckCircle className="h-4 w-4 mr-2" />
                 Valider (En paiement)
@@ -450,10 +643,22 @@ export const SinistreTraitementPage = () => {
           )}
           
           {sinistre.statut === 'en_paiement' && (
-            <Button onClick={() => setShowPayerModal(true)} className="bg-emerald-600 hover:bg-emerald-700">
-              <CreditCard className="h-4 w-4 mr-2" />
-              Enregistrer paiement
-            </Button>
+            <>
+              {/* Afficher les quittances si générées */}
+              {quittances.length > 0 && (
+                <Button 
+                  variant="outline"
+                  onClick={() => setPreviewQuittance(quittances[0])}
+                >
+                  <Eye className="h-4 w-4 mr-2" />
+                  Voir Quittances ({quittances.length})
+                </Button>
+              )}
+              <Button onClick={() => setShowPayerModal(true)} className="bg-emerald-600 hover:bg-emerald-700">
+                <CreditCard className="h-4 w-4 mr-2" />
+                Enregistrer paiement
+              </Button>
+            </>
           )}
         </div>
       </div>
@@ -1435,6 +1640,135 @@ export const SinistreTraitementPage = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal Génération Quittances */}
+      {sinistre && (
+        <QuittanceGenerationModal
+          isOpen={showQuittanceModal}
+          onClose={() => setShowQuittanceModal(false)}
+          sinistre={sinistre}
+          onGenerate={(generatedQuittances) => {
+            // Refetch les quittances depuis l'API pour avoir les données à jour
+            refetchQuittances();
+            toast.success(`${generatedQuittances.length} quittance(s) générée(s) avec succès`);
+            // Les quittances sont maintenant en attente de validation
+          }}
+        />
+      )}
+
+      {/* Modal Prévisualisation Quittance */}
+      {previewQuittance && (
+        <Modal
+          isOpen={!!previewQuittance}
+          onClose={() => setPreviewQuittance(null)}
+          title="Prévisualisation de la Quittance"
+          size="xl"
+        >
+          <div className="overflow-auto max-h-[75vh]">
+            <div className="transform scale-[0.65] origin-top">
+              <QuittancePrint 
+                quittance={previewQuittance} 
+                showSignatures={true}
+              />
+            </div>
+          </div>
+          
+          <div className="flex justify-end gap-3 mt-4 pt-4 border-t print:hidden">
+            <Button
+              variant="outline"
+              onClick={() => setPreviewQuittance(null)}
+            >
+              Fermer
+            </Button>
+            {previewQuittance.statut === 'validee_fpdg' && (
+              <Button onClick={() => window.print()}>
+                <Printer className="h-4 w-4 mr-2" />
+                Imprimer
+              </Button>
+            )}
+          </div>
+        </Modal>
+      )}
+
+      {/* Section Quittances générées (visible si en_reglement ou en_paiement) */}
+      {quittances.length > 0 && (sinistre.statut === 'en_reglement' || sinistre.statut === 'en_paiement' || sinistre.statut === 'paye') && (
+        <Card className="border-amber-200">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-amber-700">
+              <Receipt className="h-5 w-5" />
+              Quittances générées ({quittances.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {quittances.map((quittance, index) => (
+                <QuittanceListItem
+                  key={quittance.reference || index}
+                  quittance={quittance}
+                  userRole="admin_samba"
+                  onPreview={() => setPreviewQuittance(quittance)}
+                />
+              ))}
+            </div>
+            
+            {quittances.some(q => q.statut === 'rejetee') && (
+              <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="h-5 w-5 text-red-500 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-red-800">
+                      Quittance(s) rejetée(s)
+                    </p>
+                    <p className="text-xs text-red-600 mt-1">
+                      Veuillez corriger les informations et régénérer les quittances.
+                    </p>
+                    <Button
+                      size="sm"
+                      className="mt-2 bg-amber-600 hover:bg-amber-700"
+                      onClick={() => setShowQuittanceModal(true)}
+                    >
+                      Régénérer les quittances
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {quittances.every(q => q.statut === 'en_attente_comptable') && (
+              <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <Clock className="h-5 w-5 text-blue-500" />
+                  <p className="text-sm text-blue-800">
+                    Les quittances sont en attente de validation par le comptable.
+                  </p>
+                </div>
+              </div>
+            )}
+            
+            {quittances.some(q => q.statut === 'en_attente_fpdg' || q.statut === 'validee_comptable') && (
+              <div className="mt-4 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <Shield className="h-5 w-5 text-purple-500" />
+                  <p className="text-sm text-purple-800">
+                    En attente de validation finale par le FPDG.
+                  </p>
+                </div>
+              </div>
+            )}
+            
+            {quittances.every(q => q.statut === 'validee_fpdg') && (
+              <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="h-5 w-5 text-green-500" />
+                  <p className="text-sm text-green-800">
+                    Toutes les quittances sont validées et prêtes pour le paiement.
+                  </p>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       )}
     </div>
   );
