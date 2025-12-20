@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useEffect, useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
+import { useSinistresEvolution } from '@/hooks/useSinistresEvolution';
 import { 
   FileText, 
   AlertCircle, 
@@ -40,11 +41,22 @@ import {
   Bar,
   XAxis,
   YAxis,
-  CartesianGrid
+  CartesianGrid,
+  LineChart,
+  Line,
+  AreaChart,
+  Area
 } from 'recharts';
 
-// Palette minimaliste - gris et une couleur d'accent
-const GRAY_SHADES = ['#374151', '#4B5563', '#6B7280', '#9CA3AF', '#D1D5DB'];
+// Palette colorée pour les EMF
+const EMF_COLORS: Record<string, string> = {
+  BAMBOO: '#10B981',   // Vert émeraude
+  COFIDEC: '#3B82F6',  // Bleu
+  BCEG: '#F59E0B',     // Orange
+  EDG: '#8B5CF6',      // Violet
+  SODEC: '#EC4899',    // Rose
+};
+const CHART_COLORS = ['#10B981', '#3B82F6', '#F59E0B', '#8B5CF6', '#EC4899', '#06B6D4', '#F43F5E'];
 const ACCENT_COLOR = '#10B981';
 
 // Types de tri
@@ -232,12 +244,15 @@ export const DashboardPage = () => {
     : 0;
 
   // Données pour graphiques
-  const emfPieData = emfDataFromDetails.map((emf: EmfStats, index: number) => ({
-    name: emf.emf?.sigle || 'Inconnu',
-    value: emf.total,
-    montant: emf.montant_total,
-    fill: GRAY_SHADES[index % GRAY_SHADES.length]
-  }));
+  const emfPieData = emfDataFromDetails.map((emf: EmfStats, index: number) => {
+    const sigle = emf.emf?.sigle?.toUpperCase() || 'INCONNU';
+    return {
+      name: emf.emf?.sigle || 'Inconnu',
+      value: emf.total,
+      montant: emf.montant_total,
+      fill: EMF_COLORS[sigle] || CHART_COLORS[index % CHART_COLORS.length]
+    };
+  });
 
   const genreStats = stats?.par_genre || { hommes: 0, femmes: 0, non_determine: 0 };
   const totalGenre = genreStats.hommes + genreStats.femmes + genreStats.non_determine;
@@ -289,6 +304,24 @@ export const DashboardPage = () => {
     isHighlight: index === arr.length - 1
   })) || [];
 
+  // Récupérer l'évolution des sinistres depuis la base de données
+  const { data: sinistresEvolutionRaw, isLoading: isLoadingSinistresEvolution } = useSinistresEvolution();
+
+  // Transformer les données pour les graphiques
+  const sinistresEvolutionData = useMemo(() => {
+    if (!sinistresEvolutionRaw || sinistresEvolutionRaw.length === 0) {
+      // Données vides par défaut
+      const moisNoms = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sept', 'Oct', 'Nov', 'Déc'];
+      return moisNoms.map(mois => ({ name: mois, declares: 0, regles: 0, rejetes: 0 }));
+    }
+    return sinistresEvolutionRaw.map(item => ({
+      name: item.mois,
+      declares: item.declares,
+      regles: item.regles,
+      rejetes: item.rejetes
+    }));
+  }, [sinistresEvolutionRaw]);
+
   // Custom tooltip minimaliste
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
@@ -296,6 +329,28 @@ export const DashboardPage = () => {
         <div className="bg-white px-3 py-2 rounded-xl shadow-xl border border-gray-100 z-20">
           <div className="text-[10px] text-gray-400 font-bold mb-0.5">{payload[0].name}</div>
           <div className="text-sm font-bold text-gray-900">{payload[0].value}</div>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  // Custom tooltip pour les sinistres
+  const SinistresCustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white px-4 py-3 rounded-xl shadow-xl border border-gray-100 z-20">
+          <div className="text-xs text-gray-500 font-bold mb-2">{label}</div>
+          {payload.map((item: any, index: number) => (
+            <div key={index} className="flex items-center gap-2 text-sm">
+              <div 
+                className="w-2 h-2 rounded-full" 
+                style={{ backgroundColor: item.color }}
+              />
+              <span className="text-gray-600 capitalize">{item.dataKey}:</span>
+              <span className="font-bold text-gray-900">{item.value}</span>
+            </div>
+          ))}
         </div>
       );
     }
@@ -508,7 +563,248 @@ export const DashboardPage = () => {
           />
         </div>
 
-        {/* Row 3: Performance EMF & Par Agence */}
+        {/* Row 3: Indicateurs Clés */}
+        <div className="col-span-12 bg-white p-6 rounded-3xl shadow-soft border border-gray-100/50">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="font-bold text-gray-700">Indicateurs Clés</h3>
+            <MoreHorizontal size={20} className="text-gray-300" />
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            <div 
+              className="text-center p-5 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl cursor-pointer hover:from-gray-100 hover:to-gray-200 transition-all group"
+              onClick={() => navigate('/statistiques')}
+            >
+              <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center mx-auto mb-3 shadow-sm group-hover:shadow transition-shadow">
+                <TrendingUp className="h-6 w-6 text-emerald-500" />
+              </div>
+              <p className="text-2xl font-bold text-gray-900">
+                {tauxCroissance > 0 ? '+' : ''}{tauxCroissance.toFixed(1)}%
+              </p>
+              <p className="text-xs text-gray-500 mt-1 font-medium">Croissance</p>
+            </div>
+
+            <div 
+              className="text-center p-5 bg-gradient-to-br from-yellow-50 to-amber-50 rounded-2xl cursor-pointer hover:from-yellow-100 hover:to-amber-100 transition-all group"
+              onClick={() => navigate('/contrats?statut=en_attente')}
+            >
+              <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center mx-auto mb-3 shadow-sm group-hover:shadow transition-shadow">
+                <Clock className="h-6 w-6 text-amber-500" />
+              </div>
+              <p className="text-2xl font-bold text-gray-900">{stats?.contrats_en_attente || 0}</p>
+              <p className="text-xs text-gray-500 mt-1 font-medium">Contrats en Attente</p>
+            </div>
+
+            <div 
+              className="text-center p-5 bg-gradient-to-br from-red-50 to-orange-50 rounded-2xl cursor-pointer hover:from-red-100 hover:to-orange-100 transition-all group"
+              onClick={() => navigate('/contrats?statut=expire')}
+            >
+              <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center mx-auto mb-3 shadow-sm group-hover:shadow transition-shadow">
+                <AlertTriangle className="h-6 w-6 text-red-500" />
+              </div>
+              <p className="text-2xl font-bold text-gray-900">{stats?.contrats_expires_mois || 0}</p>
+              <p className="text-xs text-gray-500 mt-1 font-medium">Expirés ce Mois</p>
+            </div>
+
+            <div 
+              className="text-center p-5 bg-gradient-to-br from-emerald-50 to-green-50 rounded-2xl cursor-pointer hover:from-emerald-100 hover:to-green-100 transition-all group"
+              onClick={() => navigate('/statistiques')}
+            >
+              <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center mx-auto mb-3 shadow-sm group-hover:shadow transition-shadow">
+                <Wallet className="h-6 w-6 text-emerald-500" />
+              </div>
+              <p className="text-2xl font-bold text-gray-900">{formatCurrencyShort(stats?.prime_totale_collectee || 0)}</p>
+              <p className="text-xs text-gray-500 mt-1 font-medium">Primes Collectées</p>
+            </div>
+
+            <div 
+              className="text-center p-5 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl cursor-pointer hover:from-blue-100 hover:to-indigo-100 transition-all group"
+              onClick={() => navigate('/sinistres?statut=en_cours')}
+            >
+              <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center mx-auto mb-3 shadow-sm group-hover:shadow transition-shadow">
+                <AlertCircle className="h-6 w-6 text-blue-500" />
+              </div>
+              <p className="text-2xl font-bold text-gray-900">{stats?.sinistres_en_cours || 0}</p>
+              <p className="text-xs text-gray-500 mt-1 font-medium">Sinistres en Cours</p>
+            </div>
+
+            <div 
+              className="text-center p-5 bg-gradient-to-br from-purple-50 to-violet-50 rounded-2xl cursor-pointer hover:from-purple-100 hover:to-violet-100 transition-all group"
+              onClick={() => navigate('/statistiques')}
+            >
+              <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center mx-auto mb-3 shadow-sm group-hover:shadow transition-shadow">
+                <CheckCircle className="h-6 w-6 text-purple-500" />
+              </div>
+              <p className="text-2xl font-bold text-gray-900">{stats?.taux_reglement || 0}%</p>
+              <p className="text-xs text-gray-500 mt-1 font-medium">Taux Règlement</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Row 4: Évolution des Sinistres - Graphique courbe et barres */}
+        <div className="col-span-12 bg-white p-6 rounded-3xl shadow-soft border border-gray-100/50">
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h3 className="font-bold text-gray-700">Évolution des Sinistres</h3>
+              <p className="text-xs text-gray-400 mt-1">
+                Tendance sur l'année {new Date().getFullYear()} (données réelles)
+              </p>
+            </div>
+            <div className="flex items-center gap-4">
+              {isLoadingSinistresEvolution && (
+                <div className="flex items-center gap-2 text-xs text-gray-400">
+                  <div className="w-3 h-3 border-2 border-gray-300 border-t-emerald-500 rounded-full animate-spin"></div>
+                  Chargement...
+                </div>
+              )}
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                <span className="text-xs text-gray-500">Déclarés</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
+                <span className="text-xs text-gray-500">Réglés</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-red-400"></div>
+                <span className="text-xs text-gray-500">Rejetés</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Graphique en courbes (LineChart) */}
+            <div>
+              <p className="text-xs text-gray-400 font-medium mb-3">Courbe de tendance</p>
+              <div className="h-[280px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={sinistresEvolutionData} margin={{ top: 10, right: 20, left: -10, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+                    <XAxis 
+                      dataKey="name" 
+                      tick={{ fontSize: 11, fill: '#9CA3AF' }} 
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <YAxis 
+                      tick={{ fontSize: 11, fill: '#9CA3AF' }} 
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <Tooltip content={<SinistresCustomTooltip />} />
+                    <Line 
+                      type="monotone" 
+                      dataKey="declares" 
+                      stroke="#3B82F6" 
+                      strokeWidth={3}
+                      dot={{ fill: '#3B82F6', strokeWidth: 2, r: 4 }}
+                      activeDot={{ r: 6, stroke: '#fff', strokeWidth: 2 }}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="regles" 
+                      stroke="#10B981" 
+                      strokeWidth={3}
+                      dot={{ fill: '#10B981', strokeWidth: 2, r: 4 }}
+                      activeDot={{ r: 6, stroke: '#fff', strokeWidth: 2 }}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="rejetes" 
+                      stroke="#F87171" 
+                      strokeWidth={2}
+                      strokeDasharray="5 5"
+                      dot={{ fill: '#F87171', strokeWidth: 2, r: 3 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Graphique en aires (AreaChart) */}
+            <div>
+              <p className="text-xs text-gray-400 font-medium mb-3">Volume cumulé</p>
+              <div className="h-[280px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={sinistresEvolutionData} margin={{ top: 10, right: 20, left: -10, bottom: 5 }}>
+                    <defs>
+                      <linearGradient id="colorDeclares" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
+                      </linearGradient>
+                      <linearGradient id="colorRegles" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#10B981" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+                    <XAxis 
+                      dataKey="name" 
+                      tick={{ fontSize: 11, fill: '#9CA3AF' }} 
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <YAxis 
+                      tick={{ fontSize: 11, fill: '#9CA3AF' }} 
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <Tooltip content={<SinistresCustomTooltip />} />
+                    <Area 
+                      type="monotone" 
+                      dataKey="declares" 
+                      stroke="#3B82F6" 
+                      strokeWidth={2}
+                      fillOpacity={1}
+                      fill="url(#colorDeclares)"
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="regles" 
+                      stroke="#10B981" 
+                      strokeWidth={2}
+                      fillOpacity={1}
+                      fill="url(#colorRegles)"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+
+          {/* Stats résumées */}
+          <div className="grid grid-cols-4 gap-4 mt-6 pt-6 border-t border-gray-100">
+            <div className="text-center">
+              <p className="text-2xl font-bold text-gray-900">
+                {sinistresEvolutionData.reduce((acc, item) => acc + item.declares, 0)}
+              </p>
+              <p className="text-xs text-gray-500 mt-1">Total déclarés</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-emerald-600">
+                {sinistresEvolutionData.reduce((acc, item) => acc + item.regles, 0)}
+              </p>
+              <p className="text-xs text-gray-500 mt-1">Total réglés</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-red-500">
+                {sinistresEvolutionData.reduce((acc, item) => acc + item.rejetes, 0)}
+              </p>
+              <p className="text-xs text-gray-500 mt-1">Total rejetés</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-blue-600">
+                {sinistresEvolutionData.length > 0 
+                  ? Math.round(sinistresEvolutionData.reduce((acc, item) => acc + item.regles, 0) / 
+                    sinistresEvolutionData.reduce((acc, item) => acc + item.declares, 0) * 100) || 0
+                  : 0}%
+              </p>
+              <p className="text-xs text-gray-500 mt-1">Taux de règlement</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Row 5: Performance EMF & Par Agence */}
         <div className="col-span-12 lg:col-span-8 bg-white p-6 rounded-3xl shadow-soft border border-gray-100/50">
           <div className="flex justify-between items-center mb-6">
             <h3 className="font-bold text-gray-700">Performance par EMF</h3>
@@ -534,6 +830,8 @@ export const DashboardPage = () => {
                   ? ((emf.cotisation_totale_ttc || 0) / totalCotisations * 100)
                   : 0;
                 const emfSlug = getEmfSlug(emf.emf_id);
+                const sigle = emf.emf?.sigle?.toUpperCase() || 'INCONNU';
+                const emfColor = EMF_COLORS[sigle] || CHART_COLORS[index % CHART_COLORS.length];
                 
                 return (
                   <div 
@@ -544,8 +842,8 @@ export const DashboardPage = () => {
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-3">
                         <div 
-                          className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold"
-                          style={{ backgroundColor: GRAY_SHADES[index % GRAY_SHADES.length] }}
+                          className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold shadow-sm"
+                          style={{ backgroundColor: emfColor }}
                         >
                           {(emf.emf?.sigle || 'N').charAt(0)}
                         </div>
@@ -556,7 +854,7 @@ export const DashboardPage = () => {
                       </div>
                       <div className="flex items-center gap-3">
                         <div className="text-right">
-                          <span className="font-bold text-emerald-600">{formatCurrencyShort(emf.cotisation_totale_ttc || 0)}</span>
+                          <span className="font-bold" style={{ color: emfColor }}>{formatCurrencyShort(emf.cotisation_totale_ttc || 0)}</span>
                           <span className="text-xs text-gray-400 ml-2">{percentage.toFixed(1)}%</span>
                         </div>
                         <ArrowRight size={14} className="text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -567,7 +865,7 @@ export const DashboardPage = () => {
                         className="h-2 rounded-full transition-all duration-500 group-hover:opacity-80"
                         style={{ 
                           width: `${Math.min(percentage, 100)}%`,
-                          backgroundColor: index === 0 ? ACCENT_COLOR : GRAY_SHADES[index % GRAY_SHADES.length]
+                          backgroundColor: emfColor
                         }}
                       />
                     </div>
@@ -650,8 +948,8 @@ export const DashboardPage = () => {
                     dataKey="value"
                     stroke="none"
                   >
-                    {emfPieData.map((_entry: any, index: number) => (
-                      <Cell key={`cell-${index}`} fill={GRAY_SHADES[index % GRAY_SHADES.length]} />
+                    {emfPieData.map((entry: any, index: number) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill || CHART_COLORS[index % CHART_COLORS.length]} />
                     ))}
                   </Pie>
                   <Tooltip content={<CustomTooltip />} />
@@ -750,8 +1048,8 @@ export const DashboardPage = () => {
                     >
                       <div className="flex items-center gap-3">
                         <div 
-                          className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold"
-                          style={{ backgroundColor: GRAY_SHADES[index % GRAY_SHADES.length] }}
+                          className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold shadow-sm"
+                          style={{ backgroundColor: CHART_COLORS[index % CHART_COLORS.length] }}
                         >
                           {index + 1}
                         </div>
@@ -783,54 +1081,6 @@ export const DashboardPage = () => {
                 </span>
               </div>
             )}
-          </div>
-        </div>
-
-        {/* Row 5: KPIs */}
-        <div className="col-span-12 bg-white p-6 rounded-3xl shadow-soft border border-gray-100/50">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="font-bold text-gray-700">Indicateurs Clés</h3>
-            <MoreHorizontal size={20} className="text-gray-300" />
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            <div 
-              className="text-center p-6 bg-gray-50 rounded-2xl cursor-pointer hover:bg-gray-100 transition-colors"
-              onClick={() => navigate('/statistiques')}
-            >
-              <Calendar className="h-8 w-8 text-gray-400 mx-auto mb-3" />
-              <p className="text-2xl font-bold text-gray-900">
-                {tauxCroissance > 0 ? '+' : ''}{tauxCroissance.toFixed(1)}%
-              </p>
-              <p className="text-xs text-gray-500 mt-1 font-medium">Croissance</p>
-            </div>
-
-            <div 
-              className="text-center p-6 bg-gray-50 rounded-2xl cursor-pointer hover:bg-gray-100 transition-colors"
-              onClick={() => navigate('/contrats?statut=en_attente')}
-            >
-              <AlertCircle className="h-8 w-8 text-gray-400 mx-auto mb-3" />
-              <p className="text-2xl font-bold text-gray-900">{stats?.contrats_en_attente || 0}</p>
-              <p className="text-xs text-gray-500 mt-1 font-medium">En Attente</p>
-            </div>
-
-            <div 
-              className="text-center p-6 bg-gray-50 rounded-2xl cursor-pointer hover:bg-gray-100 transition-colors"
-              onClick={() => navigate('/contrats?statut=expire')}
-            >
-              <AlertTriangle className="h-8 w-8 text-gray-400 mx-auto mb-3" />
-              <p className="text-2xl font-bold text-gray-900">{stats?.contrats_expires_mois || 0}</p>
-              <p className="text-xs text-gray-500 mt-1 font-medium">Expirés ce Mois</p>
-            </div>
-
-            <div 
-              className="text-center p-6 bg-gray-50 rounded-2xl cursor-pointer hover:bg-gray-100 transition-colors"
-              onClick={() => navigate('/statistiques')}
-            >
-              <Wallet className="h-8 w-8 text-gray-400 mx-auto mb-3" />
-              <p className="text-2xl font-bold text-gray-900">{formatCurrencyShort(stats?.prime_totale_collectee || 0)}</p>
-              <p className="text-xs text-gray-500 mt-1 font-medium">Primes</p>
-            </div>
           </div>
         </div>
 
@@ -906,8 +1156,8 @@ export const DashboardPage = () => {
                         <td className="py-4 border-b border-gray-50">
                           <div className="flex items-center gap-3">
                             <div 
-                              className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold"
-                              style={{ backgroundColor: GRAY_SHADES[index % GRAY_SHADES.length] }}
+                              className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold shadow-sm"
+                              style={{ backgroundColor: EMF_COLORS[(emf.emf?.sigle || '').toUpperCase()] || CHART_COLORS[index % CHART_COLORS.length] }}
                             >
                               {(emf.emf?.sigle || 'N').charAt(0)}
                             </div>
@@ -938,70 +1188,9 @@ export const DashboardPage = () => {
           </div>
         </div>
 
-        {/* Row 7: Contrats Récents & Sinistres */}
-        <div className="col-span-12 lg:col-span-8 bg-white p-6 rounded-3xl shadow-soft border border-gray-100/50">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="font-bold text-gray-700">Contrats Récents</h3>
-            <button 
-              onClick={() => navigate('/contrats')}
-              className="text-xs font-bold text-gray-500 hover:text-gray-700 flex items-center gap-1"
-            >
-              Voir tout <ArrowRight size={14} />
-            </button>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="text-xs text-gray-400 border-b border-gray-100">
-                  <th className="font-medium py-3">N° Police</th>
-                  <th className="font-medium py-3">Client</th>
-                  <th className="font-medium py-3">EMF</th>
-                  <th className="font-medium py-3 text-right">Montant</th>
-                  <th className="font-medium py-3 text-right">Prime</th>
-                  <th className="font-medium py-3 text-center">Statut</th>
-                  <th className="font-medium py-3 text-right">Date</th>
-                </tr>
-              </thead>
-              <tbody className="text-sm">
-                {stats?.contrats_recents && stats.contrats_recents.length > 0 ? (
-                  stats.contrats_recents.slice(0, 5).map((contrat: any, index: number) => (
-                    <tr 
-                      key={`contrat-${contrat.id}-${index}`} 
-                      className="hover:bg-gray-50 transition-colors cursor-pointer group"
-                      onClick={() => navigate(`/contrats/${contrat.id}`)}
-                    >
-                      <td className="py-3 border-b border-gray-50 font-mono text-xs text-gray-600">{contrat.numero_police}</td>
-                      <td className="py-3 border-b border-gray-50 font-medium text-gray-900">{contrat.nom_prenom}</td>
-                      <td className="py-3 border-b border-gray-50 text-gray-500">{contrat.emf?.sigle || 'N/A'}</td>
-                      <td className="py-3 border-b border-gray-50 text-right font-semibold text-gray-900">{formatCurrency(contrat.montant_pret_assure)}</td>
-                      <td className="py-3 border-b border-gray-50 text-right font-semibold text-emerald-600">{formatCurrency(contrat.cotisation_totale_ttc || contrat.prime_collectee || 0)}</td>
-                      <td className="py-3 border-b border-gray-50 text-center">
-                        <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-bold ${
-                          contrat.statut === 'actif' ? 'bg-green-100 text-green-700' :
-                          contrat.statut === 'en_attente' ? 'bg-yellow-100 text-yellow-700' :
-                          contrat.statut === 'expire' ? 'bg-red-100 text-red-700' :
-                          'bg-gray-100 text-gray-600'
-                        }`}>
-                          {contrat.statut}
-                        </span>
-                      </td>
-                      <td className="py-3 border-b border-gray-50 text-right text-gray-400 text-xs">{formatDate(contrat.created_at)}</td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={7} className="py-8 text-center text-gray-400">Aucun contrat récent</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Sinistres - Timeline */}
-        <div className="col-span-12 lg:col-span-4 bg-white p-6 rounded-3xl shadow-soft border border-gray-100/50">
-          <div className="flex justify-between items-center mb-6">
+        {/* Sinistres - Timeline améliorée */}
+        <div className="col-span-12 lg:col-span-6 bg-white p-6 rounded-3xl shadow-soft border border-gray-100/50">
+          <div className="flex justify-between items-center mb-5">
             <h3 className="font-bold text-gray-700">Activité Sinistres</h3>
             <button 
               onClick={() => navigate('/sinistres')}
@@ -1011,62 +1200,96 @@ export const DashboardPage = () => {
             </button>
           </div>
 
-          {/* Stats rapides sinistres */}
-          <div className="grid grid-cols-2 gap-3 mb-6">
+          {/* Stats rapides sinistres - grille 3 colonnes */}     
+          <div className="grid grid-cols-3 gap-2 mb-5">
             <div 
-              className="bg-yellow-50 rounded-xl p-3 text-center cursor-pointer hover:bg-yellow-100 transition-colors"
+              className="bg-gradient-to-br from-yellow-50 to-amber-50 rounded-xl p-3 text-center cursor-pointer hover:from-yellow-100 hover:to-amber-100 transition-all"
               onClick={() => navigate('/sinistres?statut=en_cours')}
             >
-              <Hourglass className="h-5 w-5 text-yellow-600 mx-auto mb-1" />
-              <p className="text-lg font-bold text-yellow-700">{stats?.sinistres_en_cours || 0}</p>
-              <p className="text-[10px] text-yellow-600 font-medium">En cours</p>
+              <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center mx-auto mb-2 shadow-sm">
+                <Hourglass className="h-4 w-4 text-yellow-600" />
+              </div>
+              <p className="text-lg font-bold text-gray-900">{stats?.sinistres_en_cours || 0}</p>
+              <p className="text-[10px] text-gray-500 font-medium">En cours</p>
             </div>
             <div 
-              className="bg-green-50 rounded-xl p-3 text-center cursor-pointer hover:bg-green-100 transition-colors"
+              className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-3 text-center cursor-pointer hover:from-green-100 hover:to-emerald-100 transition-all"
               onClick={() => navigate('/sinistres?statut=paye')}
             >
-              <CheckCircle2 className="h-5 w-5 text-green-600 mx-auto mb-1" />
-              <p className="text-lg font-bold text-green-700">{stats?.taux_reglement || 0}%</p>
-              <p className="text-[10px] text-green-600 font-medium">Réglés</p>
+              <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center mx-auto mb-2 shadow-sm">
+                <CheckCircle2 className="h-4 w-4 text-green-600" />
+              </div>
+              <p className="text-lg font-bold text-gray-900">{stats?.taux_reglement || 0}%</p>
+              <p className="text-[10px] text-gray-500 font-medium">Réglés</p>
+            </div>
+            <div 
+              className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-3 text-center cursor-pointer hover:from-blue-100 hover:to-indigo-100 transition-all"
+              onClick={() => navigate('/sinistres?statut=en_attente')}
+            >
+              <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center mx-auto mb-2 shadow-sm">
+                <Clock className="h-4 w-4 text-blue-600" />
+              </div>
+              <p className="text-lg font-bold text-gray-900">{(stats as any)?.sinistres_en_attente || 0}</p>
+              <p className="text-[10px] text-gray-500 font-medium">En attente</p>
             </div>
           </div>
 
+          {/* Séparateur */}
+          <div className="flex items-center gap-3 mb-4">
+            <div className="flex-1 h-px bg-gray-100"></div>
+            <span className="text-[10px] text-gray-400 font-medium uppercase tracking-wide">Derniers sinistres</span>
+            <div className="flex-1 h-px bg-gray-100"></div>
+          </div>
+
           {/* Timeline sinistres */}
-          <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2">
+          <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1">
             {stats?.sinistres_recents && stats.sinistres_recents.length > 0 ? (
-              stats.sinistres_recents.map((sinistre: SinistreRecent) => {
+              stats.sinistres_recents.map((sinistre: SinistreRecent, index: number) => {
                 const statutInfo = SINISTRE_STATUTS[sinistre.statut as keyof typeof SINISTRE_STATUTS] || SINISTRE_STATUTS.en_attente;
                 const StatutIcon = statutInfo.icon;
                 
                 return (
                   <div 
                     key={sinistre.id}
-                    className="flex items-start gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer group"
+                    className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer group border border-transparent hover:border-gray-100"
                     onClick={() => navigate(`/sinistres/${sinistre.id}`)}
                   >
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${statutInfo.color}`}>
-                      <StatutIcon size={14} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm font-semibold text-gray-900 truncate">{sinistre.type_sinistre}</p>
-                        <ArrowRight size={12} className="text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    {/* Indicateur de timeline */}
+                    <div className="flex flex-col items-center">
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${statutInfo.color}`}>
+                        <StatutIcon size={16} />
                       </div>
-                      <p className="text-xs text-gray-500 truncate">{sinistre.numero_police}</p>
+                      {index < (stats?.sinistres_recents?.length || 0) - 1 && (
+                        <div className="w-0.5 h-3 bg-gray-100 mt-1"></div>
+                      )}
+                    </div>
+                    
+                    {/* Contenu */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-semibold text-gray-900 truncate">{sinistre.type_sinistre}</p>
+                        <span className="text-[10px] text-gray-400 whitespace-nowrap">{formatDate(sinistre.date_declaration)}</span>
+                      </div>
                       <div className="flex items-center gap-2 mt-1">
+                        <span className="text-xs text-gray-500 font-mono truncate">{sinistre.numero_police}</span>
+                        <span className="text-gray-300">•</span>
                         <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${statutInfo.color}`}>
                           {statutInfo.label}
                         </span>
-                        <span className="text-[10px] text-gray-400">{formatDate(sinistre.date_declaration)}</span>
                       </div>
                     </div>
+                    
+                    <ArrowRight size={14} className="text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
                   </div>
                 );
               })
             ) : (
-              <div className="text-center py-8">
-                <AlertCircle className="h-10 w-10 text-gray-200 mx-auto mb-2" />
-                <p className="text-sm text-gray-400">Aucun sinistre récent</p>
+              <div className="text-center py-10">
+                <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                  <AlertCircle className="h-7 w-7 text-gray-300" />
+                </div>
+                <p className="text-sm font-medium text-gray-400">Aucun sinistre récent</p>
+                <p className="text-xs text-gray-300 mt-1">Les nouveaux sinistres apparaîtront ici</p>
               </div>
             )}
           </div>
@@ -1075,9 +1298,9 @@ export const DashboardPage = () => {
           {stats?.sinistres_recents && stats.sinistres_recents.length > 0 && (
             <button 
               onClick={() => navigate('/sinistres')}
-              className="w-full mt-4 py-2.5 bg-gray-50 hover:bg-gray-100 rounded-xl text-xs font-bold text-gray-600 transition-colors flex items-center justify-center gap-2"
+              className="w-full mt-4 py-3 bg-gray-900 hover:bg-gray-800 rounded-xl text-sm font-bold text-white transition-colors flex items-center justify-center gap-2"
             >
-              Voir tous les sinistres <ArrowRight size={14} />
+              Gérer les sinistres <ArrowRight size={14} />
             </button>
           )}
         </div>

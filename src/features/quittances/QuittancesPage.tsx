@@ -349,8 +349,8 @@ export const QuittancesPage: React.FC = () => {
           title="Prévisualisation de la Quittance"
           size="xl"
         >
-          <div className="overflow-auto max-h-[80vh]">
-            <div className="transform scale-75 origin-top">
+          <div className="overflow-auto max-h-[800px] rounded-xl border border-gray-200">
+            <div>
               <QuittancePrint 
                 quittance={previewQuittance} 
                 showSignatures={true}

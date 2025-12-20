@@ -139,14 +139,48 @@ export const LoginPage = () => {
           </div>
           
           <div className="space-y-6">
-            <h1 className="text-5xl font-bold text-white leading-tight">
-              Gérez vos<br />
-              assurances<br />
-              <span className="text-white/80">simplement.</span>
-            </h1>
-            <p className="text-white/70 text-lg max-w-md">
-              Plateforme de gestion des contrats d'assurance emprunteur pour les EMF du Gabon.
-            </p>
+            <div>
+              <h1 className="text-4xl font-bold text-white leading-tight">
+                TALI
+              </h1>
+              <p className="text-white/90 text-lg font-medium mt-1">SAMB'A-ASSURANCES</p>
+            </div>
+            
+            <div className="space-y-3">
+              <p className="text-white text-xl font-semibold leading-relaxed">
+                La solution digitale qui sécurise les crédits grâce à la micro-assurance emprunteur
+              </p>
+              <p className="text-white/70 text-base">
+                Une plateforme innovante dédiée aux Banques et EMF du Gabon
+              </p>
+            </div>
+
+            <div className="space-y-2 pt-4">
+              <div className="flex items-center gap-2 text-white/90 text-sm">
+                <span className="text-emerald-300">✔</span>
+                <span>Protection des portefeuilles de crédits</span>
+              </div>
+              <div className="flex items-center gap-2 text-white/90 text-sm">
+                <span className="text-emerald-300">✔</span>
+                <span>Couverture des risques décès et invalidité</span>
+              </div>
+              <div className="flex items-center gap-2 text-white/90 text-sm">
+                <span className="text-emerald-300">✔</span>
+                <span>Automatisation de la souscription et gestion</span>
+              </div>
+              <div className="flex items-center gap-2 text-white/90 text-sm">
+                <span className="text-emerald-300">✔</span>
+                <span>Déclaration et traitement digitalisés des sinistres</span>
+              </div>
+              <div className="flex items-center gap-2 text-white/90 text-sm">
+                <span className="text-emerald-300">✔</span>
+                <span>Suivi en temps réel des primes et engagements</span>
+              </div>
+              <div className="flex items-center gap-2 text-white/90 text-sm">
+                <span className="text-emerald-300">✔</span>
+                <span>Conformité aux exigences réglementaires CIMA</span>
+              </div>
+            </div>
           </div>
 
           <div className="flex items-center gap-3">
@@ -158,7 +192,7 @@ export const LoginPage = () => {
               ))}
             </div>
             <p className="text-white/70 text-sm">
-              <span className="text-white font-semibold">5+ EMF</span> nous font confiance
+              <span className="text-white font-semibold">5+ partenaires</span> nous font confiance
             </p>
           </div>
         </div>
@@ -287,7 +321,7 @@ export const LoginPage = () => {
 
           {/* Footer */}
           <p className="text-gray-700 text-[10px] text-center mt-8">
-            © 2024 SAMB'A Assurances Gabon S.A.
+            © 2025 TALI - SAMB'A Assurances Gabon S.A.
           </p>
         </div>
       </div>

@@ -22,7 +22,10 @@ import {
   ChevronUp,
   Ban,
   RotateCcw,
-  Undo2
+  Undo2,
+  MapPin,
+  Mail,
+  Phone
 } from 'lucide-react';
 import { Input } from '@/components/ui/Input';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
@@ -32,6 +35,9 @@ import { sinistreService } from '@/services/sinistre.service';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import toast from 'react-hot-toast';
 import { useReactToPrint } from 'react-to-print';
+import logoSamba from '@/assets/logo-samba.png';
+import signatureTechnique from '@/assets/signature-technique.png';
+import signatureFpdg from '@/assets/signature-fpdg.png';
 
 // Type pour le statut des quittances
 type QuittanceStatut = 'en_attente' | 'validee' | 'payee' | 'annulee';
@@ -55,11 +61,16 @@ interface Quittance {
 interface Sinistre {
   id: number;
   numero_sinistre: string;
+  numero_police?: string;
   statut: string;
   type_sinistre?: string;
   nom_assure?: string;
+  date_sinistre?: string;
   contrat?: {
     nom_prenom?: string;
+    numero_police?: string;
+    date_effet?: string;
+    date_fin_echeance?: string;
     emf?: {
       sigle?: string;
       nom?: string;
@@ -85,7 +96,7 @@ function StatutBadge({ statut }: { statut: string }) {
   );
 }
 
-// Composant de prévisualisation de quittance
+// Composant de prévisualisation de quittance - Format A4
 function QuittancePreview({ quittance, sinistre }: { quittance: Quittance; sinistre?: Sinistre }) {
   const typeLabel = quittance.type === 'capital_sans_interets' 
     ? 'Remboursement Capital (EMF)' 
@@ -95,63 +106,260 @@ function QuittancePreview({ quittance, sinistre }: { quittance: Quittance; sinis
         ? 'Capital Restant Dû'
         : quittance.type || 'Quittance';
 
+  const contrat = sinistre?.contrat;
+  const dureeContrat = contrat?.date_effet && contrat?.date_fin_echeance
+    ? `Du ${formatDate(contrat.date_effet)} au ${formatDate(contrat.date_fin_echeance)}`
+    : 'N/A';
+
+  // Fonction pour convertir le montant en lettres
+  const nombreEnLettres = (nombre: number): string => {
+    const unites = ['', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six', 'sept', 'huit', 'neuf'];
+    const dizaines = ['', 'dix', 'vingt', 'trente', 'quarante', 'cinquante', 'soixante', 'soixante-dix', 'quatre-vingt', 'quatre-vingt-dix'];
+    const exceptions = ['dix', 'onze', 'douze', 'treize', 'quatorze', 'quinze', 'seize'];
+    
+    if (nombre === 0) return 'zéro';
+    if (nombre < 0) return 'moins ' + nombreEnLettres(-nombre);
+    
+    let result = '';
+    
+    if (nombre >= 1000000) {
+      const millions = Math.floor(nombre / 1000000);
+      result += millions === 1 ? 'un million ' : nombreEnLettres(millions) + ' millions ';
+      nombre %= 1000000;
+    }
+    
+    if (nombre >= 1000) {
+      const milliers = Math.floor(nombre / 1000);
+      result += milliers === 1 ? 'mille ' : nombreEnLettres(milliers) + ' mille ';
+      nombre %= 1000;
+    }
+    
+    if (nombre >= 100) {
+      const centaines = Math.floor(nombre / 100);
+      result += centaines === 1 ? 'cent ' : unites[centaines] + ' cent ';
+      nombre %= 100;
+    }
+    
+    if (nombre > 0) {
+      if (nombre < 10) {
+        result += unites[nombre];
+      } else if (nombre < 17) {
+        result += exceptions[nombre - 10];
+      } else if (nombre < 20) {
+        result += 'dix-' + unites[nombre - 10];
+      } else {
+        const dizaine = Math.floor(nombre / 10);
+        const unite = nombre % 10;
+        
+        if (dizaine === 7 || dizaine === 9) {
+          result += unite === 1 
+            ? dizaines[dizaine - 1] + ' et ' + exceptions[unite]
+            : dizaines[dizaine - 1] + '-' + exceptions[unite];
+        } else {
+          if (unite === 0) {
+            result += dizaines[dizaine];
+          } else if (unite === 1 && dizaine !== 8) {
+            result += dizaines[dizaine] + ' et un';
+          } else {
+            result += dizaines[dizaine] + '-' + unites[unite];
+          }
+        }
+      }
+    }
+    
+    return result.trim();
+  };
+
+  const montantEnLettres = nombreEnLettres(quittance.montant).charAt(0).toUpperCase() + 
+    nombreEnLettres(quittance.montant).slice(1) + ' francs CFA';
+
   return (
-    <div className="bg-white p-6 border border-gray-300 rounded-lg shadow-sm">
-      <div className="text-center border-b pb-4 mb-4">
-        <h2 className="text-xl font-bold text-gray-900">SAMB'A ASSURANCES GABON S.A.</h2>
-        <p className="text-sm text-gray-600">Entreprise de Micro-Assurance</p>
-        <div className="mt-3 inline-block px-4 py-1 bg-amber-100 text-amber-800 rounded-full text-sm font-semibold">
-          QUITTANCE DE RÈGLEMENT
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4 mb-4">
+    <div className="bg-white w-[210mm] min-h-[297mm] p-[8mm] shadow-xl relative flex flex-col text-black font-serif mx-auto print:shadow-none">
+      {/* Header - Fixé en haut */}
+      <div className="flex justify-between items-start mb-4">
         <div>
-          <p className="text-xs text-gray-500 uppercase">Référence</p>
-          <p className="font-mono font-bold text-lg">{quittance.reference}</p>
+          <img src={logoSamba} alt="SAMB'A Assurances" className="h-[120px] w-auto" />
         </div>
-        <div className="text-right">
-          <p className="text-xs text-gray-500 uppercase">Date</p>
-          <p className="font-semibold">{formatDate(quittance.created_at)}</p>
+        <div className="border-2 border-black px-5 py-3 mt-4">
+          <h1 className="text-lg font-bold font-serif tracking-wide">
+            QUITTANCE DE REGLEMENT {quittance.reference}
+          </h1>
         </div>
       </div>
 
-      <div className="bg-blue-50 p-3 rounded-lg mb-4">
-        <p className="text-xs text-blue-600 uppercase font-medium">Type de quittance</p>
-        <p className="font-semibold text-blue-900">{typeLabel}</p>
+      {/* Contenu principal centré verticalement */}
+      <div className="flex-grow flex flex-col justify-center">
+        {/* Details List - Aligné à gauche */}
+        <div className="space-y-2 text-[12px] leading-relaxed mb-8 pl-4">
+        <div className="flex">
+          <span className="font-bold w-48">Police N°</span>
+          <span>: {sinistre?.numero_police || contrat?.numero_police || 'N/A'}</span>
+        </div>
+        <div className="flex">
+          <span className="font-bold w-48">Sinistre N°</span>
+          <span>: {sinistre?.numero_sinistre || quittance.sinistre_reference || 'N/A'}</span>
+        </div>
+        <div className="flex">
+          <span className="font-bold w-48">Date du Sinistre</span>
+          <span>: {formatDate(sinistre?.date_sinistre)}</span>
+        </div>
+        <div className="flex">
+          <span className="font-bold w-48">Durée du contrat</span>
+          <span>: {dureeContrat}</span>
+        </div>
+        <div className="flex">
+          <span className="font-bold w-48">Assuré Principal</span>
+          <span>: {sinistre?.nom_assure || contrat?.nom_prenom || 'N/A'}</span>
+        </div>
+        <div className="flex">
+          <span className="font-bold w-48">Type de règlement</span>
+          <span>: {typeLabel}</span>
+        </div>
       </div>
 
-      {sinistre && (
-        <div className="bg-gray-50 p-3 rounded-lg mb-4">
-          <p className="text-xs text-gray-500 uppercase font-medium mb-2">Sinistre associé</p>
-          <div className="grid grid-cols-2 gap-2 text-sm">
-            <div>
-              <span className="text-gray-500">N° Sinistre:</span>
-              <span className="ml-2 font-semibold">{sinistre.numero_sinistre || quittance.sinistre_reference}</span>
+        {/* Content Body - Aligné à gauche */}
+        <div className="space-y-4 text-[13px] mb-8 pl-4">
+        {quittance.type === 'capital_prevoyance' ? (
+          <>
+            <div className="flex items-start text-justify">
+              <span className="mr-2 font-bold">-</span>
+              <div>
+                <span className="font-bold">Garantie :</span> Décès de l'assuré principal ou d'un assuré associé, 
+                l'assureur verse dans les 10 jours sous réserves d'un acte de décès, le capital forfaitaire 
+                prévus aux conditions particulières au(x) bénéficiaire(s) désigné(s) par l'assuré principal.
+              </div>
             </div>
-            <div>
-              <span className="text-gray-500">Type:</span>
-              <span className="ml-2 font-semibold">{sinistre.type_sinistre || 'N/A'}</span>
+            <div className="flex items-start flex-col pl-3">
+              <div className="flex items-start -ml-3">
+                <span className="mr-2 font-bold">-</span>
+                <div>
+                  <span className="font-bold">Capital forfaitaire :</span> &nbsp;&nbsp;&nbsp;&nbsp; 
+                  {formatCurrency(quittance.montant)} (à reverser à {quittance.beneficiaire_nom || quittance.beneficiaire})
+                </div>
+              </div>
+              <div className="font-bold italic mt-1 self-center text-sm">
+                ({montantEnLettres})
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="flex items-start text-justify">
+              <span className="mr-2 font-bold">-</span>
+              <div>
+                <span className="font-bold">Garantie :</span> Décès / Invalidité Absolue et Définitive (IAD) - 
+                Remboursement du capital restant dû à l'EMF
+              </div>
+            </div>
+            <div className="flex items-start flex-col pl-3">
+              <div className="flex items-start -ml-3">
+                <span className="mr-2 font-bold">-</span>
+                <div>
+                  <span className="font-bold">Capital restant dû (sans intérêts) :</span> &nbsp;&nbsp;&nbsp;&nbsp; 
+                  {formatCurrency(quittance.montant)} (à reverser à {quittance.beneficiaire_nom || quittance.beneficiaire})
+                </div>
+              </div>
+              <div className="font-bold italic mt-1 self-center text-sm">
+                ({montantEnLettres})
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+
+        {/* Total Amount Box - Centré */}
+        <div className="flex justify-center my-8">
+          <div className="border-2 border-black px-10 py-4 shadow-sm bg-gray-50">
+            <span className="font-bold text-lg">Montant total à payer est : {formatCurrency(quittance.montant)}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Date & Signatures - Fixé en bas */}
+      <div className="mt-auto mb-2">
+        <div className="text-right mb-4 pr-8 text-[12px]">
+          Fait à Libreville, le {formatDate(quittance.created_at || new Date().toISOString())}
+        </div>
+
+        <div className="flex justify-between px-4">
+          {/* Left Signature - Responsable Technique (toujours visible car quittance générée) */}
+          <div className="w-[30%]">
+            <div className="font-bold mb-2 text-[11px]">Le Responsable Technique</div>
+            <div className="relative h-16 w-28">
+              <img 
+                src={signatureTechnique} 
+                alt="Signature Responsable Technique" 
+                className="h-full w-auto object-contain"
+              />
+            </div>
+          </div>
+          <div className="w-[35%] flex flex-col items-center justify-end pb-2 font-bold text-[8px] space-y-0">
+            <div className="flex gap-3">
+              <span>Feuillet 1 : Assuré</span>
+              <span>Feuillet 2 : EMF</span>
+            </div>
+            <div className="flex gap-3">
+              <span>Feuillet 3 : SAMB'A</span>
+              <span>Feuillet 4 : Souche</span>
+            </div>
+          </div>
+          {/* Right Signature - FPDG (visible si validée ou payée) */}
+          <div className="w-[30%]">
+            <div className="font-bold mb-2 text-[11px] text-right">Le Président Directeur Général</div>
+            <div className="relative h-20 w-32 ml-auto flex items-center justify-center">
+              {quittance.statut === 'validee' || quittance.statut === 'payee' ? (
+                <img 
+                  src={signatureFpdg} 
+                  alt="Signature PDG" 
+                  className="h-full w-auto object-contain"
+                />
+              ) : (
+                <div className="border border-gray-300 border-dashed h-full w-full flex items-center justify-center rounded-lg">
+                  <span className="text-gray-400 text-[9px] text-center px-1">
+                    {quittance.statut === 'en_attente' ? 'En attente validation' : 'Signature & Cachet'}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </div>
-      )}
-
-      <div className="border-t border-b py-4 my-4">
-        <p className="text-xs text-gray-500 uppercase mb-1">Bénéficiaire</p>
-        <p className="text-lg font-semibold text-gray-900">{quittance.beneficiaire_nom || quittance.beneficiaire}</p>
-        <p className="text-sm text-gray-500">{quittance.beneficiaire_type === 'emf' ? 'Établissement de Microfinance' : 'Personne physique'}</p>
       </div>
 
-      <div className="bg-emerald-50 p-4 rounded-xl text-center mb-4">
-        <p className="text-xs text-emerald-600 uppercase mb-1">Montant à payer</p>
-        <p className="text-3xl font-bold text-emerald-700">{formatCurrency(quittance.montant)}</p>
+      {/* Statut Badge */}
+      <div className="print:hidden mb-1">
+        <div className={`text-center py-1.5 px-3 rounded-lg text-xs font-medium ${
+          quittance.statut === 'validee' || quittance.statut === 'payee' ? 'bg-green-100 text-green-800' :
+          quittance.statut === 'en_attente' ? 'bg-yellow-100 text-yellow-800' :
+          quittance.statut === 'annulee' ? 'bg-red-100 text-red-800' :
+          'bg-gray-100 text-gray-800'
+        }`}>
+          {quittance.statut === 'validee' && '✓ Quittance validée - En attente de paiement'}
+          {quittance.statut === 'payee' && '✓ Quittance payée'}
+          {quittance.statut === 'en_attente' && '⏳ En attente de validation FPDG'}
+          {quittance.statut === 'annulee' && '❌ Quittance annulée'}
+        </div>
       </div>
 
-      <div className="flex justify-between items-center pt-4 border-t">
-        <div>
-          <p className="text-xs text-gray-500 uppercase">Statut</p>
-          <StatutBadge statut={quittance.statut} />
+      {/* Footer */}
+      <div className="mt-auto pt-1 text-center text-[7px] text-gray-600 space-y-0 leading-tight">
+        <div className="font-bold uppercase text-black text-[8px]">SAMB'A ASSURANCES GABON S.A.</div>
+        <div>Société Anonyme avec Conseil d'Administration et Président Directeur Général.</div>
+        <div>Entreprise de micro-assurance régie par le Code des Assurances CIMA et agréée par la CRCA sous le N° 0270 / L / CIMA / CRCA / PDT / 2024</div>
+        <div className="mb-1">R.C.C.M : N° GA - LBV - 01 - 2024 - B14 - 00003 | N° STATISTIQUE : 202401003647 R</div>
+        
+        <div className="flex justify-between items-start border-t border-gray-300 pt-0.5 px-2">
+          <div className="flex flex-col items-center w-1/3">
+            <MapPin size={10} className="mb-0 text-gray-500" />
+            <span>326 Rue Jean-Baptiste NDENDE | Libreville</span>
+          </div>
+          <div className="flex flex-col items-center w-1/3">
+            <Mail size={10} className="mb-0 text-gray-500" />
+            <span>infos@samba-assurances.com</span>
+          </div>
+          <div className="flex flex-col items-center w-1/3">
+            <Phone size={10} className="mb-0 text-gray-500" />
+            <span>(+241) 060 08 62 62 - 074 40 41 41</span>
+          </div>
         </div>
       </div>
     </div>
@@ -1004,7 +1212,7 @@ export function FpdgQuittancesPage() {
         isOpen={showPreviewModal}
         onClose={closePreview}
         title="Prévisualisation de la Quittance"
-        size="lg"
+        size="xl"
       >
         <div className="space-y-4">
           {/* Actions en haut */}
@@ -1037,14 +1245,16 @@ export function FpdgQuittancesPage() {
             </div>
           </div>
 
-          {/* Contenu */}
-          <div ref={printRef} className="print:p-8">
-            {previewData && (
-              <QuittancePreview 
-                quittance={previewData.quittance} 
-                sinistre={previewData.sinistre}
-              />
-            )}
+          {/* Contenu - Format A4 avec scroll */}
+          <div className="overflow-auto max-h-[800px] rounded-xl border border-gray-200">
+            <div ref={printRef} className="print:p-0">
+              {previewData && (
+                <QuittancePreview 
+                  quittance={previewData.quittance} 
+                  sinistre={previewData.sinistre}
+                />
+              )}
+            </div>
           </div>
 
           {/* Actions rapides */}

@@ -1665,8 +1665,8 @@ export const SinistreTraitementPage = () => {
           title="Prévisualisation de la Quittance"
           size="xl"
         >
-          <div className="overflow-auto max-h-[75vh]">
-            <div className="transform scale-[0.65] origin-top">
+          <div className="overflow-auto max-h-[800px] rounded-xl border border-gray-200">
+            <div>
               <QuittancePrint 
                 quittance={previewQuittance} 
                 showSignatures={true}

@@ -1,12 +1,21 @@
 export interface ContratRecent {
   id: number;
   numero_police: string;
-  nom_prenom: string;
-  montant_pret_assure: number;
+  nom_prenom?: string;
+  nom_prenom_assure_principal?: string;
+  nom_assure?: string;
+  montant_pret_assure?: number;
+  montant_assure?: number;
+  capital_assure?: number;
   statut: string;
   created_at: string;
+  contrat_type?: string;
+  cotisation_totale_ttc?: number;
+  prime_collectee?: number;
   emf?: {
+    id?: number;
     sigle: string;
+    nom?: string;
   };
 }
 
