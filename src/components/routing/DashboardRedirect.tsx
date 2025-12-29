@@ -40,6 +40,8 @@ export const DashboardRedirect = () => {
         3: '/dashboard/bceg',
         4: '/dashboard/edg',
         5: '/dashboard/sodec',
+        6: '/dashboard/finam',
+        7: '/dashboard/cofiga',
       }
       if (emfDashboardMap[user.emf_id]) {
         return <Navigate to={emfDashboardMap[user.emf_id]} replace />
@@ -58,6 +60,8 @@ export const DashboardRedirect = () => {
     3: '/dashboard/bceg',     // BCEG
     4: '/dashboard/edg',      // EDG
     5: '/dashboard/sodec',    // SODEC
+    6: '/dashboard/finam',    // FINAM
+    7: '/dashboard/cofiga',   // COFIGA
   }
 
   // Si l'utilisateur a un emf_id valide (> 0), rediriger vers son dashboard spécifique

@@ -70,6 +70,8 @@ export const useAuthStore = create<AuthState>()(
           3: '/dashboard/bceg',
           4: '/dashboard/edg',
           5: '/dashboard/sodec',
+          6: '/dashboard/finam',
+          7: '/dashboard/cofiga',
         }
 
         // Si l'utilisateur a un emf_id valide (> 0), retourner son dashboard spécifique

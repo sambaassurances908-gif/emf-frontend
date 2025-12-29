@@ -148,11 +148,9 @@ export const LoginPage = () => {
             
             <div className="space-y-3">
               <p className="text-white text-xl font-semibold leading-relaxed">
-                La solution digitale qui sécurise les crédits grâce à la micro-assurance emprunteur
+                Solution de Gestion des contrats  de Micro-Assurance  Décès-emprunteur pour les Banques et EMF
               </p>
-              <p className="text-white/70 text-base">
-                Une plateforme innovante dédiée aux Banques et EMF du Gabon
-              </p>
+              
             </div>
 
             <div className="space-y-2 pt-4">

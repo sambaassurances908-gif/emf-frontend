@@ -21,7 +21,7 @@ export enum TypeSinistre {
  * Statuts de sinistre supportés par l'API Laravel
  * Correspond exactement à SinistreController@update validation
  */
-export type SinistreStatut = 
+export type SinistreStatut =
   | 'en_cours'          // Sinistre déclaré, en attente de traitement
   | 'en_instruction'    // Documents reçus, en cours d'analyse
   | 'en_reglement'      // Analyse terminée, en cours de règlement
@@ -46,7 +46,7 @@ export enum SinistreStatutEnum {
 /**
  * Types de quittance supportés
  */
-export type TypeQuittance = 
+export type TypeQuittance =
   | 'capital_sans_interets'  // Capital sans intérêts (EMF)
   | 'capital_restant_du'     // Capital restant dû
   | 'capital_prevoyance'     // Capital prévoyance (Bénéficiaire)
@@ -148,7 +148,7 @@ export interface SinistreValidationError {
 /**
  * Codes d'erreur de validation connus
  */
-export type SinistreErrorCode = 
+export type SinistreErrorCode =
   | 'SINISTRE_DECES_HORS_COUVERTURE'
   | 'SINISTRE_MALADIE_DELAI_CARENCE'
   | 'CONTRAT_NON_VALIDE'
@@ -163,12 +163,14 @@ export type SinistreErrorCode =
 /**
  * Types de contrat supportés par l'API pour les sinistres
  */
-export type ContratType = 
+export type ContratType =
   | 'ContratBambooEmf'
   | 'ContratCofidec'
   | 'ContratBceg'
   | 'ContratEdg'
   | 'ContratSodec'
+  | 'ContratCofiga'
+  | 'ContratFinam'
 
 /**
  * Interface de base pour un sinistre
@@ -182,19 +184,19 @@ export interface Sinistre {
   type_sinistre: SinistreType
   date_sinistre: string
   date_declaration: string
-  
+
   // Accesseurs calculés depuis le contrat
   numero_police?: string
   nom_assure?: string
   telephone_assure?: string
-  
+
   // Déclarant
   nom_declarant: string
   prenom_declarant: string
   qualite_declarant: string
   telephone_declarant: string
   email_declarant?: string
-  
+
   // Détails
   circonstances?: string
   lieu_sinistre?: string
@@ -202,34 +204,34 @@ export interface Sinistre {
   montant_reclame?: number
   montant_indemnisation?: number
   montant_paye?: number
-  
+
   // Statut et traitement
   statut: SinistreStatut
   motif_rejet?: string
   observations?: string
-  
+
   // Délai de paiement (Règle C)
   date_debut_delai_paiement?: string
   date_echeance_paiement?: string
   delai_paiement?: DelaiPaiement
-  
+
   // Archivage (Règle E)
   est_archive: boolean
   est_modifiable?: boolean
   date_cloture?: string
   fichier_archive?: string
-  
+
   // Dates
   date_reception_documents?: string
   date_traitement?: string
   date_decision?: string
   date_paiement?: string
-  
+
   // Utilisateurs
   declare_par?: number
   traite_par?: number
   valide_par?: number
-  
+
   // Documents - flags booléens
   doc_certificat_deces?: boolean
   doc_proces_verbal?: boolean
@@ -238,7 +240,7 @@ export interface Sinistre {
   doc_proces_verbal_faillite?: boolean
   doc_piece_identite?: boolean
   doc_certificat_heredite?: boolean
-  
+
   // Documents - chemins fichiers
   fichier_tableau_amortissement?: string
   fichier_acte_deces?: string
@@ -250,11 +252,11 @@ export interface Sinistre {
   fichier_piece_identite?: string
   fichier_certificat_heredite?: string
   fichier_autres_documents?: string
-  
+
   // Délais
   delai_declaration_jours?: number
   delai_traitement_jours?: number
-  
+
   // Relations
   contrat?: {
     id: number
@@ -288,7 +290,7 @@ export interface Sinistre {
   declarePar?: UserSimple
   traitePar?: UserSimple
   validePar?: UserSimple
-  
+
   created_at: string
   updated_at: string
 }
@@ -332,12 +334,12 @@ export interface SinistreCreatePayload {
   type_sinistre: SinistreType
   date_sinistre: string // format YYYY-MM-DD
   capital_restant_du: number
-  
+
   // Champs optionnels
   circonstances?: string
   lieu_sinistre?: string
   montant_reclame?: number
-  
+
   // Documents PDF (tous optionnels, max 10MB chacun)
   fichier_tableau_amortissement?: File
   fichier_acte_deces?: File

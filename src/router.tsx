@@ -39,6 +39,8 @@ import { SodecSinistreDeclarationForm } from '@/features/sinistres/sodec/SodecSi
 import { CofidecSinistreDeclarationForm } from '@/features/sinistres/cofidec/CofidecSinistreDeclarationForm'
 import { BcegSinistreDeclarationForm } from '@/features/sinistres/bceg/BcegSinistreDeclarationForm'
 import { EdgSinistreDeclarationForm } from '@/features/sinistres/edg/EdgSinistreDeclarationForm'
+import { CofigaSinistreDeclarationForm } from '@/features/sinistres/cofiga/CofigaSinistreDeclarationForm'
+import { FinamSinistreDeclarationForm } from '@/features/sinistres/finam/FinamSinistreDeclarationForm'
 
 // ✅ Pages liste de sinistres par EMF
 import { BambooSinistresList } from '@/features/sinistres/bamboo/BambooSinistresList'
@@ -46,6 +48,8 @@ import { CofidecSinistresList } from '@/features/sinistres/cofidec/CofidecSinist
 import { BcegSinistresList } from '@/features/sinistres/bceg/BcegSinistresList'
 import { EdgSinistresList } from '@/features/sinistres/edg/EdgSinistresList'
 import { SodecSinistresList } from '@/features/sinistres/sodec/SodecSinistresList'
+import { CofigaSinistresList } from '@/features/sinistres/cofiga/CofigaSinistresList'
+import { FinamSinistresList } from '@/features/sinistres/finam/FinamSinistresList'
 
 // ✅ Pages détail de sinistre par EMF
 import { BambooSinistreDetailPage } from '@/features/sinistres/bamboo/BambooSinistreDetailPage'
@@ -53,6 +57,8 @@ import { CofidecSinistreDetailPage } from '@/features/sinistres/cofidec/CofidecS
 import { BcegSinistreDetailPage } from '@/features/sinistres/bceg/BcegSinistreDetailPage'
 import { EdgSinistreDetailPage } from '@/features/sinistres/edg/EdgSinistreDetailPage'
 import { SodecSinistreDetailPage } from '@/features/sinistres/sodec/SodecSinistreDetailPage'
+import { CofigaSinistreDetailPage } from '@/features/sinistres/cofiga/CofigaSinistreDetailPage'
+import { FinamSinistreDetailPage } from '@/features/sinistres/finam/FinamSinistreDetailPage'
 
 import { EmfListPage } from '@/features/emfs/EmfListPage'
 import { EmfDetailPage } from '@/features/emfs/EmfDetailPage'
@@ -71,6 +77,8 @@ import { CofidecDashboard } from '@/features/contrats/pages/dashboard/CofidecDas
 import { BcegDashboard } from '@/features/contrats/pages/dashboard/BcegDashboard'
 import { EdgDashboard } from '@/features/contrats/pages/dashboard/EdgDashboard'
 import { SodecDashboard } from '@/features/contrats/pages/dashboard/SodecDashboard'
+import { FinamDashboard } from '@/features/contrats/pages/dashboard/FinamDashboard'
+import { CofigaDashboard } from '@/features/contrats/pages/dashboard/CofigaDashboard'
 
 // ✅ Pages BAMBOO
 import { BambooContractsList } from '@/features/contrats/bamboo/BambooContractsList'
@@ -96,20 +104,32 @@ import { BcegContratPrintPage } from '@/features/contrats/bceg/BcegContratPrintP
 import { EdgContractsList } from '@/features/contrats/edg/EdgContractsList'
 import { EdgContratDetailPage } from '@/features/contrats/edg/EdgContratDetailPage'
 
+// ✅ Pages FINAM
+import { FinamContractsList } from '@/features/contrats/finam/FinamContractsList'
+import { FinamContratDetailPage } from '@/features/contrats/finam/FinamContratDetailPage'
+import { FinamContractCreateOfficial } from '@/features/contrats/finam/FinamContractCreateOfficial'
+import { FinamContratPrintPage } from '@/features/contrats/finam/FinamContratPrintPage'
+
+// ✅ Pages COFIGA
+import { CofigaContractsList } from '@/features/contrats/cofiga/CofigaContractsList'
+import { CofigaContratDetailPage } from '@/features/contrats/cofiga/CofigaContratDetailPage'
+import { CofigaContractCreateOfficial } from '@/features/contrats/cofiga/CofigaContractCreateOfficial'
+import { CofigaContratPrintPage } from '@/features/contrats/cofiga/CofigaContratPrintPage'
+
 // ✅ Pages Comptable
 import { ComptableDashboard, HistoriquePaiementsPage, RapportFinancierPage, QuittancesPage } from '@/features/comptable'
 import { ComptableLayout } from '@/components/layout/ComptableLayout'
 
 // ✅ Pages FPDG (Fondé de Pouvoir Délégué Général)
-import { 
-  FpdgDashboard, 
-  FpdgSinistresPage, 
-  FpdgValidationPage, 
-  FpdgCloturePage, 
+import {
+  FpdgDashboard,
+  FpdgSinistresPage,
+  FpdgValidationPage,
+  FpdgCloturePage,
   FpdgQuittancesPage,
   FpdgStatistiquesPage,
   FpdgHistoriquePage,
-  FpdgRapportsPage 
+  FpdgRapportsPage
 } from '@/features/fpdg'
 import { FpdgLayout } from '@/components/layout/FpdgLayout'
 
@@ -154,6 +174,8 @@ export const router = createBrowserRouter([
           { path: 'bceg', element: <BcegDashboard /> },
           { path: 'edg', element: <EdgDashboard /> },
           { path: 'sodec', element: <SodecDashboard /> },
+          { path: 'finam', element: <FinamDashboard /> },
+          { path: 'cofiga', element: <CofigaDashboard /> },
         ],
       },
 
@@ -180,6 +202,8 @@ export const router = createBrowserRouter([
           { path: 'cofidec', element: <CofidecContractsList /> },
           { path: 'bceg', element: <BcegContractsList /> },
           { path: 'edg', element: <EdgContractsList /> },
+          { path: 'finam', element: <FinamContractsList /> },
+          { path: 'cofiga', element: <CofigaContractsList /> },
 
           // ✅ Détails dédiés par EMF
           { path: 'bamboo/:id', element: <BambooContratDetailPage /> },
@@ -190,6 +214,10 @@ export const router = createBrowserRouter([
           { path: 'bceg/:id', element: <BcegContratDetailPage /> },
           { path: 'bceg/:id/print', element: <BcegContratPrintPage /> },
           { path: 'edg/:id', element: <EdgContratDetailPage /> },
+          { path: 'finam/:id', element: <FinamContratDetailPage /> },
+          { path: 'finam/:id/print', element: <FinamContratPrintPage /> },
+          { path: 'cofiga/:id', element: <CofigaContratDetailPage /> },
+          { path: 'cofiga/:id/print', element: <CofigaContratPrintPage /> },
 
           // Détail générique d'un contrat (fallback)
           { path: ':id', element: <ContratDetailPage /> },
@@ -211,6 +239,8 @@ export const router = createBrowserRouter([
               { path: 'cofidec', element: <CofidecContractCreateOfficial /> },
               { path: 'bceg', element: <BcegContractCreateOfficial /> },
               { path: 'edg', element: <EdgContractCreateOfficial /> },
+              { path: 'finam', element: <FinamContractCreateOfficial /> },
+              { path: 'cofiga', element: <CofigaContractCreateOfficial /> },
             ],
           },
         ],
@@ -223,37 +253,43 @@ export const router = createBrowserRouter([
         path: 'sinistres',
         children: [
           { index: true, element: <SinistreListPage /> },
-          
+
           // ✅ Listes dédiées par EMF
           { path: 'bamboo', element: <BambooSinistresList /> },
           { path: 'cofidec', element: <CofidecSinistresList /> },
           { path: 'bceg', element: <BcegSinistresList /> },
           { path: 'edg', element: <EdgSinistresList /> },
           { path: 'sodec', element: <SodecSinistresList /> },
-          
+          { path: 'cofiga', element: <CofigaSinistresList /> },
+          { path: 'finam', element: <FinamSinistresList /> },
+
           // Déclaration générique (fallback)
           { path: 'nouveau', element: <SinistreDeclarationForm /> },
-          
+
           // ✅ Déclarations dédiées par EMF
           { path: 'nouveau/bamboo', element: <BambooSinistreDeclarationForm /> },
           { path: 'nouveau/sodec', element: <SodecSinistreDeclarationForm /> },
           { path: 'nouveau/cofidec', element: <CofidecSinistreDeclarationForm /> },
           { path: 'nouveau/bceg', element: <BcegSinistreDeclarationForm /> },
           { path: 'nouveau/edg', element: <EdgSinistreDeclarationForm /> },
-          
+          { path: 'nouveau/cofiga', element: <CofigaSinistreDeclarationForm /> },
+          { path: 'nouveau/finam', element: <FinamSinistreDeclarationForm /> },
+
           // ✅ Page de traitement admin (route principale)
           { path: 'traitement/:id', element: <SinistreTraitementPage /> },
-          
+
           // ✅ Page de détail V2 avec quittances et délais (route dédiée)
           { path: 'detail/:id', element: <SinistreDetailPageV2 /> },
-          
+
           // ✅ Traitement par EMF (avec contexte EMF)
           { path: 'bamboo/:id', element: <SinistreDetailPageV2 /> },
           { path: 'cofidec/:id', element: <SinistreDetailPageV2 /> },
           { path: 'bceg/:id', element: <SinistreDetailPageV2 /> },
           { path: 'edg/:id', element: <SinistreDetailPageV2 /> },
           { path: 'sodec/:id', element: <SinistreDetailPageV2 /> },
-          
+          { path: 'cofiga/:id', element: <CofigaSinistreDetailPage /> },
+          { path: 'finam/:id', element: <FinamSinistreDetailPage /> },
+
           // Détail générique d'un sinistre (V2 avec quittances)
           { path: ':id', element: <SinistreDetailPageV2 /> },
         ],
