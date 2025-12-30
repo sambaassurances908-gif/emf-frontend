@@ -22,31 +22,34 @@ interface FormInputProps {
   disabled?: boolean
 }
 
-const FormInput: React.FC<FormInputProps> = ({ 
-  label, 
-  value = '', 
-  onChange, 
-  type = 'text', 
+const FormInput: React.FC<FormInputProps> = ({
+  label,
+  value = '',
+  onChange,
+  type = 'text',
   placeholder = '',
   required = false,
   error,
   className = "",
   disabled = false
 }) => (
-  <div className="flex items-end w-full">
-    {label && (
-      <span className="mr-1 whitespace-nowrap text-[11px] text-gray-800">
-        {label}{required && <span className="text-red-500">*</span>}
-      </span>
-    )}
-    <input
-      type={type}
-      value={value}
-      onChange={(e) => onChange?.(e.target.value)}
-      placeholder={placeholder}
-      disabled={disabled}
-      className={`flex-grow border-b-2 ${error ? 'border-red-400 bg-red-50' : 'border-gray-400'} text-[11px] px-1 py-0.5 min-h-[22px] font-semibold bg-transparent focus:outline-none focus:border-[#F48232] ${className}`}
-    />
+  <div className="flex flex-col w-full">
+    <div className="flex items-end w-full">
+      {label && (
+        <span className="mr-1 whitespace-nowrap text-[11px] text-gray-800">
+          {label}{required && <span className="text-red-500">*</span>}
+        </span>
+      )}
+      <input
+        type={type}
+        value={value}
+        onChange={(e) => onChange?.(e.target.value)}
+        placeholder={placeholder}
+        disabled={disabled}
+        className={`flex-grow border-b-2 ${error ? 'border-red-400 bg-red-50' : 'border-gray-400'} text-[11px] px-1 py-0.5 min-h-[22px] font-semibold bg-transparent focus:outline-none focus:border-[#F48232] ${className}`}
+      />
+    </div>
+    {error && <span className="text-[9px] text-red-500 font-medium ml-auto mt-0.5">{error}</span>}
   </div>
 )
 
@@ -59,19 +62,19 @@ interface CheckboxProps {
 }
 
 const Checkbox: React.FC<CheckboxProps> = ({ label, checked = false, onChange, disabled = false }) => (
-  <label className="flex items-center mr-3 cursor-pointer">
-    <input
-      type="checkbox"
-      checked={checked}
-      onChange={(e) => onChange?.(e.target.checked)}
-      disabled={disabled}
-      className="sr-only"
-    />
-    <div className={`w-4 h-4 border-2 border-black mr-1 flex items-center justify-center transition-colors ${checked ? 'bg-black' : 'bg-white'} ${!disabled && 'hover:bg-gray-100'}`}>
-      {checked && <div className="w-2 h-2 bg-white" />}
+  <div
+    className={`flex items-center mr-3 ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
+    onClick={() => !disabled && onChange?.(!checked)}
+  >
+    <div className={`w-4 h-4 border-2 border-black mr-1 flex items-center justify-center transition-colors ${checked ? 'bg-white' : disabled ? 'bg-gray-200' : 'bg-white hover:bg-orange-50'}`}>
+      {checked && (
+        <svg className="w-3 h-3 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M5 13l4 4L19 7" />
+        </svg>
+      )}
     </div>
     <span className="text-[10px] text-gray-800">{label}</span>
-  </label>
+  </div>
 )
 
 // --- Footer Component ---
@@ -89,7 +92,7 @@ const Footer: React.FC = () => {
       <div className="mb-1">
         R.C.C.M : N° GA - LBV - 01 - 2024 - B14 - 00003 | N° STATISTIQUE : 202401003647 R
       </div>
-      
+
       <div className="flex justify-between items-start border-t border-gray-300 pt-0.5 px-2">
         <div className="flex flex-col items-center w-1/3">
           <MapPin size={10} className="mb-0 text-gray-500" />
@@ -153,25 +156,56 @@ export const BambooContractCreateOfficial = () => {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [submitError, setSubmitError] = useState('')
 
+  // Validation des règles métier strictes (PROMPT USER)
+  const [formErrors, setFormErrors] = useState<{ montant_pret_assure?: string, duree_pret_mois?: string }>({})
+
+  useEffect(() => {
+    const montant = parseInt(formData.montant_pret_assure) || 0
+    const duree = parseInt(formData.duree_pret_mois) || 0
+    const errs: { montant_pret_assure?: string, duree_pret_mois?: string } = {}
+
+    // Condition 2: Max 50.000.000 FCFA / 48 mois
+    if (montant > 50000000) errs.montant_pret_assure = "Max 50 000 000 FCFA"
+    if (duree > 48) errs.duree_pret_mois = "Max 48 mois"
+
+    // Condition 3: Perte d'emploi -> Max 2.500.000 FCFA (Attention: cette règle reste-t-elle à 2.5M ou suit-elle l'augmentation ?)
+    // Le prompt demandait "le montant maximal pour bamboo est de 50000000".
+    // Je suppose que la condition "Perte d'emploi" reste spécifique (2.5M) car c'est une garantie accessoire limitée.
+    // Si l'utilisateur voulait tout augmenter, il aurait précisé "et perte d'emploi aussi".
+    // Je garde la règle spécifique Perte d'emploi à 2.5M pour l'instant sauf instruction contraire.
+    // Condition 3: Perte d'emploi -> Max 50.000.000 FCFA (Aligné avec le prêt global)
+    // La limite étant identique au prêt global, la condition spécifique est redundant ici.
+    /*
+    if (formData.garantie_perte_emploi && montant > 50000000) {
+       errs.montant_pret_assure = "Avec Perte d'emploi, max 50 000 000 FCFA"
+    }
+    */
+
+    setFormErrors(errs)
+  }, [formData.montant_pret_assure, formData.duree_pret_mois, formData.garantie_perte_emploi])
+
   // ═══════════════════════════════════════════════════════════════════
   // 🔒 VALIDATION PROGRESSIVE - Activation des sections par étapes
   // ═══════════════════════════════════════════════════════════════════
-  
+
   // Section 1: Couverture Prêt (toujours active)
   const isSection1Complete = Boolean(
-    formData.montant_pret_assure && 
-    formData.duree_pret_mois && 
-    formData.date_effet
+    formData.montant_pret_assure &&
+    formData.duree_pret_mois &&
+    formData.date_effet &&
+    !formErrors.montant_pret_assure &&
+    !formErrors.duree_pret_mois
   )
 
   // Section 2: Assuré (active si Section 1 complète)
   const isSection2Enabled = isSection1Complete
   const isSection2Complete = Boolean(
-    formData.nom_prenom.trim() && 
-    formData.adresse_assure.trim() && 
-    formData.ville_assure.trim() && 
+    formData.nom_prenom.trim() &&
+    formData.adresse_assure.trim() &&
+    formData.ville_assure.trim() &&
     formData.telephone_assure.trim() &&
-    formData.categorie
+    formData.categorie &&
+    formData.type_contrat_travail
   )
 
   // Section 3+ (active si Section 2 complète)
@@ -209,6 +243,13 @@ export const BambooContractCreateOfficial = () => {
     }
   }, [isError, error])
 
+  // Auto-selection Perte d'emploi pour Commerçants et Salariés du privé
+  useEffect(() => {
+    if (['commercants', 'salaries_prive'].includes(formData.categorie)) {
+      setFormData(prev => ({ ...prev, garantie_perte_emploi: true }))
+    }
+  }, [formData.categorie])
+
   // Calcul cotisation BAMBOO
   // Prévoyance: 10 000 FCFA (prime unique)
   // Décès/IAD: 1,00% du montant du prêt
@@ -223,28 +264,28 @@ export const BambooContractCreateOfficial = () => {
   const cotisationTotale = cotisationPrevoyance + cotisationDeces + cotisationPerteEmploi
 
   // Validation des règles métier BAMBOO
-  const montantMaxPret = 5000000 // 5.000.000 FCFA
+  const montantMaxPret = 50000000 // 50.000.000 FCFA
   const dureeMaxPret = 48 // 48 mois
-  const montantMaxPerteEmploi = 2500000 // 2.500.000 FCFA
+  const montantMaxPerteEmploi = 50000000 // 50.000.000 FCFA
 
   const validateBusinessRules = () => {
     const warnings: string[] = []
-    
+
     // Montant max prêt
     if (montant > montantMaxPret) {
       warnings.push(`Montant prêt (${formatCurrency(montant)}) dépasse le max: ${formatCurrency(montantMaxPret)}`)
     }
-    
+
     // Durée max
     if (duree > dureeMaxPret) {
       warnings.push(`Durée (${duree} mois) dépasse le max: ${dureeMaxPret} mois`)
     }
-    
+
     // Perte d'emploi: montant max
     if (formData.garantie_perte_emploi && montant > montantMaxPerteEmploi) {
       warnings.push(`Perte d'emploi: montant (${formatCurrency(montant)}) dépasse max: ${formatCurrency(montantMaxPerteEmploi)}`)
     }
-    
+
     return warnings
   }
 
@@ -283,8 +324,8 @@ export const BambooContractCreateOfficial = () => {
               <br />
               Ce formulaire est réservé aux utilisateurs BAMBOO.
             </p>
-            <Button 
-              onClick={() => navigate(-1)} 
+            <Button
+              onClick={() => navigate(-1)}
               className="bg-red-600 hover:bg-red-700 text-white"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
@@ -304,9 +345,9 @@ export const BambooContractCreateOfficial = () => {
     try {
       console.log('═══════════════════════════════════════════════════════════════')
       console.log('📋 BAMBOO - Validation des champs obligatoires...')
-      
+
       const newErrors: Record<string, string> = {}
-      
+
       if (!formData.nom_prenom.trim()) {
         newErrors.nom_prenom = 'Le nom et prénom sont obligatoires'
       }
@@ -341,13 +382,13 @@ export const BambooContractCreateOfficial = () => {
         setSubmitError(`⚠️ ${Object.keys(newErrors).length} champ(s) obligatoire(s) manquant(s)`)
         return
       }
-      
+
       console.log('✅ Tous les champs obligatoires sont remplis')
 
       if (businessWarnings.length > 0) {
         console.warn('⚠️ Avertissements règles métier:', businessWarnings)
         const confirmContinue = window.confirm(
-          `⚠️ Attention: Le contrat ne respecte pas certaines conditions:\n\n${businessWarnings.join('\n')}\n\nLe contrat sera créé avec le statut "En attente".\n\nContinuer quand même ?`
+          `⚠️ Attention: Le contrat ne respecte pas certaines conditions:\n\n${businessWarnings.join('\n')}\n\nContinuer quand même ?`
         )
         if (!confirmContinue) {
           return
@@ -499,7 +540,7 @@ export const BambooContractCreateOfficial = () => {
       {/* Formulaire style contrat officiel */}
       <form onSubmit={handleSubmit}>
         <div className="bg-white w-[210mm] min-h-[297mm] p-[6mm] shadow-xl relative flex flex-col mx-auto">
-          
+
           {/* Header */}
           <div className="flex flex-col items-center mb-2">
             <div className="mb-0">
@@ -519,7 +560,7 @@ export const BambooContractCreateOfficial = () => {
 
           {/* Form Body - Table Structure */}
           <div className="border border-[#F48232] w-full flex flex-col text-[10px]">
-            
+
             {/* Section: Couverture */}
             <div className="flex border-b border-[#F48232]">
               <div className="w-28 flex-shrink-0 p-1.5 bg-orange-50 italic border-r border-[#F48232] flex items-center text-xs">
@@ -533,34 +574,34 @@ export const BambooContractCreateOfficial = () => {
                     (Auto-généré à la création)
                   </span>
                 </div>
-                <FormInput 
-                  label="Montant du prêt assuré :" 
+                <FormInput
+                  label="Montant du prêt assuré :"
                   value={formData.montant_pret_assure}
-                  onChange={(v) => setFormData({...formData, montant_pret_assure: v})}
+                  onChange={(v) => setFormData({ ...formData, montant_pret_assure: v })}
                   type="number"
                   placeholder="Ex: 2000000"
                   required
-                  error={errors.montant_pret_assure}
+                  error={errors.montant_pret_assure || formErrors.montant_pret_assure}
                 />
-                <FormInput 
-                  label="Durée du prêt :" 
+                <FormInput
+                  label="Durée du prêt :"
                   value={formData.duree_pret_mois}
-                  onChange={(v) => setFormData({...formData, duree_pret_mois: v})}
+                  onChange={(v) => setFormData({ ...formData, duree_pret_mois: v })}
                   type="number"
                   placeholder="Ex: 12"
                   required
-                  error={errors.duree_pret_mois}
+                  error={errors.duree_pret_mois || formErrors.duree_pret_mois}
                 />
-                <FormInput 
-                  label="Date d'effet :" 
+                <FormInput
+                  label="Date d'effet :"
                   value={formData.date_effet}
-                  onChange={(v) => setFormData({...formData, date_effet: v})}
+                  onChange={(v) => setFormData({ ...formData, date_effet: v })}
                   type="date"
                   required
                   error={errors.date_effet}
                 />
-                <FormInput 
-                  label="Date de fin d'échéance :" 
+                <FormInput
+                  label="Date de fin d'échéance :"
                   value={formData.date_fin_echeance}
                   disabled
                 />
@@ -574,30 +615,30 @@ export const BambooContractCreateOfficial = () => {
                 {!isSection2Enabled && <span className="text-[10px] text-orange-600 mt-1">🔒 Remplir Prêt</span>}
               </div>
               <div className="flex-grow p-1.5 space-y-1">
-                <FormInput 
-                  label="Nom & Prénom :" 
+                <FormInput
+                  label="Nom & Prénom :"
                   value={formData.nom_prenom}
-                  onChange={(v) => setFormData({...formData, nom_prenom: v})}
+                  onChange={(v) => setFormData({ ...formData, nom_prenom: v })}
                   placeholder="Ex: Jean NGUEMA"
                   required
                   error={errors.nom_prenom}
                   disabled={!isSection2Enabled}
                 />
                 <div className="flex gap-2">
-                  <FormInput 
-                    label="Adresse :" 
+                  <FormInput
+                    label="Adresse :"
                     value={formData.adresse_assure}
-                    onChange={(v) => setFormData({...formData, adresse_assure: v})}
+                    onChange={(v) => setFormData({ ...formData, adresse_assure: v })}
                     placeholder="Ex: Quartier Louis"
                     required
                     error={errors.adresse_assure}
                     className="flex-grow-[2]"
                     disabled={!isSection2Enabled}
                   />
-                  <FormInput 
-                    label="Ville :" 
+                  <FormInput
+                    label="Ville :"
                     value={formData.ville_assure}
-                    onChange={(v) => setFormData({...formData, ville_assure: v})}
+                    onChange={(v) => setFormData({ ...formData, ville_assure: v })}
                     placeholder="Ex: Libreville"
                     required
                     error={errors.ville_assure}
@@ -606,20 +647,20 @@ export const BambooContractCreateOfficial = () => {
                   />
                 </div>
                 <div className="flex gap-2">
-                  <FormInput 
-                    label="Téléphone :" 
+                  <FormInput
+                    label="Téléphone :"
                     value={formData.telephone_assure}
-                    onChange={(v) => setFormData({...formData, telephone_assure: v})}
+                    onChange={(v) => setFormData({ ...formData, telephone_assure: v })}
                     placeholder="Ex: 06 12 34 56"
                     required
                     error={errors.telephone_assure}
                     className="flex-grow-[1]"
                     disabled={!isSection2Enabled}
                   />
-                  <FormInput 
-                    label="Email:" 
+                  <FormInput
+                    label="Email:"
                     value={formData.email_assure}
-                    onChange={(v) => setFormData({...formData, email_assure: v})}
+                    onChange={(v) => setFormData({ ...formData, email_assure: v })}
                     placeholder="Ex: email@example.com"
                     type="email"
                     className="flex-grow-[2]"
@@ -629,18 +670,18 @@ export const BambooContractCreateOfficial = () => {
                 <div className="flex flex-wrap items-center mt-1 gap-x-4 gap-y-1">
                   <span className="mr-1 text-xs">Catégorie{errors.categorie && <span className="text-red-500">*</span>} :</span>
                   {categories.map(cat => (
-                    <Checkbox 
-                      key={cat.key} 
-                      label={cat.label} 
+                    <Checkbox
+                      key={cat.key}
+                      label={cat.label}
                       checked={formData.categorie === cat.key}
-                      onChange={() => setFormData({...formData, categorie: cat.key})}
+                      onChange={() => setFormData({ ...formData, categorie: cat.key })}
                       disabled={!isSection2Enabled}
                     />
                   ))}
-                  <Checkbox 
-                    label="Autre" 
+                  <Checkbox
+                    label="Autre"
                     checked={formData.categorie === 'autre'}
-                    onChange={() => setFormData({...formData, categorie: 'autre'})}
+                    onChange={() => setFormData({ ...formData, categorie: 'autre' })}
                     disabled={!isSection2Enabled}
                   />
                   <div className="flex items-center">
@@ -648,7 +689,7 @@ export const BambooContractCreateOfficial = () => {
                     <input
                       type="text"
                       value={formData.autre_categorie_precision}
-                      onChange={(e) => setFormData({...formData, autre_categorie_precision: e.target.value})}
+                      onChange={(e) => setFormData({ ...formData, autre_categorie_precision: e.target.value })}
                       className="border-b border-gray-400 w-24 text-xs font-semibold bg-transparent focus:outline-none focus:border-[#F48232]"
                       disabled={!isSection2Enabled || formData.categorie !== 'autre'}
                     />
@@ -663,37 +704,37 @@ export const BambooContractCreateOfficial = () => {
                 {/* Type de contrat de travail */}
                 <div className="flex flex-wrap items-center mt-1 gap-x-4 gap-y-1">
                   <span className="mr-1 text-xs">Type de contrat de travail{errors.type_contrat_travail && <span className="text-red-500">*</span>} :</span>
-                  <Checkbox 
-                    label="CDI" 
+                  <Checkbox
+                    label="CDI"
                     checked={formData.type_contrat_travail === 'cdi'}
-                    onChange={() => setFormData({...formData, type_contrat_travail: 'cdi'})}
+                    onChange={() => setFormData({ ...formData, type_contrat_travail: 'cdi' })}
                     disabled={!isSection2Enabled}
                   />
-                  <Checkbox 
-                    label="CDD > 9 mois" 
+                  <Checkbox
+                    label="CDD > 9 mois"
                     checked={formData.type_contrat_travail === 'cdd_plus_9_mois'}
-                    onChange={() => setFormData({...formData, type_contrat_travail: 'cdd_plus_9_mois'})}
+                    onChange={() => setFormData({ ...formData, type_contrat_travail: 'cdd_plus_9_mois' })}
                     disabled={!isSection2Enabled}
                   />
-                  <Checkbox 
-                    label="CDD < 9 mois" 
+                  <Checkbox
+                    label="CDD < 9 mois"
                     checked={formData.type_contrat_travail === 'cdd_moins_9_mois'}
-                    onChange={() => setFormData({...formData, type_contrat_travail: 'cdd_moins_9_mois'})}
+                    onChange={() => setFormData({ ...formData, type_contrat_travail: 'cdd_moins_9_mois' })}
                     disabled={!isSection2Enabled}
                   />
-                  <Checkbox 
-                    label="Non applicable" 
+                  <Checkbox
+                    label="Non applicable"
                     checked={formData.type_contrat_travail === 'non_applicable'}
-                    onChange={() => setFormData({...formData, type_contrat_travail: 'non_applicable'})}
+                    onChange={() => setFormData({ ...formData, type_contrat_travail: 'non_applicable' })}
                     disabled={!isSection2Enabled}
                   />
                 </div>
                 {/* Bénéficiaire Prévoyance */}
                 <div className="mt-2 pt-2 border-t border-dashed border-gray-300">
-                  <FormInput 
-                    label="Bénéficiaire de la garantie Prévoyance :" 
+                  <FormInput
+                    label="Bénéficiaire de la garantie Prévoyance :"
                     value={formData.beneficiaire_prevoyance}
-                    onChange={(v) => setFormData({...formData, beneficiaire_prevoyance: v})}
+                    onChange={(v) => setFormData({ ...formData, beneficiaire_prevoyance: v })}
                     placeholder="Ex: Marie NGUEMA (épouse)"
                     disabled={!isSection2Enabled}
                   />
@@ -717,10 +758,10 @@ export const BambooContractCreateOfficial = () => {
                     <span className="mr-1 whitespace-nowrap text-xs">Adresse :</span>
                     <span className="font-bold mr-2 text-xs">B.P. 16.100, Boulevard Triomphal</span>
                   </div>
-                  <FormInput 
-                    label="Agence :" 
+                  <FormInput
+                    label="Agence :"
                     value={formData.agence}
-                    onChange={(v) => setFormData({...formData, agence: v})}
+                    onChange={(v) => setFormData({ ...formData, agence: v })}
                     placeholder="Ex: Agence Centre"
                     className="w-32"
                     disabled={!isSection3Enabled}
@@ -762,10 +803,10 @@ export const BambooContractCreateOfficial = () => {
                       <td className="border-r border-[#F48232] p-1">
                         <div className="flex justify-center">
                           <label className="cursor-pointer">
-                            <input 
-                              type="checkbox" 
+                            <input
+                              type="checkbox"
                               checked={formData.garantie_prevoyance_deces_iad}
-                              onChange={(e) => setFormData({...formData, garantie_prevoyance_deces_iad: e.target.checked})}
+                              onChange={(e) => setFormData({ ...formData, garantie_prevoyance_deces_iad: e.target.checked })}
                               className="sr-only"
                             />
                             <div className={`w-6 h-4 border border-black ${formData.garantie_prevoyance_deces_iad ? 'bg-black' : 'bg-white hover:bg-gray-100'}`}></div>
@@ -782,10 +823,10 @@ export const BambooContractCreateOfficial = () => {
                       <td className="border-r border-[#F48232] p-1">
                         <div className="flex justify-center">
                           <label className="cursor-pointer">
-                            <input 
-                              type="checkbox" 
+                            <input
+                              type="checkbox"
                               checked={formData.garantie_deces_iad}
-                              onChange={(e) => setFormData({...formData, garantie_deces_iad: e.target.checked})}
+                              onChange={(e) => setFormData({ ...formData, garantie_deces_iad: e.target.checked })}
                               className="sr-only"
                             />
                             <div className={`w-6 h-4 border border-black ${formData.garantie_deces_iad ? 'bg-black' : 'bg-white hover:bg-gray-100'}`}></div>
@@ -798,14 +839,14 @@ export const BambooContractCreateOfficial = () => {
                     {/* Perte d'emploi */}
                     <tr className={`${formData.garantie_perte_emploi ? 'bg-orange-50' : ''}`}>
                       <td className="p-1 text-left pl-2 font-medium bg-gray-100">Perte d'emploi ou d'activités (garantie optionnelle)</td>
-                      <td className="border-l border-r border-[#F48232] p-1 text-[#F48232] leading-tight">Salariés du Privé<br/>& Commerçants</td>
+                      <td className="border-l border-r border-[#F48232] p-1 text-[#F48232] leading-tight">Salariés du Privé<br />& Commerçants</td>
                       <td className="border-r border-[#F48232] p-1">
                         <div className="flex justify-center">
                           <label className="cursor-pointer">
-                            <input 
-                              type="checkbox" 
+                            <input
+                              type="checkbox"
                               checked={formData.garantie_perte_emploi}
-                              onChange={(e) => setFormData({...formData, garantie_perte_emploi: e.target.checked})}
+                              onChange={(e) => setFormData({ ...formData, garantie_perte_emploi: e.target.checked })}
                               className="sr-only"
                             />
                             <div className={`w-6 h-4 border border-black ${formData.garantie_perte_emploi ? 'bg-black' : 'bg-white hover:bg-gray-100'}`}></div>
@@ -841,23 +882,23 @@ export const BambooContractCreateOfficial = () => {
           {/* Footnotes */}
           <div className="mt-2 space-y-0.5 text-[9px] text-black font-bold">
             <p>(1) La Prévoyance est d'un montant maximal de 250.000 FCFA et pour une durée égale à la durée du prêt accordé à l'Assuré.</p>
-            <p>(2) Le montant maximal du prêt couvert est de FCFA 5.000.000 pour une durée de 48 mois.</p>
-            <p>(3) La durée maximale d'indemnisation pour la garantie Perte d'emploi ou d'Activités est de 06 mois pour un montant maximal de couverture de FCFA 2.500.000.</p>
+            <p>(2) Le montant maximal du prêt couvert est de FCFA 50.000.000 pour une durée de 48 mois.</p>
+            <p>(3) La durée maximale d'indemnisation pour la garantie Perte d'emploi ou d'Activités est de 06 mois pour un montant maximal de couverture de FCFA 50.000.000.</p>
           </div>
 
           {/* Signatures */}
           <div className="mt-auto mb-2">
             <div className="text-right mb-2 pr-8 font-medium text-[10px]">
-              Fait à <input 
-                type="text" 
+              Fait à <input
+                type="text"
                 value={formData.lieu_signature}
-                onChange={(e) => setFormData({...formData, lieu_signature: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, lieu_signature: e.target.value })}
                 className="border-b border-black px-2 mx-1 font-semibold bg-transparent focus:outline-none focus:border-[#F48232] w-24"
-              />, 
-              le <input 
-                type="date" 
+              />,
+              le <input
+                type="date"
                 value={formData.date_signature}
-                onChange={(e) => setFormData({...formData, date_signature: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, date_signature: e.target.value })}
                 className="border-b border-black px-2 mx-1 font-semibold bg-transparent focus:outline-none focus:border-[#F48232]"
               />
             </div>
@@ -908,11 +949,10 @@ export const BambooContractCreateOfficial = () => {
           <Button
             type="submit"
             disabled={isPending || !isFormComplete}
-            className={`flex-1 text-white font-semibold text-lg py-3 ${
-              isFormComplete 
-                ? 'bg-[#F48232] hover:bg-[#e0742a]' 
-                : 'bg-gray-400 cursor-not-allowed'
-            }`}
+            className={`flex-1 text-white font-semibold text-lg py-3 ${isFormComplete
+              ? 'bg-[#F48232] hover:bg-[#e0742a]'
+              : 'bg-gray-400 cursor-not-allowed'
+              }`}
             title={!isFormComplete ? 'Veuillez remplir tous les champs obligatoires' : ''}
           >
             {isPending ? (

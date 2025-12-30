@@ -15,12 +15,15 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 }
 
 const FormInput: React.FC<InputProps> = ({ label, error, className = "", ...props }) => (
-  <div className="flex items-end w-full">
-    {label && <span className="mr-2 whitespace-nowrap text-[11px] text-gray-800">{label}</span>}
-    <input
-      className={`flex-grow border-b ${error ? 'border-red-400' : 'border-gray-400'} bg-transparent text-[11px] px-1 py-0 focus:outline-none focus:border-orange-500 ${props.disabled ? 'bg-gray-100 cursor-not-allowed' : ''} ${className}`}
-      {...props}
-    />
+  <div className="flex flex-col w-full">
+    <div className="flex items-end w-full">
+      {label && <span className="mr-2 whitespace-nowrap text-[11px] text-gray-800">{label}</span>}
+      <input
+        className={`flex-grow border-b ${error ? 'border-red-400' : 'border-gray-400'} bg-transparent text-[11px] px-1 py-0 focus:outline-none focus:border-orange-500 ${props.disabled ? 'bg-gray-100 cursor-not-allowed' : ''} ${className}`}
+        {...props}
+      />
+    </div>
+    {error && <span className="text-[9px] text-red-500 font-medium ml-auto mt-0.5">{error}</span>}
   </div>
 )
 
@@ -30,8 +33,12 @@ const Checkbox: React.FC<{ label: string; checked?: boolean; onChange?: (checked
     className={`flex items-center mr-4 ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
     onClick={() => !disabled && onChange?.(!checked)}
   >
-    <div className={`w-4 h-4 border border-black mr-2 flex items-center justify-center ${checked ? 'bg-black' : 'bg-white'}`}>
-      {checked && <div className="w-2 h-2 bg-white" />}
+    <div className={`w-4 h-4 border border-black mr-2 flex items-center justify-center bg-white`}>
+      {checked && (
+        <svg className="w-3 h-3 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M5 13l4 4L19 7" />
+        </svg>
+      )}
     </div>
     <span className="text-[10px] text-gray-800">{label}</span>
   </div>
@@ -39,7 +46,7 @@ const Checkbox: React.FC<{ label: string; checked?: boolean; onChange?: (checked
 
 // --- Section Label Component ---
 const SectionLabel: React.FC<{ children: React.ReactNode; locked?: boolean }> = ({ children, locked }) => (
-  <div className={`w-36 flex-shrink-0 p-2 bg-gray-50 italic border-r border-gray-300 flex items-center text-[11px] text-gray-700 ${locked ? 'relative' : ''}`}>
+  <div className={`w-36 flex-shrink-0 p-2 bg-[#FFF5EB] italic border-r border-[#F48232] flex items-center text-[11px] text-gray-700 ${locked ? 'relative' : ''}`}>
     {children}
     {locked && (
       <Lock className="h-3 w-3 text-orange-500 ml-1" />
@@ -54,10 +61,7 @@ const Footer: React.FC = () => {
       <div className="font-bold uppercase text-black text-[10px]">SAMB'A ASSURANCES GABON S.A.</div>
       <div>Société Anonyme avec Conseil d'Administration et Président Directeur Général.</div>
       <div>
-        Entreprise de micro-assurance régie par le Code des Assurances CIMA et agréée par la CRCA sous le N° 0270 / L / CIMA / CRCA / PDT / 2024,
-      </div>
-      <div>
-        et le Ministère de l'Economie et des Participations par l'Arrêté N° 036.24 / MEP, au capital de 610.000.000 de FCFA dont 536.000.000 de FCFA libérés.
+        Entreprise de micro-assurance régie par le Code des Assurances CIMA, au capital de 610.000.000 de Francs FCFA, dont 536.000.000 de Francs CFA libérés.
       </div>
       <div>
         R.C.C.M : N° GA - LBV - 01 - 2024 - B14 - 00003 | N° STATISTIQUE : 202401003647 R
@@ -65,8 +69,8 @@ const Footer: React.FC = () => {
 
       <div className="flex justify-between items-start pt-3 px-4 relative">
         <div className="flex flex-col items-center w-1/3 text-center border-r border-gray-300">
-          <div className="font-semibold text-gray-700 text-[9px]">326 Rue Jean-Baptiste NDENDE</div>
-          <div className="text-[8px]">Avenue de COINTET | Centre-Ville | Libreville</div>
+          <div className="font-semibold text-gray-700 text-[9px]">Quartier Louis | 85 Rue Pierre BARRO</div>
+          <div className="text-[8px]">Immeuble Zebra | Libreville</div>
         </div>
         <div className="flex flex-col items-center w-1/3 text-center border-r border-gray-300">
           <div className="font-semibold text-gray-700 text-[9px]">B.P : 22 215 | Libreville | Gabon</div>
@@ -121,12 +125,26 @@ const CofigaContractCreateOfficial: React.FC = () => {
     contentRef: printRef,
   })
 
+  // Validation des limites
+  const getValidationErrors = () => {
+    const errs: { montant_pret_assure?: string; duree_pret?: string } = {}
+    const montant = parseInt(formData.montant_pret_assure) || 0
+    const duree = parseInt(formData.duree_pret) || 0
+
+    if (montant > 20000000) errs.montant_pret_assure = "Max 20 000 000 FCFA"
+    if (duree > 24) errs.duree_pret = "Max 24 mois"
+
+    return errs
+  }
+
+  const validationErrors = getValidationErrors()
+
   // Validation progressive des sections
   const isSection1Complete = Boolean(
     formData.montant_pret_assure &&
     formData.duree_pret &&
     formData.date_effet &&
-    formData.categorie
+    Object.keys(validationErrors).length === 0
   )
 
   const isSection2Complete = Boolean(
@@ -134,7 +152,8 @@ const CofigaContractCreateOfficial: React.FC = () => {
     formData.prenom.trim() &&
     formData.adresse.trim() &&
     formData.ville.trim() &&
-    formData.telephone.trim()
+    formData.telephone.trim() &&
+    formData.categorie
   )
 
   const isSection2Enabled = isSection1Complete
@@ -178,6 +197,11 @@ const CofigaContractCreateOfficial: React.FC = () => {
       return
     }
 
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(prev => ({ ...prev, ...validationErrors }))
+      return
+    }
+
     const payload = {
       nom: formData.nom.trim(),
       prenom: formData.prenom.trim(),
@@ -194,6 +218,7 @@ const CofigaContractCreateOfficial: React.FC = () => {
       beneficiaire_nom: formData.beneficiaire_nom?.trim() || undefined,
       beneficiaire_prenom: formData.beneficiaire_prenom?.trim() || undefined,
       beneficiaire_telephone: formData.beneficiaire_telephone?.trim() || undefined,
+      statut: 'actif',
     }
 
     createContract(payload as any, {
@@ -257,12 +282,12 @@ const CofigaContractCreateOfficial: React.FC = () => {
             <img src={logoSamba} alt="SAMB'A Assurances" className="h-20 w-auto" />
           </div>
           <div className="flex flex-col items-center flex-grow pt-4">
-            <h1 className="text-[#F48232] text-xl font-bold uppercase text-center tracking-tight leading-none">
+            <h1 className="text-[#005C94] text-xl font-bold uppercase text-center tracking-tight leading-none">
               CONTRAT DECES GROUPE EMPRUNTEUR : COOFIGA
             </h1>
             <p className="text-[10px] text-gray-500 italic mt-1 text-center">
               Contrat régi par les dispositions du Code des assurances CIMA<br />
-              Convention N° : 512.111/1024
+              Convention N° : 506.111/0724
             </p>
             <h2 className="text-black text-lg font-bold uppercase mt-3 tracking-widest border-b-2 border-black px-4">
               CONDITIONS PARTICULIERES
@@ -279,25 +304,21 @@ const CofigaContractCreateOfficial: React.FC = () => {
           {/* Section: Couverture */}
           <div className="flex border-b border-gray-300">
             <SectionLabel>Couverture</SectionLabel>
-            <div className="flex-grow p-2 grid grid-cols-2 gap-x-4 gap-y-1">
-              <FormInput
-                label="Numéro de police :"
-                value={formData.numero_police}
-                onChange={(e) => setFormData({ ...formData, numero_police: e.target.value })}
-              />
+            <div className="flex-grow p-2 space-y-1">
+              <FormInput label="Numéro de police :" value={formData.numero_police} onChange={(e) => setFormData({ ...formData, numero_police: e.target.value })} />
               <FormInput
                 label="Durée du prêt :"
                 value={formData.duree_pret}
                 onChange={(e) => setFormData({ ...formData, duree_pret: e.target.value })}
                 type="number"
-                error={errors.duree_pret}
+                error={errors.duree_pret || validationErrors.duree_pret}
               />
               <FormInput
                 label="Montant du prêt assuré :"
                 value={formData.montant_pret_assure}
                 onChange={(e) => setFormData({ ...formData, montant_pret_assure: e.target.value })}
                 type="number"
-                error={errors.montant_pret_assure}
+                error={errors.montant_pret_assure || validationErrors.montant_pret_assure}
               />
               <FormInput
                 label="Date d'effet :"
@@ -306,29 +327,6 @@ const CofigaContractCreateOfficial: React.FC = () => {
                 type="date"
                 error={errors.date_effet}
               />
-              <div className="col-span-2 flex items-center flex-wrap gap-y-1 mt-1">
-                <span className="mr-4 text-[11px] font-medium">Catégorie :</span>
-                <Checkbox
-                  label="Commerçants"
-                  checked={formData.categorie === 'Commerçants'}
-                  onChange={() => setFormData({ ...formData, categorie: 'Commerçants' })}
-                />
-                <Checkbox
-                  label="Salariés du privé"
-                  checked={formData.categorie === 'Salariés du privé'}
-                  onChange={() => setFormData({ ...formData, categorie: 'Salariés du privé' })}
-                />
-                <Checkbox
-                  label="Salariés du public"
-                  checked={formData.categorie === 'Salariés du public'}
-                  onChange={() => setFormData({ ...formData, categorie: 'Salariés du public' })}
-                />
-                <Checkbox
-                  label="Autre"
-                  checked={formData.categorie === 'Autre'}
-                  onChange={() => setFormData({ ...formData, categorie: 'Autre' })}
-                />
-              </div>
               <FormInput
                 label="Date de fin d'échéance :"
                 value={formData.date_fin_echeance}
@@ -341,84 +339,48 @@ const CofigaContractCreateOfficial: React.FC = () => {
           <div className={`flex border-b border-gray-300 ${!isSection2Enabled ? 'opacity-50' : ''}`}>
             <SectionLabel locked={!isSection2Enabled}>Personne assurée<br />et bénéficiaire</SectionLabel>
             <div className="flex-grow p-2 space-y-1">
-              <FormInput
-                label="Nom :"
-                value={formData.nom}
-                onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
-                error={errors.nom}
-                disabled={!isSection2Enabled}
-              />
-              <FormInput
-                label="Prénom :"
-                value={formData.prenom}
-                onChange={(e) => setFormData({ ...formData, prenom: e.target.value })}
-                error={errors.prenom}
-                disabled={!isSection2Enabled}
-              />
-              <FormInput
-                label="Adresse :"
-                value={formData.adresse}
-                onChange={(e) => setFormData({ ...formData, adresse: e.target.value })}
-                error={errors.adresse}
-                disabled={!isSection2Enabled}
-              />
-              <FormInput
-                label="Ville :"
-                value={formData.ville}
-                onChange={(e) => setFormData({ ...formData, ville: e.target.value })}
-                error={errors.ville}
-                disabled={!isSection2Enabled}
-              />
-              <FormInput
-                label="Téléphone :"
-                value={formData.telephone}
-                onChange={(e) => setFormData({ ...formData, telephone: e.target.value })}
-                error={errors.telephone}
-                disabled={!isSection2Enabled}
-              />
-              <FormInput
-                label="Email :"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                type="email"
-                disabled={!isSection2Enabled}
-              />
+              <FormInput label="Nom :" value={formData.nom} onChange={(e) => setFormData({ ...formData, nom: e.target.value })} error={errors.nom} disabled={!isSection2Enabled} />
+              <FormInput label="Prénom :" value={formData.prenom} onChange={(e) => setFormData({ ...formData, prenom: e.target.value })} error={errors.prenom} disabled={!isSection2Enabled} />
+              <FormInput label="Adresse :" value={formData.adresse} onChange={(e) => setFormData({ ...formData, adresse: e.target.value })} error={errors.adresse} disabled={!isSection2Enabled} />
+              <FormInput label="Ville :" value={formData.ville} onChange={(e) => setFormData({ ...formData, ville: e.target.value })} error={errors.ville} disabled={!isSection2Enabled} />
+              <FormInput label="Téléphone :" value={formData.telephone} onChange={(e) => setFormData({ ...formData, telephone: e.target.value })} error={errors.telephone} disabled={!isSection2Enabled} />
+              <FormInput label="Email :" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} type="email" disabled={!isSection2Enabled} />
+
+              <div className="flex items-center mt-2 flex-wrap gap-y-1">
+                <span className="mr-4 text-[11px] font-medium">Catégorie :</span>
+                <div className="flex items-center space-x-1">
+                  <Checkbox label="Commerçants" checked={formData.categorie === 'Commerçants'} onChange={() => setFormData({ ...formData, categorie: 'Commerçants' })} />
+                  <Checkbox label="Salariés du public" checked={formData.categorie === 'Salariés du public'} onChange={() => setFormData({ ...formData, categorie: 'Salariés du public' })} />
+                  <Checkbox label="Salariés du privé" checked={formData.categorie === 'Salariés du privé'} onChange={() => setFormData({ ...formData, categorie: 'Salariés du privé' })} />
+                </div>
+                <div className="flex items-center w-full mt-1">
+                  <Checkbox label="Autre à préciser :" checked={formData.categorie === 'Autre'} onChange={() => setFormData({ ...formData, categorie: 'Autre' })} />
+                  <input className="border-b border-gray-400 flex-grow text-[11px] px-1 outline-none" disabled={formData.categorie !== 'Autre'} />
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Section: Souscripteur / EMF */}
-          <div className={`flex border-b border-gray-300 ${!isSection3Enabled ? 'opacity-50' : ''}`}>
-            <SectionLabel locked={!isSection3Enabled}>Souscripteur / EMF</SectionLabel>
+          {/* Section: Souscripteur/EMF */}
+          <div className="flex border-b border-gray-300">
+            <SectionLabel>Souscripteur/EMF</SectionLabel>
             <div className="flex-grow p-2 space-y-1 text-[10px]">
-              <div className="flex mb-1"><span className="w-24 text-gray-600">Raison sociale :</span> <span className="font-bold">Coopérative Financière Gabonaise (EMF – COOFIGA)</span></div>
-              <div className="flex mb-1"><span className="w-24 text-gray-600">RCCM :</span> <span className="font-bold">2010B12067 / NIF : 20131100001180T / Agrément COBAC N° D/2016/0044</span></div>
-              <div className="flex mb-1"><span className="w-24 text-gray-600">Adresse :</span> <span className="font-bold">BP : 20 350 Libreville / Quartier Louis / Commune d'Owendo</span></div>
-              <div className="flex"><span className="w-24 text-gray-600">Ville :</span> <span className="font-bold">Libreville - Gabon</span></div>
+              <div className="flex mb-1 items-baseline"><span className="w-24 text-gray-600">Raison sociale :</span> <span className="font-bold ml-1">COOFIGA EMF</span></div>
+              <div className="flex mb-1 items-baseline"><span className="w-24 text-gray-600">RCCM :</span> <span className="font-bold ml-1">2016 B 17746 / NIF N° 036311 R</span></div>
+              <div className="flex mb-1 items-baseline"><span className="w-24 text-gray-600">Adresse :</span> <span className="font-bold ml-1">B.P. 9.609, Gare Routière, face ancienne Pharmacie</span></div>
+              <div className="flex mb-1 items-baseline"><span className="w-24 text-gray-600">Ville :</span> <span className="font-bold ml-1">Libreville</span></div>
+              <div className="flex mb-1 items-baseline"><span className="w-24 text-gray-600">Téléphone :</span> <span className="font-bold ml-1">066 07 40 99</span></div>
+              <div className="flex mb-1 items-baseline"><span className="w-24 text-gray-600">Email :</span> <span className="font-bold ml-1 text-blue-600 underline">coofiga-emf@gmail.com</span></div>
             </div>
           </div>
 
-          {/* Section: Bénéficiaire protection forfaitaire */}
+          {/* Section: Bénéficiaire de la protection forfaitaire */}
           <div className={`flex border-b border-gray-300 ${!isSection3Enabled ? 'opacity-50' : ''}`}>
-            <SectionLabel locked={!isSection3Enabled}>Bénéficiaire<br />protection<br />forfaitaire</SectionLabel>
+            <SectionLabel locked={!isSection3Enabled}>Bénéficiaire de la<br />protection forfaitaire</SectionLabel>
             <div className="flex-grow p-2 space-y-1">
-              <FormInput
-                label="Nom :"
-                value={formData.beneficiaire_nom}
-                onChange={(e) => setFormData({ ...formData, beneficiaire_nom: e.target.value })}
-                disabled={!isSection3Enabled}
-              />
-              <FormInput
-                label="Prénom :"
-                value={formData.beneficiaire_prenom}
-                onChange={(e) => setFormData({ ...formData, beneficiaire_prenom: e.target.value })}
-                disabled={!isSection3Enabled}
-              />
-              <FormInput
-                label="Téléphone :"
-                value={formData.beneficiaire_telephone}
-                onChange={(e) => setFormData({ ...formData, beneficiaire_telephone: e.target.value })}
-                disabled={!isSection3Enabled}
-              />
+              <FormInput label="Nom :" value={formData.beneficiaire_nom} onChange={(e) => setFormData({ ...formData, beneficiaire_nom: e.target.value })} disabled={!isSection3Enabled} />
+              <FormInput label="Prénom :" value={formData.beneficiaire_prenom} onChange={(e) => setFormData({ ...formData, beneficiaire_prenom: e.target.value })} disabled={!isSection3Enabled} />
+              <FormInput label="Téléphone :" value={formData.beneficiaire_telephone} onChange={(e) => setFormData({ ...formData, beneficiaire_telephone: e.target.value })} disabled={!isSection3Enabled} />
             </div>
           </div>
 
@@ -429,25 +391,31 @@ const CofigaContractCreateOfficial: React.FC = () => {
               <table className="w-full text-[10px] border-collapse">
                 <thead className="bg-gray-50 border-b border-gray-300">
                   <tr className="font-bold text-gray-700">
-                    <th className="p-1 border-r border-gray-300 text-left w-1/2 font-normal italic"></th>
-                    <th className="p-1 border-r border-gray-300 text-center w-16">Option</th>
-                    <th className="p-1 text-center w-24">Taux</th>
+                    <th className="p-1 border-r border-gray-300 text-left w-5/12 font-normal italic"></th>
+                    <th className="p-1 border-r border-gray-300 text-center w-2/12">Type de cible</th>
+                    <th className="p-1 border-r border-gray-300 text-center w-32">Option</th>
+                    <th className="p-1 border-r border-gray-300 text-center w-24">Taux</th>
+                    <th className="p-1 text-center w-28">Prime unique</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr className="border-b border-gray-300">
-                    <td className="p-2 border-r border-gray-300">Décès – Invalidité Absolue et Définitive (IAD)¹</td>
-                    <td className="p-2 border-r border-gray-300 text-center">
-                      <div className="w-6 h-4 border border-black rounded-sm mx-auto bg-gray-600"></div>
+                    <td className="p-2 border-r border-gray-300">Protection forfaitaire Décès - IAD¹</td>
+                    <td className="p-2 border-r border-gray-300 text-center">Toute catégorie</td>
+                    <td className="p-2 border-r border-gray-300 text-center flex justify-center items-center h-8">
+                      <div className="w-7 h-4 border border-black bg-gray-500 rounded-sm"></div>
                     </td>
-                    <td className="p-2 text-center font-bold">{COFIGA_CONSTANTS.TAUX_GARANTIE.toFixed(2).replace('.', ',')}%</td>
+                    <td className="p-2 border-r border-gray-300 text-center text-gray-500 italic">N/A</td>
+                    <td className="p-2 text-center font-bold">5.000</td>
                   </tr>
                   <tr>
-                    <td className="p-2 border-r border-gray-300">Protection forfaitaire décès²</td>
-                    <td className="p-2 border-r border-gray-300 text-center">
-                      <div className="w-6 h-4 border border-black rounded-sm mx-auto bg-gray-600"></div>
+                    <td className="p-2 border-r border-gray-300">Décès – invalidité absolue et définitive (IAD)</td>
+                    <td className="p-2 border-r border-gray-300 text-center">Toute catégorie</td>
+                    <td className="p-2 border-r border-gray-300 text-center flex justify-center items-center h-8">
+                      <div className="w-7 h-4 border border-black bg-gray-500 rounded-sm"></div>
                     </td>
-                    <td className="p-2 text-center font-bold">{formatCurrency(COFIGA_CONSTANTS.PROTECTION_FORFAITAIRE)}</td>
+                    <td className="p-2 border-r border-gray-300 text-center font-bold">1,50%</td>
+                    <td className="p-2 text-center text-gray-500 italic">N/A</td>
                   </tr>
                 </tbody>
               </table>
@@ -459,11 +427,11 @@ const CofigaContractCreateOfficial: React.FC = () => {
             <SectionLabel locked={!isSection3Enabled}>Cotisations</SectionLabel>
             <div className="flex-grow p-3">
               <div className="flex items-center font-bold text-[12px]">
-                <span className="whitespace-nowrap">Prime totale :</span>
+                <span className="whitespace-nowrap">Cotisation Totale :</span>
                 <div className="flex-grow border-b border-black mx-2 h-5 flex items-center justify-center font-bold">
                   {primeTotale > 0 ? primeTotale.toLocaleString() : ''}
                 </div>
-                <span className="whitespace-nowrap">FCFA TTC</span>
+                <span className="whitespace-nowrap">FCFA TTC (Prêt x 1,50%) + 5000 FCFA</span>
               </div>
             </div>
           </div>
@@ -471,8 +439,9 @@ const CofigaContractCreateOfficial: React.FC = () => {
 
         {/* Legal Notes */}
         <div className="mt-4 space-y-1 text-[10px] font-bold text-black px-1 leading-tight">
-          <div className="flex items-start"><span className="w-6 flex-shrink-0">(1)</span> <p>Le montant maximal de couverture est de 10 000 000 FCFA et la durée maximale de couverture est de 36 mois.</p></div>
-          <div className="flex items-start"><span className="w-6 flex-shrink-0">(2)</span> <p>La protection forfaitaire décès est versée au bénéficiaire désigné en cas de décès de l'assuré.</p></div>
+          <div className="flex items-start"><span className="w-6 flex-shrink-0">(1)</span> <p>La protection forfaitaire est d'un montant de 250 000 FCFA en cas de décès ou d'invalidité absolue et définitive.</p></div>
+          <div className="flex items-start"><span className="w-6 flex-shrink-0">(2)</span> <p>Le montant maximal du prêt couvert est de 20.000.000 FCFA.</p></div>
+          <div className="flex items-start"><span className="w-6 flex-shrink-0">(3)</span> <p>La durée maximale du prêt 24 mois.</p></div>
         </div>
 
         {/* Signatures and Date */}
@@ -506,9 +475,8 @@ const CofigaContractCreateOfficial: React.FC = () => {
 
           <div className="flex justify-between items-start px-4">
             <div className="w-2/5 flex flex-col items-center">
-              <div className="font-bold text-[12px] mb-2 uppercase">Le Souscripteur</div>
-              <div className="w-full h-24 border border-gray-400 border-dashed rounded flex items-center justify-center">
-              </div>
+              <div className="font-bold text-[11px] mb-2 uppercase">Le Souscripteur</div>
+              <div className="w-full h-20 border border-gray-400 border-dashed rounded"></div>
             </div>
 
             <div className="w-1/5 flex flex-col items-start justify-center space-y-1 text-[9px] pt-4 font-semibold text-gray-800">
@@ -516,9 +484,8 @@ const CofigaContractCreateOfficial: React.FC = () => {
             </div>
 
             <div className="w-2/5 flex flex-col items-center">
-              <div className="font-bold text-[12px] mb-2 uppercase">L'Assureur par délégation</div>
-              <div className="w-full h-24 border border-gray-400 border-dashed rounded flex items-center justify-center">
-              </div>
+              <div className="font-bold text-[11px] mb-2 uppercase">L'Assureur par Délégation</div>
+              <div className="w-full h-20 border border-gray-400 border-dashed rounded"></div>
             </div>
           </div>
         </div>

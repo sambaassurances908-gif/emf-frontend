@@ -6,9 +6,9 @@ import logoSamba from '@/assets/logo-samba.png'
 const Logo: React.FC = () => {
   return (
     <div className="flex flex-col items-center justify-center mb-0">
-      <img 
-        src={logoSamba} 
-        alt="SAMB'A Assurances" 
+      <img
+        src={logoSamba}
+        alt="SAMB'A Assurances"
         className="h-[60px] w-auto"
       />
     </div>
@@ -41,9 +41,15 @@ const GarantieRow: React.FC<{
   <tr className={`border-b border-[#F48232] last:border-0 ${isSelected ? 'bg-orange-100' : ''}`}>
     <td className="p-1.5 text-left pl-3 border-r border-[#F48232] text-[10px]">{label}</td>
     <td className="p-1 border-r border-[#F48232]">
-      <div 
-        className={`w-6 h-4 border border-black rounded-sm mx-auto ${isSelected ? 'bg-[#F48232]' : 'bg-white'}`}
-      />
+      <div
+        className={`w-6 h-4 border border-black rounded-sm mx-auto flex items-center justify-center ${isSelected ? 'bg-white' : 'bg-white'}`}
+      >
+        {isSelected && (
+          <svg className="w-4 h-4 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M5 13l4 4L19 7" />
+          </svg>
+        )}
+      </div>
     </td>
     <td className="p-1.5 border-r border-[#F48232] text-center text-[10px]">{rate}</td>
     <td className="p-1.5 text-center text-[10px]">{prime}</td>
@@ -87,7 +93,7 @@ export const BcegContratPrint: React.FC<Props> = ({ contrat }) => {
     if (duree <= 60) return 0.02  // 2%
     return 0
   }
-  
+
   const tauxApplique = getTaux()
   const cotisationDeces = montant * tauxApplique
   const cotisationPrevoyance = contrat.garantie_prevoyance ? 10000 : 0
@@ -119,7 +125,7 @@ export const BcegContratPrint: React.FC<Props> = ({ contrat }) => {
 
       {/* Form Body */}
       <div className="border-2 border-[#F48232] w-full flex flex-col text-sm">
-        
+
         {/* Section: Couverture */}
         <div className="flex border-b border-[#F48232]">
           <div className="w-36 flex-shrink-0 p-1.5 bg-orange-50 italic border-r border-[#F48232] flex items-center text-gray-900 text-xs">
@@ -172,7 +178,7 @@ export const BcegContratPrint: React.FC<Props> = ({ contrat }) => {
         {/* Section: Assuré / Bénéficiaire du prêt */}
         <div className="flex border-b border-[#F48232]">
           <div className="w-36 flex-shrink-0 p-1.5 bg-orange-50 italic border-r border-[#F48232] flex items-center text-gray-900 text-xs leading-tight">
-            Assuré/<br/>Bénéficiaire du prêt
+            Assuré/<br />Bénéficiaire du prêt
           </div>
           <div className="flex-grow p-1.5 space-y-1">
             <div className="flex items-end">
@@ -211,32 +217,52 @@ export const BcegContratPrint: React.FC<Props> = ({ contrat }) => {
                 <span className="text-xs text-gray-800 whitespace-nowrap pt-0.5">Catégorie :</span>
                 <div className="grid grid-cols-3 gap-x-4 gap-y-1">
                   <label className="flex items-center mr-4">
-                    <div className={`w-4 h-4 border-2 border-black mr-2 flex items-center justify-center ${contrat.categorie === 'commercants' ? 'bg-black' : 'bg-white'}`}>
-                      {contrat.categorie === 'commercants' && <div className="w-2 h-2 bg-white" />}
+                    <div className={`w-4 h-4 border-2 border-black mr-2 flex items-center justify-center bg-white`}>
+                      {contrat.categorie === 'commercants' && (
+                        <svg className="w-3 h-3 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
                     </div>
                     <span className="text-xs text-gray-800">Commerçants</span>
                   </label>
                   <label className="flex items-center mr-4">
-                    <div className={`w-4 h-4 border-2 border-black mr-2 flex items-center justify-center ${contrat.categorie === 'salaries_public' ? 'bg-black' : 'bg-white'}`}>
-                      {contrat.categorie === 'salaries_public' && <div className="w-2 h-2 bg-white" />}
+                    <div className={`w-4 h-4 border-2 border-black mr-2 flex items-center justify-center bg-white`}>
+                      {contrat.categorie === 'salaries_public' && (
+                        <svg className="w-3 h-3 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
                     </div>
                     <span className="text-xs text-gray-800">Sal. public</span>
                   </label>
                   <label className="flex items-center mr-4">
-                    <div className={`w-4 h-4 border-2 border-black mr-2 flex items-center justify-center ${contrat.categorie === 'salaries_prive' ? 'bg-black' : 'bg-white'}`}>
-                      {contrat.categorie === 'salaries_prive' && <div className="w-2 h-2 bg-white" />}
+                    <div className={`w-4 h-4 border-2 border-black mr-2 flex items-center justify-center bg-white`}>
+                      {contrat.categorie === 'salaries_prive' && (
+                        <svg className="w-3 h-3 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
                     </div>
                     <span className="text-xs text-gray-800">Sal. privé</span>
                   </label>
                   <label className="flex items-center mr-4">
-                    <div className={`w-4 h-4 border-2 border-black mr-2 flex items-center justify-center ${contrat.categorie === 'retraites' ? 'bg-black' : 'bg-white'}`}>
-                      {contrat.categorie === 'retraites' && <div className="w-2 h-2 bg-white" />}
+                    <div className={`w-4 h-4 border-2 border-black mr-2 flex items-center justify-center bg-white`}>
+                      {contrat.categorie === 'retraites' && (
+                        <svg className="w-3 h-3 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
                     </div>
                     <span className="text-xs text-gray-800">Retraités</span>
                   </label>
                   <div className="flex items-center col-span-2">
-                    <div className={`w-4 h-4 border-2 border-black mr-2 flex items-center justify-center ${contrat.categorie === 'autre' ? 'bg-black' : 'bg-white'}`}>
-                      {contrat.categorie === 'autre' && <div className="w-2 h-2 bg-white" />}
+                    <div className={`w-4 h-4 border-2 border-black mr-2 flex items-center justify-center bg-white`}>
+                      {contrat.categorie === 'autre' && (
+                        <svg className="w-3 h-3 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
                     </div>
                     <span className="text-xs text-gray-800 mr-1">Autre :</span>
                     <span className="border-b border-gray-400 flex-grow text-xs px-1 font-bold">
@@ -279,7 +305,7 @@ export const BcegContratPrint: React.FC<Props> = ({ contrat }) => {
         {/* Section: Bénéficiaire de la Prévoyance */}
         <div className="flex border-b border-[#F48232]">
           <div className="w-36 flex-shrink-0 p-1.5 bg-orange-50 italic border-r border-[#F48232] flex items-center text-gray-900 text-xs leading-tight">
-            Bénéficiaire de<br/>la Prévoyance
+            Bénéficiaire de<br />la Prévoyance
           </div>
           <div className="flex-grow p-1.5 space-y-1">
             <div className="flex items-end">
@@ -313,36 +339,42 @@ export const BcegContratPrint: React.FC<Props> = ({ contrat }) => {
                 </tr>
               </thead>
               <tbody>
-                <GarantieRow 
-                  label="Décès/IAD (Durée max. à 24 mois)" 
-                  rate="1,00%" 
+                <GarantieRow
+                  label="Décès/IAD (Durée max. à 24 mois)"
+                  rate="1,00%"
                   prime={tranche === 'max_24' ? `${formatCurrency(cotisationDeces)} FCFA` : 'N/A'}
                   isSelected={tranche === 'max_24'}
                 />
-                <GarantieRow 
-                  label="Décès/IAD (Durée entre 24 à 36 mois)" 
-                  rate="1,50%" 
+                <GarantieRow
+                  label="Décès/IAD (Durée entre 24 à 36 mois)"
+                  rate="1,50%"
                   prime={tranche === '24_36' ? `${formatCurrency(cotisationDeces)} FCFA` : 'N/A'}
                   isSelected={tranche === '24_36'}
                 />
-                <GarantieRow 
-                  label="Décès/IAD (Durée entre 36 à 48 mois)" 
-                  rate="1,75%" 
+                <GarantieRow
+                  label="Décès/IAD (Durée entre 36 à 48 mois)"
+                  rate="1,75%"
                   prime={tranche === '36_48' ? `${formatCurrency(cotisationDeces)} FCFA` : 'N/A'}
                   isSelected={tranche === '36_48'}
                 />
-                <GarantieRow 
-                  label="Décès/IAD (Durée entre 48 à 60 mois)" 
-                  rate="2,00%" 
+                <GarantieRow
+                  label="Décès/IAD (Durée entre 48 à 60 mois)"
+                  rate="2,00%"
                   prime={tranche === '48_60' ? `${formatCurrency(cotisationDeces)} FCFA` : 'N/A'}
                   isSelected={tranche === '48_60'}
                 />
                 <tr className="border-t border-[#F48232]">
                   <td className="p-1.5 text-left pl-3 border-r border-[#F48232] font-medium text-[10px]">Prévoyance Décès/IAD</td>
                   <td className="border-r border-[#F48232] p-1">
-                    <div 
-                      className={`w-6 h-4 border border-black rounded-sm mx-auto ${contrat.garantie_prevoyance ? 'bg-gray-800' : 'bg-white'}`}
-                    />
+                    <div
+                      className={`w-6 h-4 border border-black rounded-sm mx-auto flex items-center justify-center bg-white`}
+                    >
+                      {contrat.garantie_prevoyance && (
+                        <svg className="w-4 h-4 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </div>
                   </td>
                   <td className="border-r border-[#F48232] p-1.5 text-[10px]">N/A</td>
                   <td className="p-1.5 font-bold text-[10px]">10 000 FCFA</td>
@@ -371,14 +403,14 @@ export const BcegContratPrint: React.FC<Props> = ({ contrat }) => {
 
       {/* Footnotes */}
       <div className="mt-2 text-[9px] font-bold space-y-0 text-black">
-        <p>(1) Le montant maximal de couverture de prêt est de 20 000 000 FCFA</p>
+        <p>(1) Le montant maximal de couverture de prêt est de 50 000 000 FCFA</p>
         <p>(2) La protection forfaitaire est d'un montant de 250 000 FCFA en cas de décès ou d'invalidité absolue et définitive.</p>
       </div>
 
       {/* Signatures */}
       <div className="mt-auto mb-1">
         <div className="text-right mb-2 pr-4 font-medium text-xs">
-          Fait à <span className="border-b border-black px-2 mx-1 font-semibold">Libreville</span>, 
+          Fait à <span className="border-b border-black px-2 mx-1 font-semibold">Libreville</span>,
           le <span className="border-b border-black px-2 mx-1 font-semibold">{formatDate(contrat.created_at || new Date().toISOString())}</span>
         </div>
 
@@ -389,7 +421,7 @@ export const BcegContratPrint: React.FC<Props> = ({ contrat }) => {
               Signature
             </div>
           </div>
-          
+
           <div className="w-[35%] flex flex-col items-center justify-end pb-1 font-bold text-[8px] space-y-0 self-end">
             <div className="flex gap-4">
               <span>Feuillet 1 : Assuré</span>

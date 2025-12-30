@@ -12,20 +12,25 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   error?: string
 }
 
+
 const FormInput: React.FC<InputProps> = ({ label, error, className = "", ...props }) => (
-  <div className="flex items-end w-full">
-    {label && <span className="mr-2 whitespace-nowrap text-[11px] text-gray-800">{label}</span>}
-    <input 
-      className={`flex-grow border-b ${error ? 'border-red-400' : 'border-gray-400'} bg-transparent text-[11px] px-1 py-0 focus:outline-none focus:border-orange-500 ${props.disabled ? 'bg-gray-100 cursor-not-allowed' : ''} ${className}`} 
-      {...props} 
-    />
+  <div className="flex flex-col w-full">
+    <div className="flex items-end w-full">
+      {label && <span className="mr-2 whitespace-nowrap text-[11px] text-gray-800">{label}</span>}
+      <input
+        className={`flex-grow border-b ${error ? 'border-red-400' : 'border-gray-400'} bg-transparent text-[11px] px-1 py-0 focus:outline-none focus:border-orange-500 ${props.disabled ? 'bg-gray-100 cursor-not-allowed' : ''} ${className}`}
+        {...props}
+      />
+    </div>
+    {error && <span className="text-[9px] text-red-500 font-medium ml-auto mt-0.5">{error}</span>}
   </div>
 )
 
+
 // --- Checkbox Component ---
 const Checkbox: React.FC<{ label: string; checked?: boolean; onChange?: (checked: boolean) => void; disabled?: boolean }> = ({ label, checked, onChange, disabled }) => (
-  <div 
-    className={`flex items-center mr-4 ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`} 
+  <div
+    className={`flex items-center mr-4 ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
     onClick={() => !disabled && onChange?.(!checked)}
   >
     <div className={`w-4 h-4 border border-black mr-2 flex items-center justify-center ${checked ? 'bg-black' : 'bg-white'}`}>
@@ -60,20 +65,20 @@ const Footer: React.FC = () => {
       <div>
         R.C.C.M : N° GA - LBV - 01 - 2024 - B14 - 00003 | N° STATISTIQUE : 202401003647 R
       </div>
-      
+
       <div className="flex justify-between items-start pt-3 px-4 relative">
-         <div className="flex flex-col items-center w-1/3 text-center border-r border-gray-300">
-             <div className="font-semibold text-gray-700 text-[9px]">326 Rue Jean-Baptiste NDENDE</div>
-             <div className="text-[8px]">Avenue de COINTET | Centre-Ville | Libreville</div>
-         </div>
-         <div className="flex flex-col items-center w-1/3 text-center border-r border-gray-300">
-             <div className="font-semibold text-gray-700 text-[9px]">B.P : 22 215 | Libreville | Gabon</div>
-             <div className="text-[8px]">Email : infos@samba-assurances.com</div>
-         </div>
-         <div className="flex flex-col items-center w-1/3 text-center">
-             <div className="font-semibold text-gray-700 text-[9px]">(+241) 060 08 62 62 - 074 40 41 41</div>
-             <div className="text-[8px]">074 40 51 51</div>
-         </div>
+        <div className="flex flex-col items-center w-1/3 text-center border-r border-gray-300">
+          <div className="font-semibold text-gray-700 text-[9px]">326 Rue Jean-Baptiste NDENDE</div>
+          <div className="text-[8px]">Avenue de COINTET | Centre-Ville | Libreville</div>
+        </div>
+        <div className="flex flex-col items-center w-1/3 text-center border-r border-gray-300">
+          <div className="font-semibold text-gray-700 text-[9px]">B.P : 22 215 | Libreville | Gabon</div>
+          <div className="text-[8px]">Email : infos@samba-assurances.com</div>
+        </div>
+        <div className="flex flex-col items-center w-1/3 text-center">
+          <div className="font-semibold text-gray-700 text-[9px]">(+241) 060 08 62 62 - 074 40 41 41</div>
+          <div className="text-[8px]">074 40 51 51</div>
+        </div>
       </div>
     </div>
   )
@@ -115,29 +120,49 @@ const FinamContractCreateOfficial: React.FC = () => {
 
   const { mutate: createContract, isPending } = useCreateFinamContract()
 
+  // Validation des limites par catégorie
+  const getValidationErrors = () => {
+    const errs: { montant_a_assurer?: string; duree_pret?: string } = {}
+    const montant = parseInt(formData.montant_a_assurer) || 0
+    const duree = parseInt(formData.duree_pret) || 0
+
+    if (formData.categorie === 'Personnel FINAM') {
+      if (montant > 3000000) errs.montant_a_assurer = "Max 3 000 000 FCFA pour Personnel"
+      if (duree > 24) errs.duree_pret = "Max 24 mois pour Personnel"
+    } else if (formData.categorie === 'Retraités') {
+      if (montant > 5000000) errs.montant_a_assurer = "Max 5 000 000 FCFA pour Retraités"
+      if (duree > 36) errs.duree_pret = "Max 36 mois pour Retraités"
+    }
+    return errs
+  }
+
+  const validationErrors = getValidationErrors()
+
+
   const handlePrint = useReactToPrint({
     contentRef: printRef,
   })
 
   // Validation progressive des sections
   const isSection1Complete = Boolean(
-    formData.montant_a_assurer && 
-    formData.duree_pret && 
-    formData.date_effet &&
-    formData.categorie
+    formData.montant_a_assurer &&
+    formData.duree_pret &&
+    formData.date_effet
   )
 
   const isSection2Complete = Boolean(
-    formData.nom.trim() && 
-    formData.prenom.trim() && 
-    formData.adresse.trim() && 
-    formData.ville.trim() && 
-    formData.telephone.trim()
+    formData.nom.trim() &&
+    formData.prenom.trim() &&
+    formData.adresse.trim() &&
+    formData.ville.trim() &&
+    formData.telephone.trim() &&
+    formData.categorie
   )
 
   const isSection2Enabled = isSection1Complete
   const isSection3Enabled = isSection1Complete && isSection2Complete
-  const isFormComplete = isSection1Complete && isSection2Complete
+  const isFormComplete = isSection1Complete && isSection2Complete && Object.keys(validationErrors).length === 0
+
 
   // Calculer la date de fin automatiquement
   useEffect(() => {
@@ -160,7 +185,7 @@ const FinamContractCreateOfficial: React.FC = () => {
     setErrors({})
 
     const newErrors: Record<string, string> = {}
-    
+
     if (!formData.nom.trim()) newErrors.nom = 'Le nom est obligatoire'
     if (!formData.prenom.trim()) newErrors.prenom = 'Le prénom est obligatoire'
     if (!formData.adresse.trim()) newErrors.adresse = 'L\'adresse est obligatoire'
@@ -175,6 +200,12 @@ const FinamContractCreateOfficial: React.FC = () => {
       setErrors(newErrors)
       return
     }
+
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(prev => ({ ...prev, ...validationErrors }))
+      return
+    }
+
 
     const payload = {
       nom: formData.nom.trim(),
@@ -192,6 +223,7 @@ const FinamContractCreateOfficial: React.FC = () => {
       montant_mensualite: parseFloat(formData.montant_mensualite) || undefined,
       taux_pret: parseFloat(formData.taux_pret) || undefined,
       agence: formData.agence?.trim() || undefined,
+      statut: 'actif',
     }
 
     createContract(payload as any, {
@@ -205,7 +237,7 @@ const FinamContractCreateOfficial: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-200 py-8 flex flex-col items-center font-sans overflow-x-hidden">
-      
+
       {/* Toolbar */}
       <div className="max-w-[210mm] w-full mb-4 flex items-center justify-between bg-white rounded-lg shadow p-3">
         <Button variant="ghost" onClick={() => navigate('/contrats/finam')} className="hover:bg-gray-100">
@@ -248,7 +280,7 @@ const FinamContractCreateOfficial: React.FC = () => {
 
       {/* A4 Document Container */}
       <div ref={printRef} className="bg-white w-[210mm] min-h-[297mm] p-[10mm] shadow-2xl relative flex flex-col border border-gray-300">
-        
+
         {/* Header Section */}
         <div className="flex justify-between items-start mb-2">
           <div className="w-28">
@@ -259,146 +291,147 @@ const FinamContractCreateOfficial: React.FC = () => {
               CONTRAT DECES GROUPE EMPRUNTEUR : FINAM
             </h1>
             <p className="text-[10px] text-gray-500 italic mt-1 text-center">
-              Contrat régi par les dispositions du Code des assurances CIMA<br/>
+              Contrat régi par les dispositions du Code des assurances CIMA<br />
               Convention N° : 508.111/0824
             </p>
-            <h2 className="text-black text-lg font-bold uppercase mt-3 tracking-widest border-b-2 border-black px-4">
+            <h2 className="text-black text-[14px] font-bold uppercase mt-3 tracking-widest border-b-2 border-black px-4">
               CONDITIONS PARTICULIERES
             </h2>
           </div>
-          <div className="w-24 text-right pt-4">
-             <span className="text-red-600 font-mono text-xl font-bold"></span>
-          </div>
+          <div className="w-24"></div>
         </div>
 
         {/* Main Form Table */}
         <div className="border border-gray-400 w-full flex flex-col mt-4">
-          
+
           {/* Section: Couverture */}
           <div className="flex border-b border-gray-300">
             <SectionLabel>Couverture</SectionLabel>
             <div className="flex-grow p-2 grid grid-cols-2 gap-x-4 gap-y-1">
-               <FormInput 
-                 label="Numéro de police :" 
-                 value={formData.numero_police}
-                 onChange={(e) => setFormData({...formData, numero_police: e.target.value})}
-               />
-               <FormInput 
-                 label="Durée du prêt :" 
-                 value={formData.duree_pret}
-                 onChange={(e) => setFormData({...formData, duree_pret: e.target.value})}
-                 type="number"
-                 error={errors.duree_pret}
-               />
-               <FormInput 
-                 label="Montant à assurer :" 
-                 value={formData.montant_a_assurer}
-                 onChange={(e) => setFormData({...formData, montant_a_assurer: e.target.value})}
-                 type="number"
-                 error={errors.montant_a_assurer}
-               />
-               <FormInput 
-                 label="Montant de la mensualité :" 
-                 value={formData.montant_mensualite}
-                 onChange={(e) => setFormData({...formData, montant_mensualite: e.target.value})}
-                 type="number"
-               />
-               <FormInput 
-                 label="Date d'effet :" 
-                 value={formData.date_effet}
-                 onChange={(e) => setFormData({...formData, date_effet: e.target.value})}
-                 type="date"
-                 error={errors.date_effet}
-               />
-               <FormInput 
-                 label="Taux du prêt :" 
-                 value={formData.taux_pret}
-                 onChange={(e) => setFormData({...formData, taux_pret: e.target.value})}
-                 type="number"
-               />
-               <FormInput 
-                 label="Date de fin d'échéance :" 
-                 value={formData.date_fin_echeance}
-                 disabled
-               />
-               <div className="flex items-center flex-wrap gap-y-1">
-                <span className="mr-4 text-[11px] font-medium">Catégorie :</span>
-                <Checkbox 
-                  label="Personnel FINAM" 
-                  checked={formData.categorie === 'Personnel FINAM'}
-                  onChange={() => setFormData({...formData, categorie: 'Personnel FINAM'})}
-                />
-                <Checkbox 
-                  label="Retraités" 
-                  checked={formData.categorie === 'Retraités'}
-                  onChange={() => setFormData({...formData, categorie: 'Retraités'})}
-                />
-              </div>
+              <FormInput
+                label="Numéro de police :"
+                value={formData.numero_police}
+                onChange={(e) => setFormData({ ...formData, numero_police: e.target.value })}
+              />
+              <FormInput
+                label="Durée du prêt :"
+                value={formData.duree_pret}
+                onChange={(e) => setFormData({ ...formData, duree_pret: e.target.value })}
+                type="number"
+                error={errors.duree_pret || validationErrors.duree_pret}
+              />
+              <FormInput
+                label="Montant à assurer :"
+                value={formData.montant_a_assurer}
+                onChange={(e) => setFormData({ ...formData, montant_a_assurer: e.target.value })}
+                type="number"
+                error={errors.montant_a_assurer || validationErrors.montant_a_assurer}
+              />
+              <FormInput
+                label="Montant de la mensualité :"
+                value={formData.montant_mensualite}
+                onChange={(e) => setFormData({ ...formData, montant_mensualite: e.target.value })}
+                type="number"
+              />
+              <FormInput
+                label="Date d'effet :"
+                value={formData.date_effet}
+                onChange={(e) => setFormData({ ...formData, date_effet: e.target.value })}
+                type="date"
+                error={errors.date_effet}
+              />
+              <FormInput
+                label="Taux du prêt :"
+                value={formData.taux_pret}
+                onChange={(e) => setFormData({ ...formData, taux_pret: e.target.value })}
+                type="number"
+              />
+              <FormInput
+                label="Date de fin d'échéance :"
+                value={formData.date_fin_echeance}
+                disabled
+              />
+
             </div>
           </div>
 
           {/* Section: Souscripteur / Personne assurée */}
           <div className={`flex border-b border-gray-300 ${!isSection2Enabled ? 'opacity-50' : ''}`}>
-            <SectionLabel locked={!isSection2Enabled}>Souscripteur /<br/>Personne assurée</SectionLabel>
+            <SectionLabel locked={!isSection2Enabled}>Souscripteur /<br />Personne assurée</SectionLabel>
             <div className="flex-grow p-2 space-y-1">
-              <FormInput 
-                label="Nom :" 
+              <FormInput
+                label="Nom :"
                 value={formData.nom}
-                onChange={(e) => setFormData({...formData, nom: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
                 error={errors.nom}
                 disabled={!isSection2Enabled}
               />
-              <FormInput 
-                label="Prénom :" 
+              <FormInput
+                label="Prénom :"
                 value={formData.prenom}
-                onChange={(e) => setFormData({...formData, prenom: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, prenom: e.target.value })}
                 error={errors.prenom}
                 disabled={!isSection2Enabled}
               />
-              <FormInput 
-                label="Adresse :" 
+              <FormInput
+                label="Adresse :"
                 value={formData.adresse}
-                onChange={(e) => setFormData({...formData, adresse: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, adresse: e.target.value })}
                 error={errors.adresse}
                 disabled={!isSection2Enabled}
               />
-              <FormInput 
-                label="Ville :" 
+              <FormInput
+                label="Ville :"
                 value={formData.ville}
-                onChange={(e) => setFormData({...formData, ville: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, ville: e.target.value })}
                 error={errors.ville}
                 disabled={!isSection2Enabled}
               />
-              <FormInput 
-                label="Téléphone :" 
+              <FormInput
+                label="Téléphone :"
                 value={formData.telephone}
-                onChange={(e) => setFormData({...formData, telephone: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, telephone: e.target.value })}
                 error={errors.telephone}
                 disabled={!isSection2Enabled}
               />
-              <FormInput 
-                label="Email :" 
+              <FormInput
+                label="Email :"
                 value={formData.email}
-                onChange={(e) => setFormData({...formData, email: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 type="email"
                 disabled={!isSection2Enabled}
               />
+              <div className="flex items-center flex-wrap gap-y-1 pt-2">
+                <span className="mr-4 text-[11px] font-medium">Catégorie :</span>
+                <Checkbox
+                  label="Personnel FINAM"
+                  checked={formData.categorie === 'Personnel FINAM'}
+                  onChange={() => setFormData({ ...formData, categorie: 'Personnel FINAM' })}
+                  disabled={!isSection2Enabled}
+                />
+                <Checkbox
+                  label="Retraités"
+                  checked={formData.categorie === 'Retraités'}
+                  onChange={() => setFormData({ ...formData, categorie: 'Retraités' })}
+                  disabled={!isSection2Enabled}
+                />
+              </div>
             </div>
           </div>
 
           {/* Section: Bénéficiaire */}
           <div className={`flex border-b border-gray-300 ${!isSection3Enabled ? 'opacity-50' : ''}`}>
             <SectionLabel locked={!isSection3Enabled}>Bénéficiaire</SectionLabel>
-            <div className="flex-grow p-2 space-y-1 text-[10px]">
+            <div className="flex-grow p-2 space-y-1 text-[9px]">
               <div className="flex mb-1"><span className="w-24 text-gray-600">Raison sociale :</span> <span className="font-bold">La Financière Africaine de Microprojets (EMF – FINAM)</span></div>
               <div className="flex mb-1"><span className="w-24 text-gray-600">RCCM :</span> <span className="font-bold">2004B03852 / NIF : 783780 H / Agrément COBAC N° 76/CI/05/CNC</span></div>
               <div className="flex mb-1"><span className="w-24 text-gray-600">Adresse :</span> <span className="font-bold">Ancienne Sobraga, Avenue Lubin Martial NTOUTOUME OBAME / B.P. 22.408</span></div>
               <div className="flex mb-1"><span className="w-24 text-gray-600">Ville :</span> <span className="font-bold">Libreville - Gabon</span></div>
-              <FormInput 
-                label="Agence :" 
-                className="font-bold" 
+              <FormInput
+                label="Agence :"
+                className="font-bold"
                 value={formData.agence}
-                onChange={(e) => setFormData({...formData, agence: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, agence: e.target.value })}
                 disabled={!isSection3Enabled}
               />
             </div>
@@ -408,34 +441,34 @@ const FinamContractCreateOfficial: React.FC = () => {
           <div className={`flex border-b border-gray-300 ${!isSection3Enabled ? 'opacity-50' : ''}`}>
             <SectionLabel locked={!isSection3Enabled}>Garanties</SectionLabel>
             <div className="flex-grow">
-               <table className="w-full text-[10px] border-collapse">
-                 <thead className="bg-gray-50 border-b border-gray-300">
-                    <tr className="font-bold text-gray-700">
-                       <th className="p-1 border-r border-gray-300 text-left w-1/2 font-normal italic"></th>
-                       <th className="p-1 border-r border-gray-300 text-center w-1/4">Type de cible</th>
-                       <th className="p-1 border-r border-gray-300 text-center w-16">Option</th>
-                       <th className="p-1 text-center w-24">Taux</th>
-                    </tr>
-                 </thead>
-                 <tbody>
-                    <tr className="border-b border-gray-300">
-                       <td className="p-2 border-r border-gray-300">Décès – Invalidité Absolue et Définitive (IAD)¹</td>
-                       <td className="p-2 border-r border-gray-300 text-center">Personnel FINAM</td>
-                       <td className="p-2 border-r border-gray-300 text-center">
-                          <div className={`w-6 h-4 border border-black rounded-sm mx-auto ${formData.categorie === 'Personnel FINAM' ? 'bg-gray-600' : 'bg-white'}`}></div>
-                       </td>
-                       <td className="p-2 text-center font-bold">1,00%</td>
-                    </tr>
-                    <tr>
-                       <td className="p-2 border-r border-gray-300">Décès – Invalidité Absolue et Définitive (IAD)</td>
-                       <td className="p-2 border-r border-gray-300 text-center">Retraités</td>
-                       <td className="p-2 border-r border-gray-300 text-center">
-                          <div className={`w-6 h-4 border border-black rounded-sm mx-auto ${formData.categorie === 'Retraités' ? 'bg-gray-600' : 'bg-white'}`}></div>
-                       </td>
-                       <td className="p-2 text-center font-bold">3,00%</td>
-                    </tr>
-                 </tbody>
-               </table>
+              <table className="w-full text-[9px] border-collapse">
+                <thead className="bg-gray-50 border-b border-gray-300">
+                  <tr className="font-bold text-gray-700">
+                    <th className="p-1 border-r border-gray-300 text-left w-1/2 font-normal italic"></th>
+                    <th className="p-1 border-r border-gray-300 text-center w-1/4">Type de cible</th>
+                    <th className="p-1 border-r border-gray-300 text-center w-16">Option</th>
+                    <th className="p-1 text-center w-24">Taux</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="border-b border-gray-300">
+                    <td className="p-2 border-r border-gray-300">Décès – Invalidité Absolue et Définitive (IAD)¹</td>
+                    <td className="p-2 border-r border-gray-300 text-center">Personnel FINAM</td>
+                    <td className="p-2 border-r border-gray-300 text-center">
+                      <div className={`w-6 h-4 border border-black rounded-sm mx-auto ${formData.categorie === 'Personnel FINAM' ? 'bg-gray-600' : 'bg-white'}`}></div>
+                    </td>
+                    <td className="p-2 text-center font-bold">1,00%</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2 border-r border-gray-300">Décès – Invalidité Absolue et Définitive (IAD)</td>
+                    <td className="p-2 border-r border-gray-300 text-center">Retraités</td>
+                    <td className="p-2 border-r border-gray-300 text-center">
+                      <div className={`w-6 h-4 border border-black rounded-sm mx-auto ${formData.categorie === 'Retraités' ? 'bg-gray-600' : 'bg-white'}`}></div>
+                    </td>
+                    <td className="p-2 text-center font-bold">3,00%</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
 
@@ -443,72 +476,67 @@ const FinamContractCreateOfficial: React.FC = () => {
           <div className={`flex bg-gray-50/50 ${!isSection3Enabled ? 'opacity-50' : ''}`}>
             <SectionLabel locked={!isSection3Enabled}>Cotisations</SectionLabel>
             <div className="flex-grow p-3">
-               <div className="flex items-center font-bold text-[12px]">
-                  <span className="whitespace-nowrap">Prime totale :</span>
-                  <div className="flex-grow border-b border-black mx-2 h-5 flex items-center justify-center font-bold">
-                    {primeTotale > 0 ? primeTotale.toLocaleString() : ''}
-                  </div>
-                  <span className="whitespace-nowrap">FCFA TTC</span>
-               </div>
+              <div className="flex items-center font-bold text-[12px]">
+                <span className="whitespace-nowrap">Prime totale :</span>
+                <div className="flex-grow border-b border-black mx-2 h-5 flex items-center justify-center font-bold">
+                  {primeTotale > 0 ? primeTotale.toLocaleString() : ''}
+                </div>
+                <span className="whitespace-nowrap">FCFA TTC</span>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Legal Notes */}
         <div className="mt-4 space-y-1 text-[10px] font-bold text-black px-1 leading-tight">
-           <div className="flex items-start"><span className="w-6 flex-shrink-0">(1)</span> <p>Le montant maximal de couverture est de 3 000 000 FCFA pour le Personnel et de 5 000 000 FCFA pour les Retraités.</p></div>
-           <div className="flex items-start"><span className="w-6 flex-shrink-0">(2)</span> <p>La durée maximale de couverture est de 24 mois pour le Personnel et de 36 mois pour les Retraités.</p></div>
+          <div className="flex items-start"><span className="w-6 flex-shrink-0">(1)</span> <p>Le montant maximal de couverture est de 3 000 000 FCFA pour le Personnel et de 5 000 000 FCFA pour les Retraités.</p></div>
+          <div className="flex items-start"><span className="w-6 flex-shrink-0">(2)</span> <p>La durée maximale de couverture est de 24 mois pour le Personnel et de 36 mois pour les Retraités.</p></div>
         </div>
 
         {/* Signatures and Date */}
         <div className="mt-12 mb-4">
-           <div className="text-right text-[11px] mb-8 pr-12 font-medium italic">
-             Fait à <input 
-               className="border-b border-black w-48 text-center outline-none" 
-               value={formData.lieu_signature}
-               onChange={(e) => setFormData({...formData, lieu_signature: e.target.value})}
-               disabled={!isFormComplete}
-             />, le <input 
-               className="border-b border-black w-10 text-center outline-none" 
-               value={formData.date_signature_jour}
-               onChange={(e) => setFormData({...formData, date_signature_jour: e.target.value})}
-               maxLength={2}
-               disabled={!isFormComplete}
-             /> / <input 
-               className="border-b border-black w-10 text-center outline-none" 
-               value={formData.date_signature_mois}
-               onChange={(e) => setFormData({...formData, date_signature_mois: e.target.value})}
-               maxLength={2}
-               disabled={!isFormComplete}
-             /> / <input 
-               className="border-b border-black w-16 text-center outline-none" 
-               value={formData.date_signature_annee}
-               onChange={(e) => setFormData({...formData, date_signature_annee: e.target.value})}
-               maxLength={4}
-               disabled={!isFormComplete}
-             />
-           </div>
+          <div className="text-right text-[11px] mb-8 pr-12 font-medium italic">
+            Fait à <input
+              className="border-b border-black w-48 text-center outline-none"
+              value={formData.lieu_signature}
+              onChange={(e) => setFormData({ ...formData, lieu_signature: e.target.value })}
+              disabled={!isFormComplete}
+            />, le <input
+              className="border-b border-black w-10 text-center outline-none"
+              value={formData.date_signature_jour}
+              onChange={(e) => setFormData({ ...formData, date_signature_jour: e.target.value })}
+              maxLength={2}
+              disabled={!isFormComplete}
+            /> / <input
+              className="border-b border-black w-10 text-center outline-none"
+              value={formData.date_signature_mois}
+              onChange={(e) => setFormData({ ...formData, date_signature_mois: e.target.value })}
+              maxLength={2}
+              disabled={!isFormComplete}
+            /> / <input
+              className="border-b border-black w-16 text-center outline-none"
+              value={formData.date_signature_annee}
+              onChange={(e) => setFormData({ ...formData, date_signature_annee: e.target.value })}
+              maxLength={4}
+              disabled={!isFormComplete}
+            />
+          </div>
 
-           <div className="flex justify-between items-start px-4">
-              <div className="w-2/5 flex flex-col items-center">
-                 <div className="font-bold text-[12px] mb-2 uppercase">Le Souscripteur</div>
-                 <div className="w-full h-24 border border-gray-400 border-dashed rounded flex items-center justify-center">
-                 </div>
+          <div className="flex justify-between items-start px-4">
+            <div className="w-2/5 flex flex-col items-center">
+              <div className="font-bold text-[12px] mb-2 uppercase">Le Souscripteur</div>
+              <div className="w-full h-24 border border-gray-400 border-dashed rounded flex items-center justify-center">
               </div>
+            </div>
 
-              <div className="w-1/5 flex flex-col items-start justify-center space-y-1 text-[9px] pt-4 font-semibold text-gray-800">
-                 <div>Feuillet 1 : SAMB'A ASSURANCES</div>
-                 <div>Feuillet 2 : FINAM</div>
-                 <div>Feuillet 3 : ASSURÉ</div>
-                 <div>Feuillet 4 : SOUCHE</div>
-              </div>
 
-              <div className="w-2/5 flex flex-col items-center">
-                 <div className="font-bold text-[12px] mb-2 uppercase">L'Assureur par délégation</div>
-                 <div className="w-full h-24 border border-gray-400 border-dashed rounded flex items-center justify-center">
-                 </div>
+
+            <div className="w-2/5 flex flex-col items-center">
+              <div className="font-bold text-[12px] mb-2 uppercase">L'Assureur par délégation</div>
+              <div className="w-full h-24 border border-gray-400 border-dashed rounded flex items-center justify-center">
               </div>
-           </div>
+            </div>
+          </div>
         </div>
 
         {/* Footnote */}
@@ -522,7 +550,7 @@ const FinamContractCreateOfficial: React.FC = () => {
 
       {/* Submit Button */}
       <div className="max-w-[210mm] w-full mt-4 flex justify-center">
-        <Button 
+        <Button
           onClick={handleSubmit}
           disabled={isPending || !isFormComplete}
           className={`${isFormComplete ? 'bg-[#F48232] hover:bg-[#E07020]' : 'bg-gray-400 cursor-not-allowed'} text-white`}

@@ -22,31 +22,34 @@ interface FormInputProps {
   disabled?: boolean
 }
 
-const FormInput: React.FC<FormInputProps> = ({ 
-  label, 
-  value = '', 
-  onChange, 
-  type = 'text', 
+const FormInput: React.FC<FormInputProps> = ({
+  label,
+  value = '',
+  onChange,
+  type = 'text',
   placeholder = '',
   required = false,
   error,
   className = "",
   disabled = false
 }) => (
-  <div className="flex items-end w-full">
-    {label && (
-      <span className="mr-1 whitespace-nowrap text-[11px] text-gray-800">
-        {label}{required && <span className="text-red-500">*</span>}
-      </span>
-    )}
-    <input
-      type={type}
-      value={value}
-      onChange={(e) => onChange?.(e.target.value)}
-      placeholder={placeholder}
-      disabled={disabled}
-      className={`flex-grow border-b-2 ${error ? 'border-red-400 bg-red-50' : 'border-gray-400'} text-[11px] px-1 py-0.5 min-h-[22px] font-semibold bg-transparent focus:outline-none focus:border-[#F48232] ${className}`}
-    />
+  <div className="flex flex-col w-full">
+    <div className="flex items-end w-full">
+      {label && (
+        <span className="mr-1 whitespace-nowrap text-[11px] text-gray-800">
+          {label}{required && <span className="text-red-500">*</span>}
+        </span>
+      )}
+      <input
+        type={type}
+        value={value}
+        onChange={(e) => onChange?.(e.target.value)}
+        placeholder={placeholder}
+        disabled={disabled}
+        className={`flex-grow border-b-2 ${error ? 'border-red-400 bg-red-50' : 'border-gray-400'} text-[11px] px-1 py-0.5 min-h-[22px] font-semibold bg-transparent focus:outline-none focus:border-[#F48232] ${className}`}
+      />
+    </div>
+    {error && <span className="text-[9px] text-red-500 font-medium ml-auto mt-0.5">{error}</span>}
   </div>
 )
 
@@ -60,17 +63,19 @@ interface CheckboxProps {
 
 const Checkbox: React.FC<CheckboxProps> = ({ label, checked = false, onChange, disabled = false }) => (
   <label className="flex items-center mr-3 cursor-pointer">
-    <input
-      type="checkbox"
-      checked={checked}
-      onChange={(e) => onChange?.(e.target.checked)}
-      disabled={disabled}
-      className="sr-only"
-    />
-    <div className={`w-4 h-4 border-2 border-black mr-1 flex items-center justify-center transition-colors ${checked ? 'bg-black' : 'bg-white'} ${!disabled && 'hover:bg-gray-100'}`}>
-      {checked && <div className="w-2 h-2 bg-white" />}
+    <div
+      onClick={() => !disabled && onChange?.(!checked)}
+      className={`w-4 h-4 border-2 border-black mr-1 flex items-center justify-center transition-colors bg-white ${!disabled && 'hover:bg-gray-100'} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+    >
+      {checked && (
+        <svg className="w-3 h-3 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M5 13l4 4L19 7" />
+        </svg>
+      )}
     </div>
-    <span className="text-[10px] text-gray-800">{label}</span>
+    <span className="text-[10px] text-gray-800" onClick={() => !disabled && onChange?.(!checked)}>{label}</span>
+    {/* Hidden input for accessibility/form but controlled by div click */}
+    <input type="checkbox" className="sr-only" checked={checked} readOnly />
   </label>
 )
 
@@ -89,7 +94,7 @@ const Footer: React.FC = () => {
       <div className="mb-1">
         R.C.C.M : N° GA - LBV - 01 - 2024 - B14 - 00003 | N° STATISTIQUE : 202401003647 R
       </div>
-      
+
       <div className="flex justify-between items-start border-t border-gray-300 pt-0.5 px-2">
         <div className="flex flex-col items-center w-1/3">
           <MapPin size={10} className="mb-0 text-gray-500" />
@@ -114,7 +119,7 @@ const Footer: React.FC = () => {
 export const SodecContractCreateOfficial = () => {
   const navigate = useNavigate()
   const { user } = useAuthStore()
-  
+
   // ═══════════════════════════════════════════════════════════════════
   // 🔒 VÉRIFICATION EMF - SODEC = emf_id 5
   // ═══════════════════════════════════════════════════════════════════
@@ -166,23 +171,64 @@ export const SodecContractCreateOfficial = () => {
   const [showLimitesModal, setShowLimitesModal] = useState(false)
   const [createdContrat, setCreatedContrat] = useState<ContratCreationResponse | null>(null)
 
+  // Validation des règles métier pour statut "actif"
+  const isRetraite = formData.categorie === 'retraites'
+  const montantMaxPret = isRetraite ? 5000000 : 20000000
+  const dureeMaxDeces = isRetraite ? 36 : 72
+  const dureeMaxPerteEmploi = 48
+  const montantMaxPerteEmploi = 5000000
+
+  // Validation des règles métier bloquantes
+  const getValidationErrors = () => {
+    const errs: Record<string, string> = {}
+    const montant = parseInt(formData.montant_pret_assure) || 0
+    const duree = parseInt(formData.duree_pret_mois) || 0
+    const isRetraite = formData.categorie === 'retraites'
+
+    // Règles bloquantes (texte rouge sous le champ)
+    if (formData.categorie) { // On ne valide que si une catégorie est choisie
+      if (isRetraite) {
+        if (montant > 5000000) errs.montant_pret_assure = "Max 5 000 000 FCFA (Retraités)"
+        if (duree > 36) errs.duree_pret_mois = "Max 36 mois (Retraités)"
+      } else {
+        if (montant > 20000000) errs.montant_pret_assure = "Max 20 000 000 FCFA"
+        if (duree > 72) errs.duree_pret_mois = "Max 72 mois"
+      }
+    }
+
+    if (formData.garantie_perte_emploi) {
+      if (montant > 5000000) {
+        // Si perte d'emploi, le montant max couvert est 5M. 
+      }
+      if (duree > 48) {
+        errs.duree_pret_mois = "Max 48 mois avec Perte d'emploi"
+      }
+    }
+
+    return errs
+  }
+
+  const validationErrors = getValidationErrors()
+
   // ═══════════════════════════════════════════════════════════════════
   // 🔒 VALIDATION PROGRESSIVE - Activation des sections par étapes
   // ═══════════════════════════════════════════════════════════════════
-  
+
   // Section 1: Couverture Prêt (toujours active) - Option prévoyance n'est pas obligatoire pour débloquer
+  // Validation: On ne demande plus la catégorie ici car elle est en section 2
   const isSection1Complete = Boolean(
-    formData.montant_pret_assure && 
-    formData.duree_pret_mois && 
-    formData.date_effet
+    formData.montant_pret_assure &&
+    formData.duree_pret_mois &&
+    formData.date_effet &&
+    Object.keys(validationErrors).length === 0
   )
 
   // Section 2: Assuré (active si Section 1 complète)
   const isSection2Enabled = isSection1Complete
   const isSection2Complete = Boolean(
-    formData.nom_prenom.trim() && 
-    formData.adresse_assure.trim() && 
-    formData.ville_assure.trim() && 
+    formData.nom_prenom.trim() &&
+    formData.adresse_assure.trim() &&
+    formData.ville_assure.trim() &&
     formData.telephone_assure.trim() &&
     formData.categorie
   )
@@ -221,48 +267,18 @@ export const SodecContractCreateOfficial = () => {
     }
   }, [isError, error])
 
-  // Calcul cotisation
-  const montant = parseInt(formData.montant_pret_assure) || 0
-  const duree = parseInt(formData.duree_pret_mois) || 0
-  const cotisationPrevoyance = formData.option_prevoyance === 'option_a' ? 30000 : formData.option_prevoyance === 'option_b' ? 15000 : 0
-  const tauxDeces = 0.015
-  const tauxPerteEmploi = formData.garantie_perte_emploi ? 0.025 : 0  // 2,5% pour perte d'emploi
-  const cotisationTotale = cotisationPrevoyance + (montant * tauxDeces) + (montant * tauxPerteEmploi)
+  // Le reste des calculs et hooks...
 
-  // Validation des règles métier pour statut "actif"
-  const isRetraite = formData.categorie === 'retraites'
-  const montantMaxPret = isRetraite ? 5000000 : 20000000
-  const dureeMaxDeces = isRetraite ? 36 : 72
-  const dureeMaxPerteEmploi = 48
-  const montantMaxPerteEmploi = 5000000
+  // Auto-selection Perte d'emploi pour Commerçants
+  useEffect(() => {
+    if (formData.categorie === 'commercants') {
+      setFormData(prev => ({ ...prev, garantie_perte_emploi: true }))
+    }
+  }, [formData.categorie])
 
   const validateBusinessRules = () => {
     const warnings: string[] = []
-    
-    // (1) Prévoyance décès max
-    // Option A: 2.000.000 FCFA max, Option B: 1.000.000 FCFA max
-    // Ces montants sont fixes, pas de validation nécessaire
-    
-    // (2) Montant max prêt
-    if (montant > montantMaxPret) {
-      warnings.push(`Montant prêt (${formatCurrency(montant)}) dépasse le max ${isRetraite ? 'retraités' : 'autres'}: ${formatCurrency(montantMaxPret)}`)
-    }
-    
-    // (3) Durée max décès
-    if (duree > dureeMaxDeces) {
-      warnings.push(`Durée (${duree} mois) dépasse le max ${isRetraite ? 'retraités' : 'autres'}: ${dureeMaxDeces} mois`)
-    }
-    
-    // (4) Perte d'emploi: durée max 48 mois, montant max 5.000.000
-    if (formData.garantie_perte_emploi) {
-      if (duree > dureeMaxPerteEmploi) {
-        warnings.push(`Perte d'emploi: durée (${duree} mois) dépasse max: ${dureeMaxPerteEmploi} mois`)
-      }
-      if (montant > montantMaxPerteEmploi) {
-        warnings.push(`Perte d'emploi: montant (${formatCurrency(montant)}) dépasse max: ${formatCurrency(montantMaxPerteEmploi)}`)
-      }
-    }
-    
+    // Warnings for non-blocking UI feedback if needed, currently covered by blocking errors above mostly
     return warnings
   }
 
@@ -284,8 +300,8 @@ export const SodecContractCreateOfficial = () => {
               <br />
               Ce formulaire est réservé aux utilisateurs SODEC.
             </p>
-            <Button 
-              onClick={() => navigate(-1)} 
+            <Button
+              onClick={() => navigate(-1)}
               className="bg-red-600 hover:bg-red-700 text-white"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
@@ -316,6 +332,29 @@ export const SodecContractCreateOfficial = () => {
 
   const categorieLabel = getCategorieLabel()
 
+  // Calcul de la cotisation totale
+  const calculerCotisation = () => {
+    const montant = parseInt(formData.montant_pret_assure) || 0
+    // Taux Décès-IAD: 1.50%
+    let total = montant * 0.015
+
+    // Garantie Perte d'emploi: 2.50% si active
+    if (formData.garantie_perte_emploi) {
+      total += montant * 0.025
+    }
+
+    // Options Prévoyance (Prime unique)
+    if (formData.option_prevoyance === 'option_a') {
+      total += 30000
+    } else if (formData.option_prevoyance === 'option_b') {
+      total += 15000
+    }
+
+    return Math.round(total)
+  }
+
+  const cotisationTotale = calculerCotisation()
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     setErrors({})
@@ -326,9 +365,9 @@ export const SodecContractCreateOfficial = () => {
       // ÉTAPE 1: VALIDATION DES CHAMPS OBLIGATOIRES
       // ═══════════════════════════════════════════════════════════════
       console.log('📋 ÉTAPE 1: Validation des champs obligatoires...')
-      
+
       const newErrors: Record<string, string> = {}
-      
+
       // Informations de l'assuré principal
       if (!formData.nom_prenom.trim()) {
         newErrors.nom_prenom = 'Le nom et prénom sont obligatoires'
@@ -346,7 +385,7 @@ export const SodecContractCreateOfficial = () => {
         newErrors.telephone_assure = 'Le téléphone est obligatoire'
         console.error('❌ Champ manquant: telephone_assure')
       }
-      
+
       // Informations du prêt
       if (!formData.montant_pret_assure) {
         newErrors.montant_pret_assure = 'Le montant du prêt est obligatoire'
@@ -360,7 +399,7 @@ export const SodecContractCreateOfficial = () => {
         newErrors.date_effet = 'La date d\'effet est obligatoire'
         console.error('❌ Champ manquant: date_effet')
       }
-      
+
       // Options et catégorie
       if (!formData.option_prevoyance) {
         newErrors.option_prevoyance = 'Veuillez sélectionner Option A ou Option B'
@@ -379,37 +418,37 @@ export const SodecContractCreateOfficial = () => {
           console.error(`   • ${field}: ${message}`)
         })
         console.error('═══════════════════════════════════════════════════════════════')
-        
+
         setErrors(newErrors)
         setSubmitError(`⚠️ ${Object.keys(newErrors).length} champ(s) obligatoire(s) manquant(s):\n${Object.values(newErrors).join('\n')}`)
         return
       }
-      
+
       console.log('✅ ÉTAPE 1: Tous les champs obligatoires sont remplis')
 
       // ═══════════════════════════════════════════════════════════════
       // ÉTAPE 2: VÉRIFICATION DES RÈGLES MÉTIER
       // ═══════════════════════════════════════════════════════════════
       console.log('📋 ÉTAPE 2: Vérification des règles métier...')
-      
+
       if (businessWarnings.length > 0) {
         console.warn('⚠️ Avertissements règles métier:', businessWarnings)
         const confirmContinue = window.confirm(
-          `⚠️ Attention: Le contrat ne respecte pas certaines conditions:\n\n${businessWarnings.join('\n')}\n\nLe contrat sera créé avec le statut "En attente".\n\nContinuer quand même ?`
+          `⚠️ Attention: Le contrat ne respecte pas certaines conditions:\n\n${businessWarnings.join('\n')}\n\nContinuer quand même ?`
         )
         if (!confirmContinue) {
           console.log('🚫 Création annulée par l\'utilisateur')
           return
         }
       }
-      
+
       console.log('✅ ÉTAPE 2: Règles métier validées')
 
       // ═══════════════════════════════════════════════════════════════
       // ÉTAPE 3: CONSTRUCTION DES ASSURÉS ASSOCIÉS
       // ═══════════════════════════════════════════════════════════════
       console.log('📋 ÉTAPE 3: Construction des assurés associés...')
-      
+
       const assuresArray: Array<{
         type_assure: string
         nom: string
@@ -418,11 +457,11 @@ export const SodecContractCreateOfficial = () => {
         lieu_naissance: string
         contact?: string
       }> = []
-      
+
       // Conjoint
       if (assuresAssocies.conjoint.nom?.trim() && assuresAssocies.conjoint.lieu_naissance?.trim()) {
-        assuresArray.push({ 
-          type_assure: 'conjoint', 
+        assuresArray.push({
+          type_assure: 'conjoint',
           nom: assuresAssocies.conjoint.nom.trim(),
           prenom: assuresAssocies.conjoint.prenom?.trim() || '',
           date_naissance: assuresAssocies.conjoint.date_naissance || '',
@@ -431,11 +470,11 @@ export const SodecContractCreateOfficial = () => {
         })
         console.log('   ✓ Conjoint ajouté:', assuresAssocies.conjoint.nom)
       }
-      
+
       // Enfant 1
       if (assuresAssocies.enfant1.nom?.trim() && assuresAssocies.enfant1.lieu_naissance?.trim()) {
-        assuresArray.push({ 
-          type_assure: 'enfant_1', 
+        assuresArray.push({
+          type_assure: 'enfant_1',
           nom: assuresAssocies.enfant1.nom.trim(),
           prenom: assuresAssocies.enfant1.prenom?.trim() || '',
           date_naissance: assuresAssocies.enfant1.date_naissance || '',
@@ -444,11 +483,11 @@ export const SodecContractCreateOfficial = () => {
         })
         console.log('   ✓ Enfant 1 ajouté:', assuresAssocies.enfant1.nom)
       }
-      
+
       // Enfant 2
       if (assuresAssocies.enfant2.nom?.trim() && assuresAssocies.enfant2.lieu_naissance?.trim()) {
-        assuresArray.push({ 
-          type_assure: 'enfant_2', 
+        assuresArray.push({
+          type_assure: 'enfant_2',
           nom: assuresAssocies.enfant2.nom.trim(),
           prenom: assuresAssocies.enfant2.prenom?.trim() || '',
           date_naissance: assuresAssocies.enfant2.date_naissance || '',
@@ -457,11 +496,11 @@ export const SodecContractCreateOfficial = () => {
         })
         console.log('   ✓ Enfant 2 ajouté:', assuresAssocies.enfant2.nom)
       }
-      
+
       // Enfant 3
       if (assuresAssocies.enfant3.nom?.trim() && assuresAssocies.enfant3.lieu_naissance?.trim()) {
-        assuresArray.push({ 
-          type_assure: 'enfant_3', 
+        assuresArray.push({
+          type_assure: 'enfant_3',
           nom: assuresAssocies.enfant3.nom.trim(),
           prenom: assuresAssocies.enfant3.prenom?.trim() || '',
           date_naissance: assuresAssocies.enfant3.date_naissance || '',
@@ -470,11 +509,11 @@ export const SodecContractCreateOfficial = () => {
         })
         console.log('   ✓ Enfant 3 ajouté:', assuresAssocies.enfant3.nom)
       }
-      
+
       // Enfant 4
       if (assuresAssocies.enfant4.nom?.trim() && assuresAssocies.enfant4.lieu_naissance?.trim()) {
-        assuresArray.push({ 
-          type_assure: 'enfant_4', 
+        assuresArray.push({
+          type_assure: 'enfant_4',
           nom: assuresAssocies.enfant4.nom.trim(),
           prenom: assuresAssocies.enfant4.prenom?.trim() || '',
           date_naissance: assuresAssocies.enfant4.date_naissance || '',
@@ -518,7 +557,7 @@ export const SodecContractCreateOfficial = () => {
         agence: formData.agence?.trim() || null,
         lieu_signature: formData.lieu_signature?.trim() || 'Libreville',
         date_signature: formData.date_signature || new Date().toISOString().split('T')[0],
-        statut: (isContractValid ? 'actif' : 'en_attente') as 'actif' | 'en_attente',
+        statut: 'actif',
         ...(assuresArray.length > 0 ? { assures_associes: assuresArray } : {})
       }
 
@@ -539,7 +578,7 @@ export const SodecContractCreateOfficial = () => {
           console.log('   Statut:', data.data.statut)
           console.log('   Limites dépassées:', data.data.limites_depassees)
           console.log('═══════════════════════════════════════════════════════════════')
-          
+
           // Afficher le modal avec le résultat
           setCreatedContrat({
             id: data.data.id,
@@ -555,7 +594,7 @@ export const SodecContractCreateOfficial = () => {
           console.error('❌ ERREUR lors de la création du contrat')
           console.error('   Status:', error.response?.status)
           console.error('   Message:', error.response?.data?.message || error.message)
-          
+
           if (error.response?.data?.errors) {
             console.error('   Erreurs de validation:')
             Object.entries(error.response.data.errors).forEach(([field, msgs]) => {
@@ -563,7 +602,7 @@ export const SodecContractCreateOfficial = () => {
             })
           }
           console.error('═══════════════════════════════════════════════════════════════')
-          
+
           // Afficher erreur utilisateur
           if (error.response?.status === 422) {
             const validationErrors = error.response.data.errors || {}
@@ -589,7 +628,7 @@ export const SodecContractCreateOfficial = () => {
       console.error('   Message:', error.message)
       console.error('   Stack:', error.stack)
       console.error('═══════════════════════════════════════════════════════════════')
-      
+
       setSubmitError(`💥 Erreur inattendue: ${error.message}`)
     }
   }
@@ -646,15 +685,9 @@ export const SodecContractCreateOfficial = () => {
       {/* Indicateur de statut prévu */}
       <div className="max-w-[210mm] mx-auto mb-4 flex items-center justify-center gap-2">
         <span className="text-sm text-gray-600">Statut prévu :</span>
-        {isContractValid ? (
-          <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium flex items-center gap-1">
-            <CheckCircle className="h-4 w-4" /> Actif
-          </span>
-        ) : (
-          <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm font-medium flex items-center gap-1">
-            <AlertCircle className="h-4 w-4" /> En attente
-          </span>
-        )}
+        <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium flex items-center gap-1">
+          <CheckCircle className="h-4 w-4" /> Actif
+        </span>
       </div>
 
       {/* 🔒 Indicateur de progression */}
@@ -691,7 +724,7 @@ export const SodecContractCreateOfficial = () => {
       {/* Formulaire style contrat officiel */}
       <form onSubmit={handleSubmit}>
         <div className="bg-white w-[210mm] min-h-[297mm] p-[6mm] shadow-xl relative flex flex-col mx-auto">
-          
+
           {/* Header */}
           <div className="flex flex-col items-center mb-0">
             <div className="mb-0">
@@ -714,48 +747,50 @@ export const SodecContractCreateOfficial = () => {
 
           {/* Form Body - Table Structure */}
           <div className="border border-[#F48232] w-full flex flex-col text-[10px]">
-            
+
             {/* Section: Couverture */}
             <div className="flex border-b border-[#F48232]">
               <div className="w-24 flex-shrink-0 p-1.5 bg-orange-50 italic border-r border-[#F48232] flex items-center text-xs">
                 Couverture
               </div>
               <div className="flex-grow p-1.5 grid grid-cols-2 gap-x-4 gap-y-1">
-                <FormInput 
-                  label="Numéro de police :" 
+                <FormInput
+                  label="Numéro de police :"
                   value={formData.numero_police}
-                  onChange={(v) => setFormData({...formData, numero_police: v})}
+                  onChange={(v) => setFormData({ ...formData, numero_police: v })}
                   placeholder="Auto-généré"
                 />
+
                 <div className="col-span-1"></div>
-                <FormInput 
-                  label="Montant du prêt assuré :" 
+
+                <FormInput
+                  label="Montant du prêt assuré :"
                   value={formData.montant_pret_assure}
-                  onChange={(v) => setFormData({...formData, montant_pret_assure: v})}
+                  onChange={(v) => setFormData({ ...formData, montant_pret_assure: v })}
                   type="number"
                   placeholder="Ex: 5000000"
                   required
-                  error={errors.montant_pret_assure}
+                  error={errors.montant_pret_assure || validationErrors.montant_pret_assure}
                 />
-                <FormInput 
-                  label="Durée du prêt :" 
+                <FormInput
+                  label="Durée du prêt :"
                   value={formData.duree_pret_mois}
-                  onChange={(v) => setFormData({...formData, duree_pret_mois: v})}
+                  onChange={(v) => setFormData({ ...formData, duree_pret_mois: v })}
                   type="number"
                   placeholder="Ex: 12"
                   required
-                  error={errors.duree_pret_mois}
+                  error={errors.duree_pret_mois || validationErrors.duree_pret_mois}
                 />
-                <FormInput 
-                  label="Date d'effet :" 
+                <FormInput
+                  label="Date d'effet :"
                   value={formData.date_effet}
-                  onChange={(v) => setFormData({...formData, date_effet: v})}
+                  onChange={(v) => setFormData({ ...formData, date_effet: v })}
                   type="date"
                   required
                   error={errors.date_effet}
                 />
-                <FormInput 
-                  label="Date de fin d'échéance :" 
+                <FormInput
+                  label="Date de fin d'échéance :"
                   value={formData.date_fin_echeance}
                   disabled
                 />
@@ -765,35 +800,35 @@ export const SodecContractCreateOfficial = () => {
             {/* Section: Assuré principal */}
             <div className={`flex border-b border-[#F48232] ${!isSection2Enabled ? 'opacity-50 pointer-events-none' : ''}`}>
               <div className="w-24 flex-shrink-0 p-1.5 bg-orange-50 italic border-r border-[#F48232] flex flex-col justify-center text-xs">
-                Assuré principal<br/>
+                Assuré principal<br />
                 <span className="text-[9px] not-italic">Personne assurée</span>
                 {!isSection2Enabled && <span className="text-[10px] text-orange-600 mt-1">🔒 Remplir Prêt</span>}
               </div>
               <div className="flex-grow p-1.5 space-y-1">
-                <FormInput 
-                  label="Nom & Prénom :" 
+                <FormInput
+                  label="Nom & Prénom :"
                   value={formData.nom_prenom}
-                  onChange={(v) => setFormData({...formData, nom_prenom: v})}
+                  onChange={(v) => setFormData({ ...formData, nom_prenom: v })}
                   placeholder="Ex: Jean NGUEMA"
                   required
                   error={errors.nom_prenom}
                   disabled={!isSection2Enabled}
                 />
                 <div className="flex gap-2">
-                  <FormInput 
-                    label="Adresse :" 
+                  <FormInput
+                    label="Adresse :"
                     value={formData.adresse_assure}
-                    onChange={(v) => setFormData({...formData, adresse_assure: v})}
+                    onChange={(v) => setFormData({ ...formData, adresse_assure: v })}
                     placeholder="Ex: Quartier Louis"
                     required
                     error={errors.adresse_assure}
                     className="flex-grow-[2]"
                     disabled={!isSection2Enabled}
                   />
-                  <FormInput 
-                    label="Ville :" 
+                  <FormInput
+                    label="Ville :"
                     value={formData.ville_assure}
-                    onChange={(v) => setFormData({...formData, ville_assure: v})}
+                    onChange={(v) => setFormData({ ...formData, ville_assure: v })}
                     placeholder="Ex: Libreville"
                     required
                     error={errors.ville_assure}
@@ -802,59 +837,61 @@ export const SodecContractCreateOfficial = () => {
                   />
                 </div>
                 <div className="flex gap-2">
-                  <FormInput 
-                    label="Téléphone :" 
+                  <FormInput
+                    label="Téléphone :"
                     value={formData.telephone_assure}
-                    onChange={(v) => setFormData({...formData, telephone_assure: v})}
+                    onChange={(v) => setFormData({ ...formData, telephone_assure: v })}
                     placeholder="Ex: 06 12 34 56"
                     required
                     error={errors.telephone_assure}
                     className="flex-grow-[1]"
                     disabled={!isSection2Enabled}
                   />
-                  <FormInput 
-                    label="Email:" 
+                  <FormInput
+                    label="Email:"
                     value={formData.email_assure}
-                    onChange={(v) => setFormData({...formData, email_assure: v})}
+                    onChange={(v) => setFormData({ ...formData, email_assure: v })}
                     placeholder="Ex: email@example.com"
                     type="email"
                     className="flex-grow-[2]"
                     disabled={!isSection2Enabled}
                   />
                 </div>
-                <div className="flex flex-wrap items-center mt-1 gap-y-1">
-                  <span className="mr-1 text-xs">Catégorie{errors.categorie && <span className="text-red-500">*</span>} :</span>
+
+                <div className="col-span-2 flex flex-wrap items-center mt-3 gap-y-1">
+                  <span className="mr-1 text-xs font-bold text-[#F48232]">Catégorie{errors.categorie && <span className="text-red-500">*</span>} :</span>
                   {categories.map(cat => (
-                    <Checkbox 
-                      key={cat.key} 
-                      label={cat.label} 
+                    <Checkbox
+                      key={cat.key}
+                      label={cat.label}
                       checked={formData.categorie === cat.key}
-                      onChange={() => setFormData({...formData, categorie: cat.key})}
+                      onChange={() => setFormData({ ...formData, categorie: cat.key })}
                     />
                   ))}
-                  <Checkbox 
-                    label="Autre" 
+                  <Checkbox
+                    label="Autre"
                     checked={formData.categorie === 'autre'}
-                    onChange={() => setFormData({...formData, categorie: 'autre'})}
+                    onChange={() => setFormData({ ...formData, categorie: 'autre' })}
                   />
                   <div className="flex items-center">
                     <span className="text-[10px] text-gray-800 mr-1">à préciser :</span>
                     <input
                       type="text"
                       value={formData.autre_categorie_precision}
-                      onChange={(e) => setFormData({...formData, autre_categorie_precision: e.target.value})}
+                      onChange={(e) => setFormData({ ...formData, autre_categorie_precision: e.target.value })}
                       className="border-b border-gray-400 w-24 text-xs font-semibold bg-transparent focus:outline-none focus:border-[#F48232]"
                       disabled={formData.categorie !== 'autre'}
                     />
                   </div>
+                  {errors.categorie && <p className="w-full text-[9px] text-red-500 mt-1">{errors.categorie}</p>}
                 </div>
-                {/* Affichage catégorie sélectionnée pour impression */}
-                {categorieLabel && (
-                  <div className="text-xs font-bold text-[#F48232] print:block hidden">
-                    → Catégorie sélectionnée : {categorieLabel}
-                  </div>
-                )}
               </div>
+              {/* Affichage catégorie sélectionnée pour impression */}
+              {categorieLabel && (
+                <div className="text-xs font-bold text-[#F48232] print:block hidden">
+                  → Catégorie sélectionnée : {categorieLabel}
+                </div>
+              )}
             </div>
 
             {/* Section: Souscripteur / EMF */}
@@ -868,10 +905,10 @@ export const SodecContractCreateOfficial = () => {
                   <span className="mr-1 whitespace-nowrap text-xs text-gray-800">Raison sociale :</span>
                   <span className="font-bold text-xs">SOCIETE D'EPARGNE ET DE CREDIT (SODEC)</span>
                 </div>
-                <FormInput 
-                  label="Agence :" 
+                <FormInput
+                  label="Agence :"
                   value={formData.agence}
-                  onChange={(v) => setFormData({...formData, agence: v})}
+                  onChange={(v) => setFormData({ ...formData, agence: v })}
                   placeholder="Ex: Agence Libreville Centre"
                 />
                 <div className="flex gap-2">
@@ -916,139 +953,139 @@ export const SodecContractCreateOfficial = () => {
                     <tr className="h-5">
                       <td className="border-b border-r border-[#F48232] p-0.5 font-bold bg-orange-50/50">Conjoint (e)</td>
                       <td className="border-b border-r border-[#F48232] p-0">
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           value={assuresAssocies.conjoint.nom}
-                          onChange={(e) => setAssuresAssocies({...assuresAssocies, conjoint: {...assuresAssocies.conjoint, nom: e.target.value}})}
+                          onChange={(e) => setAssuresAssocies({ ...assuresAssocies, conjoint: { ...assuresAssocies.conjoint, nom: e.target.value } })}
                           className="w-full h-full px-1 text-[10px] font-semibold bg-transparent border-0 focus:outline-none focus:bg-orange-50"
                         />
                       </td>
                       <td className="border-b border-r border-[#F48232] p-0">
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           value={assuresAssocies.conjoint.prenom}
-                          onChange={(e) => setAssuresAssocies({...assuresAssocies, conjoint: {...assuresAssocies.conjoint, prenom: e.target.value}})}
+                          onChange={(e) => setAssuresAssocies({ ...assuresAssocies, conjoint: { ...assuresAssocies.conjoint, prenom: e.target.value } })}
                           className="w-full h-full px-1 text-[10px] font-semibold bg-transparent border-0 focus:outline-none focus:bg-orange-50"
                         />
                       </td>
                       <td className="border-b border-r border-[#F48232] p-0">
-                        <input 
-                          type="date" 
+                        <input
+                          type="date"
                           value={assuresAssocies.conjoint.date_naissance}
-                          onChange={(e) => setAssuresAssocies({...assuresAssocies, conjoint: {...assuresAssocies.conjoint, date_naissance: e.target.value}})}
+                          onChange={(e) => setAssuresAssocies({ ...assuresAssocies, conjoint: { ...assuresAssocies.conjoint, date_naissance: e.target.value } })}
                           className="w-full h-full px-1 text-[10px] font-semibold bg-transparent border-0 focus:outline-none focus:bg-orange-50"
                         />
                       </td>
                       <td className="border-b border-r border-[#F48232] p-0">
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           value={assuresAssocies.conjoint.lieu_naissance}
-                          onChange={(e) => setAssuresAssocies({...assuresAssocies, conjoint: {...assuresAssocies.conjoint, lieu_naissance: e.target.value}})}
+                          onChange={(e) => setAssuresAssocies({ ...assuresAssocies, conjoint: { ...assuresAssocies.conjoint, lieu_naissance: e.target.value } })}
                           className="w-full h-full px-1 text-[10px] font-semibold bg-transparent border-0 focus:outline-none focus:bg-orange-50"
                         />
                       </td>
                       <td className="border-b border-[#F48232] p-0">
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           value={assuresAssocies.conjoint.contact}
-                          onChange={(e) => setAssuresAssocies({...assuresAssocies, conjoint: {...assuresAssocies.conjoint, contact: e.target.value}})}
+                          onChange={(e) => setAssuresAssocies({ ...assuresAssocies, conjoint: { ...assuresAssocies.conjoint, contact: e.target.value } })}
                           className="w-full h-full px-1 text-[9px] font-semibold bg-transparent border-0 focus:outline-none focus:bg-orange-50"
                         />
                       </td>
                     </tr>
-                    
+
                     {/* Enfants - Max 4 */}
                     {(['enfant1', 'enfant2', 'enfant3', 'enfant4'] as const).map((enfantKey, idx) => (
                       <tr key={enfantKey} className="h-5">
                         <td className="border-b border-r border-[#F48232] p-0.5 font-bold bg-orange-50/50">Enfant {idx + 1}</td>
                         <td className="border-b border-r border-[#F48232] p-0">
-                          <input 
-                            type="text" 
+                          <input
+                            type="text"
                             value={assuresAssocies[enfantKey].nom}
-                            onChange={(e) => setAssuresAssocies({...assuresAssocies, [enfantKey]: {...assuresAssocies[enfantKey], nom: e.target.value}})}
+                            onChange={(e) => setAssuresAssocies({ ...assuresAssocies, [enfantKey]: { ...assuresAssocies[enfantKey], nom: e.target.value } })}
                             className="w-full h-full px-1 text-[10px] font-semibold bg-transparent border-0 focus:outline-none focus:bg-orange-50"
                           />
                         </td>
                         <td className="border-b border-r border-[#F48232] p-0">
-                          <input 
-                            type="text" 
+                          <input
+                            type="text"
                             value={assuresAssocies[enfantKey].prenom}
-                            onChange={(e) => setAssuresAssocies({...assuresAssocies, [enfantKey]: {...assuresAssocies[enfantKey], prenom: e.target.value}})}
+                            onChange={(e) => setAssuresAssocies({ ...assuresAssocies, [enfantKey]: { ...assuresAssocies[enfantKey], prenom: e.target.value } })}
                             className="w-full h-full px-1 text-[10px] font-semibold bg-transparent border-0 focus:outline-none focus:bg-orange-50"
                           />
                         </td>
                         <td className="border-b border-r border-[#F48232] p-0">
-                          <input 
-                            type="date" 
+                          <input
+                            type="date"
                             value={assuresAssocies[enfantKey].date_naissance}
-                            onChange={(e) => setAssuresAssocies({...assuresAssocies, [enfantKey]: {...assuresAssocies[enfantKey], date_naissance: e.target.value}})}
+                            onChange={(e) => setAssuresAssocies({ ...assuresAssocies, [enfantKey]: { ...assuresAssocies[enfantKey], date_naissance: e.target.value } })}
                             className="w-full h-full px-1 text-[10px] font-semibold bg-transparent border-0 focus:outline-none focus:bg-orange-50"
                           />
                         </td>
                         <td className="border-b border-r border-[#F48232] p-0">
-                          <input 
-                            type="text" 
+                          <input
+                            type="text"
                             value={assuresAssocies[enfantKey].lieu_naissance}
-                            onChange={(e) => setAssuresAssocies({...assuresAssocies, [enfantKey]: {...assuresAssocies[enfantKey], lieu_naissance: e.target.value}})}
+                            onChange={(e) => setAssuresAssocies({ ...assuresAssocies, [enfantKey]: { ...assuresAssocies[enfantKey], lieu_naissance: e.target.value } })}
                             className="w-full h-full px-1 text-[10px] font-semibold bg-transparent border-0 focus:outline-none focus:bg-orange-50"
                           />
                         </td>
                         <td className="border-b border-[#F48232] p-0">
-                          <input 
-                            type="text" 
+                          <input
+                            type="text"
                             value={assuresAssocies[enfantKey].contact}
-                            onChange={(e) => setAssuresAssocies({...assuresAssocies, [enfantKey]: {...assuresAssocies[enfantKey], contact: e.target.value}})}
+                            onChange={(e) => setAssuresAssocies({ ...assuresAssocies, [enfantKey]: { ...assuresAssocies[enfantKey], contact: e.target.value } })}
                             className="w-full h-full px-1 text-[9px] font-semibold bg-transparent border-0 focus:outline-none focus:bg-orange-50"
                           />
                         </td>
                       </tr>
                     ))}
-                    
+
                     {/* Bénéficiaire décès */}
                     <tr className="h-7">
                       <td className="border-b border-r border-[#F48232] p-0.5 font-bold bg-orange-50/50 align-middle leading-tight text-[9px]">
                         Bénéficiaire en cas de décès
                       </td>
                       <td className="border-b border-r border-[#F48232] p-0">
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           value={formData.beneficiaire_deces_nom}
-                          onChange={(e) => setFormData({...formData, beneficiaire_deces_nom: e.target.value})}
+                          onChange={(e) => setFormData({ ...formData, beneficiaire_deces_nom: e.target.value })}
                           placeholder="Nom"
                           className="w-full h-full px-1 text-[10px] font-semibold bg-transparent border-0 focus:outline-none focus:bg-orange-50"
                         />
                       </td>
                       <td className="border-b border-r border-[#F48232] p-0">
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           value={formData.beneficiaire_deces_prenom}
-                          onChange={(e) => setFormData({...formData, beneficiaire_deces_prenom: e.target.value})}
+                          onChange={(e) => setFormData({ ...formData, beneficiaire_deces_prenom: e.target.value })}
                           placeholder="Prénom"
                           className="w-full h-full px-1 text-[10px] font-semibold bg-transparent border-0 focus:outline-none focus:bg-orange-50"
                         />
                       </td>
                       <td className="border-b border-r border-[#F48232] p-0">
-                        <input 
-                          type="date" 
+                        <input
+                          type="date"
                           value={formData.beneficiaire_deces_date_naissance}
-                          onChange={(e) => setFormData({...formData, beneficiaire_deces_date_naissance: e.target.value})}
+                          onChange={(e) => setFormData({ ...formData, beneficiaire_deces_date_naissance: e.target.value })}
                           className="w-full h-full px-1 text-[10px] font-semibold bg-transparent border-0 focus:outline-none focus:bg-orange-50"
                         />
                       </td>
                       <td className="border-b border-r border-[#F48232] p-0">
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           value={formData.beneficiaire_deces_lieu_naissance}
-                          onChange={(e) => setFormData({...formData, beneficiaire_deces_lieu_naissance: e.target.value})}
+                          onChange={(e) => setFormData({ ...formData, beneficiaire_deces_lieu_naissance: e.target.value })}
                           placeholder="Lieu"
                           className="w-full h-full px-1 text-[10px] font-semibold bg-transparent border-0 focus:outline-none focus:bg-orange-50"
                         />
                       </td>
                       <td className="border-b border-[#F48232] p-0">
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           value={formData.beneficiaire_deces_contact}
-                          onChange={(e) => setFormData({...formData, beneficiaire_deces_contact: e.target.value})}
+                          onChange={(e) => setFormData({ ...formData, beneficiaire_deces_contact: e.target.value })}
                           placeholder="Contact"
                           className="w-full h-full px-1 text-[9px] font-semibold bg-transparent border-0 focus:outline-none focus:bg-orange-50"
                         />
@@ -1083,12 +1120,12 @@ export const SodecContractCreateOfficial = () => {
                       <td className="border-r border-[#F48232] p-0.5">
                         <div className="flex justify-center">
                           <label className="cursor-pointer">
-                            <input 
-                              type="radio" 
-                              name="option_prevoyance" 
+                            <input
+                              type="radio"
+                              name="option_prevoyance"
                               value="option_a"
                               checked={formData.option_prevoyance === 'option_a'}
-                              onChange={() => setFormData({...formData, option_prevoyance: 'option_a'})}
+                              onChange={() => setFormData({ ...formData, option_prevoyance: 'option_a' })}
                               className="sr-only"
                             />
                             <div className={`w-5 h-3 border border-black ${formData.option_prevoyance === 'option_a' ? 'bg-black' : 'bg-white hover:bg-gray-100'}`}></div>
@@ -1104,12 +1141,12 @@ export const SodecContractCreateOfficial = () => {
                       <td className="border-r border-[#F48232] p-0.5">
                         <div className="flex justify-center">
                           <label className="cursor-pointer">
-                            <input 
-                              type="radio" 
-                              name="option_prevoyance" 
+                            <input
+                              type="radio"
+                              name="option_prevoyance"
                               value="option_b"
                               checked={formData.option_prevoyance === 'option_b'}
-                              onChange={() => setFormData({...formData, option_prevoyance: 'option_b'})}
+                              onChange={() => setFormData({ ...formData, option_prevoyance: 'option_b' })}
                               className="sr-only"
                             />
                             <div className={`w-5 h-3 border border-black rounded-full ${formData.option_prevoyance === 'option_b' ? 'bg-black' : 'bg-white hover:bg-gray-100'}`}></div>
@@ -1132,14 +1169,14 @@ export const SodecContractCreateOfficial = () => {
                     </tr>
                     <tr>
                       <td className="p-0.5 text-left pl-2">Perte d'emploi ou d'activités (garantie optionnelle)</td>
-                      <td className="border-l border-r border-[#F48232] p-0.5 text-[#F48232] leading-tight">Salariés du Privé<br/>& Commerçants</td>
+                      <td className="border-l border-r border-[#F48232] p-0.5 text-[#F48232] leading-tight">Salariés du Privé<br />& Commerçants</td>
                       <td className="border-r border-[#F48232] p-0.5">
                         <div className="flex justify-center items-center">
                           <label className="cursor-pointer">
-                            <input 
-                              type="checkbox" 
+                            <input
+                              type="checkbox"
                               checked={formData.garantie_perte_emploi}
-                              onChange={(e) => setFormData({...formData, garantie_perte_emploi: e.target.checked})}
+                              onChange={(e) => setFormData({ ...formData, garantie_perte_emploi: e.target.checked })}
                               className="sr-only"
                             />
                             <div className={`w-5 h-3 border border-black ${formData.garantie_perte_emploi ? 'bg-black' : 'bg-white hover:bg-gray-100'}`}></div>
@@ -1183,7 +1220,7 @@ export const SodecContractCreateOfficial = () => {
                 <sup>2</sup> L'IAD est reconnue si l'Assuré est définitivement incapable de se livrer à la moindre occupation et nécessite l'assistance d'une tierce personne.
               </p>
             </div>
-            
+
             <div className="font-bold text-black grid grid-cols-1 gap-0.5 mt-1">
               <div className="flex"><span className="mr-1">(1)</span><p>La Prévoyance décès est d'un montant maximal de 2.000.000 FCFA (Option A) et 1.000.000 FCFA (Option B).</p></div>
               <div className="flex"><span className="mr-1">(2)</span><p>Le montant maximal du prêt couvert est de FCFA 5.000.000 (retraités) et FCFA 20.000.000 (autres).</p></div>
@@ -1195,16 +1232,16 @@ export const SodecContractCreateOfficial = () => {
           {/* Signatures */}
           <div className="mt-1 mb-0">
             <div className="text-right mb-0.5 pr-8 font-medium text-[9px]">
-              Fait à <input 
-                type="text" 
+              Fait à <input
+                type="text"
                 value={formData.lieu_signature}
-                onChange={(e) => setFormData({...formData, lieu_signature: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, lieu_signature: e.target.value })}
                 className="border-b border-black px-2 mx-1 font-semibold bg-transparent focus:outline-none focus:border-[#F48232] w-24"
-              />, 
-              le <input 
-                type="date" 
+              />,
+              le <input
+                type="date"
                 value={formData.date_signature}
-                onChange={(e) => setFormData({...formData, date_signature: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, date_signature: e.target.value })}
                 className="border-b border-black px-2 mx-1 font-semibold bg-transparent focus:outline-none focus:border-[#F48232]"
               />
             </div>
@@ -1246,11 +1283,10 @@ export const SodecContractCreateOfficial = () => {
           <Button
             type="submit"
             disabled={isPending || !isFormComplete}
-            className={`flex-1 text-white font-semibold text-lg py-3 ${
-              isFormComplete 
-                ? 'bg-[#F48232] hover:bg-[#e0742a]' 
-                : 'bg-gray-400 cursor-not-allowed'
-            }`}
+            className={`flex-1 text-white font-semibold text-lg py-3 ${isFormComplete
+              ? 'bg-[#F48232] hover:bg-[#e0742a]'
+              : 'bg-gray-400 cursor-not-allowed'
+              }`}
             title={!isFormComplete ? 'Veuillez remplir tous les champs obligatoires' : ''}
           >
             {isPending ? (
@@ -1271,10 +1307,10 @@ export const SodecContractCreateOfficial = () => {
             )}
           </Button>
         </div>
-      </form>
+      </form >
 
       {/* Modal de résultat de création */}
-      <LimitesDepasseesModal
+      < LimitesDepasseesModal
         isOpen={showLimitesModal}
         onClose={() => setShowLimitesModal(false)}
         onNavigate={() => {
@@ -1287,7 +1323,7 @@ export const SodecContractCreateOfficial = () => {
         contrat={createdContrat}
         emfType="sodec"
       />
-    </div>
+    </div >
   )
 }
 

@@ -15,9 +15,9 @@ interface DisplayFieldProps {
   className?: string
 }
 
-const DisplayField: React.FC<DisplayFieldProps> = ({ 
-  label, 
-  value = '', 
+const DisplayField: React.FC<DisplayFieldProps> = ({
+  label,
+  value = '',
   className = ""
 }) => (
   <div className="flex items-end w-full">
@@ -40,8 +40,12 @@ interface CheckboxDisplayProps {
 
 const CheckboxDisplay: React.FC<CheckboxDisplayProps> = ({ label, checked = false }) => (
   <div className="flex items-center mr-3">
-    <div className={`w-4 h-4 border-2 border-black mr-1 flex items-center justify-center ${checked ? 'bg-black' : 'bg-white'}`}>
-      {checked && <div className="w-2 h-2 bg-white" />}
+    <div className={`w-4 h-4 border-2 border-black mr-1 flex items-center justify-center ${checked ? 'bg-white' : 'bg-white'}`}>
+      {checked && (
+        <svg className="w-3 h-3 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M5 13l4 4L19 7" />
+        </svg>
+      )}
     </div>
     <span className="text-[10px] text-gray-800">{label}</span>
   </div>
@@ -62,7 +66,7 @@ const Footer: React.FC = () => {
       <div className="mb-1">
         R.C.C.M : N° GA - LBV - 01 - 2024 - B14 - 00003 | N° STATISTIQUE : 202401003647 R
       </div>
-      
+
       <div className="flex justify-between items-start border-t border-gray-300 pt-0.5 px-2">
         <div className="flex flex-col items-center w-1/3">
           <MapPin size={10} className="mb-0 text-gray-500" />
@@ -116,7 +120,7 @@ export const BambooContratPrint = ({ contrat }: BambooContratPrintProps) => {
 
   return (
     <div className="bg-white w-[210mm] min-h-[297mm] p-[6mm] shadow-xl relative flex flex-col mx-auto print:shadow-none">
-      
+
       {/* Header */}
       <div className="flex flex-col items-center mb-2">
         <div className="mb-0">
@@ -136,7 +140,7 @@ export const BambooContratPrint = ({ contrat }: BambooContratPrintProps) => {
 
       {/* Form Body - Table Structure */}
       <div className="border border-[#F48232] w-full flex flex-col text-[10px]">
-        
+
         {/* Section: Couverture */}
         <div className="flex border-b border-[#F48232]">
           <div className="w-28 flex-shrink-0 p-1.5 bg-orange-50 italic border-r border-[#F48232] flex items-center text-xs">
@@ -150,20 +154,20 @@ export const BambooContratPrint = ({ contrat }: BambooContratPrintProps) => {
                 {contrat.numero_police || ''}
               </span>
             </div>
-            <DisplayField 
-              label="Montant du prêt assuré :" 
+            <DisplayField
+              label="Montant du prêt assuré :"
               value={montant ? formatCurrency(montant) : undefined}
             />
-            <DisplayField 
-              label="Durée du prêt :" 
+            <DisplayField
+              label="Durée du prêt :"
               value={contrat.duree_pret_mois ? `${contrat.duree_pret_mois} mois` : undefined}
             />
-            <DisplayField 
-              label="Date d'effet :" 
+            <DisplayField
+              label="Date d'effet :"
               value={formatDate(contrat.date_effet)}
             />
-            <DisplayField 
-              label="Date de fin d'échéance :" 
+            <DisplayField
+              label="Date de fin d'échéance :"
               value={formatDate(contrat.date_fin_echeance)}
             />
           </div>
@@ -175,30 +179,30 @@ export const BambooContratPrint = ({ contrat }: BambooContratPrintProps) => {
             Assuré/Emprunteur
           </div>
           <div className="flex-grow p-1.5 space-y-1">
-            <DisplayField 
-              label="Nom & Prénom :" 
+            <DisplayField
+              label="Nom & Prénom :"
               value={contrat.nom_prenom}
             />
             <div className="flex gap-2">
-              <DisplayField 
-                label="Adresse :" 
+              <DisplayField
+                label="Adresse :"
                 value={contrat.adresse_assure}
                 className="flex-grow-[2]"
               />
-              <DisplayField 
-                label="Ville :" 
+              <DisplayField
+                label="Ville :"
                 value={contrat.ville_assure}
                 className="flex-grow-[1]"
               />
             </div>
             <div className="flex gap-2">
-              <DisplayField 
-                label="Téléphone :" 
+              <DisplayField
+                label="Téléphone :"
                 value={contrat.telephone_assure}
                 className="flex-grow-[1]"
               />
-              <DisplayField 
-                label="Email:" 
+              <DisplayField
+                label="Email:"
                 value={contrat.email_assure}
                 className="flex-grow-[2]"
               />
@@ -206,14 +210,14 @@ export const BambooContratPrint = ({ contrat }: BambooContratPrintProps) => {
             <div className="flex flex-wrap items-center mt-1 gap-y-1">
               <span className="mr-1 text-xs">Catégorie :</span>
               {categories.map(cat => (
-                <CheckboxDisplay 
-                  key={cat.key} 
-                  label={cat.label} 
+                <CheckboxDisplay
+                  key={cat.key}
+                  label={cat.label}
                   checked={contrat.categorie === cat.key}
                 />
               ))}
-              <CheckboxDisplay 
-                label="Autre" 
+              <CheckboxDisplay
+                label="Autre"
                 checked={contrat.categorie === 'autre'}
               />
               <div className="flex items-center">
@@ -231,8 +235,8 @@ export const BambooContratPrint = ({ contrat }: BambooContratPrintProps) => {
             )}
             {/* Bénéficiaire Prévoyance */}
             <div className="mt-2 pt-2 border-t border-dashed border-gray-300">
-              <DisplayField 
-                label="Bénéficiaire de la garantie Prévoyance :" 
+              <DisplayField
+                label="Bénéficiaire de la garantie Prévoyance :"
                 value={contrat.beneficiaire_prevoyance}
               />
             </div>
@@ -254,8 +258,8 @@ export const BambooContratPrint = ({ contrat }: BambooContratPrintProps) => {
                 <span className="mr-1 whitespace-nowrap text-xs">Adresse :</span>
                 <span className="font-bold mr-2 text-xs">B.P. 16.100, Boulevard Triomphal</span>
               </div>
-              <DisplayField 
-                label="Agence :" 
+              <DisplayField
+                label="Agence :"
                 value={contrat.agence}
                 className="w-32"
               />
@@ -294,7 +298,13 @@ export const BambooContratPrint = ({ contrat }: BambooContratPrintProps) => {
                   <td className="border-l border-r border-[#F48232] p-1 text-[#F48232]">Toute catégorie</td>
                   <td className="border-r border-[#F48232] p-1">
                     <div className="flex justify-center">
-                      <div className={`w-6 h-4 border border-black ${(contrat.garantie_prevoyance || contrat.garantie_prevoyance_deces_iad) ? 'bg-black' : 'bg-white'}`}></div>
+                      <div className={`w-6 h-4 border border-black flex items-center justify-center bg-white`}>
+                        {(contrat.garantie_prevoyance || contrat.garantie_prevoyance_deces_iad) && (
+                          <svg className="w-3 h-3 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </div>
                     </div>
                   </td>
                   <td className="border-r border-[#F48232] p-1 bg-gray-200 text-gray-500">N/A</td>
@@ -306,7 +316,13 @@ export const BambooContratPrint = ({ contrat }: BambooContratPrintProps) => {
                   <td className="border-l border-r border-[#F48232] p-1 text-[#F48232]">Toute catégorie</td>
                   <td className="border-r border-[#F48232] p-1">
                     <div className="flex justify-center">
-                      <div className={`w-6 h-4 border border-black ${contrat.garantie_deces_iad ? 'bg-black' : 'bg-white'}`}></div>
+                      <div className={`w-6 h-4 border border-black flex items-center justify-center bg-white`}>
+                        {contrat.garantie_deces_iad && (
+                          <svg className="w-3 h-3 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </div>
                     </div>
                   </td>
                   <td className="border-r border-[#F48232] p-1 text-[#F48232] font-bold">1,00%</td>
@@ -315,10 +331,16 @@ export const BambooContratPrint = ({ contrat }: BambooContratPrintProps) => {
                 {/* Perte d'emploi */}
                 <tr className={`${contrat.garantie_perte_emploi ? 'bg-orange-50' : ''}`}>
                   <td className="p-1 text-left pl-2 font-medium bg-gray-100">Perte d'emploi ou d'activités (garantie optionnelle)</td>
-                  <td className="border-l border-r border-[#F48232] p-1 text-[#F48232] leading-tight">Salariés du Privé<br/>& Commerçants</td>
+                  <td className="border-l border-r border-[#F48232] p-1 text-[#F48232] leading-tight">Salariés du Privé<br />& Commerçants</td>
                   <td className="border-r border-[#F48232] p-1">
                     <div className="flex justify-center">
-                      <div className={`w-6 h-4 border border-black ${contrat.garantie_perte_emploi ? 'bg-black' : 'bg-white'}`}></div>
+                      <div className={`w-6 h-4 border border-black flex items-center justify-center bg-white`}>
+                        {contrat.garantie_perte_emploi && (
+                          <svg className="w-3 h-3 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </div>
                     </div>
                   </td>
                   <td className="border-r border-[#F48232] p-1 text-[#F48232] font-bold">1,50%</td>
@@ -349,14 +371,14 @@ export const BambooContratPrint = ({ contrat }: BambooContratPrintProps) => {
       {/* Footnotes */}
       <div className="mt-2 space-y-0.5 text-[9px] text-black font-bold">
         <p>(1) La Prévoyance est d'un montant maximal de 250.000 FCFA et pour une durée égale à la durée du prêt accordé à l'Assuré.</p>
-        <p>(2) Le montant maximal du prêt couvert est de FCFA 5.000.000 pour une durée de 48 mois.</p>
-        <p>(3) La durée maximale d'indemnisation pour la garantie Perte d'emploi ou d'Activités est de 06 mois pour un montant maximal de couverture de FCFA 2.500.000.</p>
+        <p>(2) Le montant maximal du prêt couvert est de FCFA 50.000.000 pour une durée de 48 mois.</p>
+        <p>(3) La durée maximale d'indemnisation pour la garantie Perte d'emploi ou d'Activités est de 06 mois pour un montant maximal de couverture de FCFA 50.000.000.</p>
       </div>
 
       {/* Signatures */}
       <div className="mt-auto mb-2">
         <div className="text-right mb-2 pr-8 font-medium text-[10px]">
-          Fait à <span className="border-b border-black px-2 mx-1 font-semibold">{contrat.lieu_signature || 'Libreville'}</span>, 
+          Fait à <span className="border-b border-black px-2 mx-1 font-semibold">{contrat.lieu_signature || 'Libreville'}</span>,
           le <span className="border-b border-black px-2 mx-1 font-semibold">{formatDate(contrat.date_signature || contrat.created_at)}</span>
         </div>
 

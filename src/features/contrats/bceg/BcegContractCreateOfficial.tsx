@@ -12,9 +12,9 @@ import logoSamba from '@/assets/logo-samba.png'
 const Logo: React.FC = () => {
   return (
     <div className="flex flex-col items-center justify-center mb-0">
-      <img 
-        src={logoSamba} 
-        alt="SAMB'A Assurances" 
+      <img
+        src={logoSamba}
+        alt="SAMB'A Assurances"
         className="h-[80px] w-auto"
       />
     </div>
@@ -48,10 +48,16 @@ const GarantieRow: React.FC<{
   <tr className={`border-b border-[#F48232] last:border-0 hover:bg-orange-50/50 ${isSelected ? 'bg-orange-100' : ''}`}>
     <td className="p-1.5 text-left pl-3 border-r border-[#F48232] text-[10px]">{label}</td>
     <td className="p-1 border-r border-[#F48232]">
-      <div 
+      <div
         onClick={onClick}
-        className={`w-6 h-4 border border-black rounded-sm mx-auto cursor-pointer transition-colors ${isSelected ? 'bg-[#F48232]' : 'bg-white hover:bg-orange-50'}`}
-      />
+        className={`w-6 h-4 border border-black rounded-sm mx-auto cursor-pointer transition-colors flex items-center justify-center ${isSelected ? 'bg-white' : 'bg-white hover:bg-gray-50'}`}
+      >
+        {isSelected && (
+          <svg className="w-4 h-4 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M5 13l4 4L19 7" />
+          </svg>
+        )}
+      </div>
     </td>
     <td className="p-1.5 border-r border-[#F48232] text-center text-[10px]">{rate}</td>
     <td className="p-1.5 text-center text-[10px]">{prime}</td>
@@ -75,8 +81,12 @@ const Checkbox: React.FC<CheckboxProps> = ({ label, checked = false, onChange, d
       disabled={disabled}
       className="sr-only"
     />
-    <div className={`w-4 h-4 border-2 border-black mr-2 flex items-center justify-center transition-colors ${checked ? 'bg-black' : 'bg-white'} ${!disabled && 'hover:bg-gray-100'}`}>
-      {checked && <div className="w-2 h-2 bg-white" />}
+    <div className={`w-4 h-4 border-2 border-black mr-2 flex items-center justify-center transition-colors bg-white ${!disabled && 'hover:bg-gray-100'}`}>
+      {checked && (
+        <svg className="w-3 h-3 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M5 13l4 4L19 7" />
+        </svg>
+      )}
     </div>
     <span className="text-xs text-gray-800">{label}</span>
   </label>
@@ -127,24 +137,44 @@ export const BcegContractCreateOfficial = () => {
 
   const { mutate: createContract, isPending, isError, error } = useCreateBcegContract()
 
+  const [formErrors, setFormErrors] = useState<{ montant_pret?: string, duree_pret_mois?: string }>({})
+
+  // Validation stricte des champs
+  useEffect(() => {
+    const errors: { montant_pret?: string, duree_pret_mois?: string } = {}
+    const montant = parseInt(formData.montant_pret) || 0
+    const duree = parseInt(formData.duree_pret_mois) || 0
+
+    if (montant > 50000000) {
+      errors.montant_pret = "Max 50 000 000 FCFA"
+    }
+    if (duree > 60) {
+      errors.duree_pret_mois = "Max 60 mois"
+    }
+
+    setFormErrors(errors)
+  }, [formData.montant_pret, formData.duree_pret_mois])
+
   // ═══════════════════════════════════════════════════════════════════
   // 🔒 VALIDATION PROGRESSIVE - Activation des sections par étapes
   // ═══════════════════════════════════════════════════════════════════
-  
+
   // Section 1: Couverture Prêt (toujours active)
   const isSection1Complete = Boolean(
-    formData.montant_pret && 
-    formData.duree_pret_mois && 
-    formData.date_effet
+    formData.montant_pret &&
+    formData.duree_pret_mois &&
+    formData.date_effet &&
+    !formErrors.montant_pret &&
+    !formErrors.duree_pret_mois
   )
 
   // Section 2: Assuré (active si Section 1 complète)
   const isSection2Enabled = isSection1Complete
   const isSection2Complete = Boolean(
-    formData.nom.trim() && 
-    formData.prenom.trim() && 
-    formData.adresse_assure.trim() && 
-    formData.ville_assure.trim() && 
+    formData.nom.trim() &&
+    formData.prenom.trim() &&
+    formData.adresse_assure.trim() &&
+    formData.ville_assure.trim() &&
     formData.telephone_assure.trim()
   )
 
@@ -194,7 +224,7 @@ export const BcegContractCreateOfficial = () => {
   // Calcul cotisation BCEG
   const montant = parseInt(formData.montant_pret) || 0
   const duree = parseInt(formData.duree_pret_mois) || 0
-  
+
   // Taux selon durée
   const getTaux = () => {
     if (duree <= 24) return 0.01  // 1%
@@ -203,14 +233,14 @@ export const BcegContractCreateOfficial = () => {
     if (duree <= 60) return 0.02  // 2%
     return 0
   }
-  
+
   const tauxApplique = getTaux()
   const cotisationDeces = montant * tauxApplique
   const cotisationPrevoyance = formData.garantie_prevoyance ? 10000 : 0
   const cotisationTotale = cotisationDeces + cotisationPrevoyance
 
   // Validation des règles métier
-  const montantMaxPret = 20000000
+  const montantMaxPret = 50000000
   const dureeMaxPret = 60
   const isContractValid = montant > 0 && montant <= montantMaxPret && duree > 0 && duree <= dureeMaxPret
 
@@ -229,8 +259,8 @@ export const BcegContractCreateOfficial = () => {
               <br />
               Ce formulaire est réservé aux utilisateurs BCEG.
             </p>
-            <Button 
-              onClick={() => navigate(-1)} 
+            <Button
+              onClick={() => navigate(-1)}
               className="bg-red-600 hover:bg-red-700 text-white"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
@@ -244,7 +274,7 @@ export const BcegContractCreateOfficial = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     console.log('═══════════════════════════════════════════════════════════════')
     console.log('📋 ÉTAPE 1: Validation des champs obligatoires...')
 
@@ -275,6 +305,11 @@ export const BcegContractCreateOfficial = () => {
       return
     }
 
+    if (Object.keys(formErrors).length > 0) {
+      setSubmitError('Veuillez corriger les erreurs de validation dans le formulaire.')
+      return
+    }
+
     console.log('✅ ÉTAPE 1: Tous les champs obligatoires sont remplis')
     console.log('📋 ÉTAPE 2: Construction du payload...')
 
@@ -298,7 +333,7 @@ export const BcegContractCreateOfficial = () => {
       garantie_deces_iad: formData.garantie_deces_iad,
       garantie_prevoyance: formData.garantie_prevoyance,
       agence: formData.agence?.trim() || undefined,
-      statut: isContractValid ? 'actif' : 'en_attente',
+      statut: 'actif',
     }
 
     console.log('✅ ÉTAPE 2: Payload construit')
@@ -312,7 +347,7 @@ export const BcegContractCreateOfficial = () => {
         console.log('   ID:', data.id)
         console.log('   Numéro police:', data.numero_police)
         console.log('═══════════════════════════════════════════════════════════════')
-        
+
         navigate(`/contrats/bceg/${data.id}`, {
           state: { success: 'Contrat créé avec succès !' }
         })
@@ -325,7 +360,7 @@ export const BcegContractCreateOfficial = () => {
         console.error('   Erreurs de validation:', error.response?.data?.errors)
         console.error('   Données reçues:', JSON.stringify(error.response?.data, null, 2))
         console.error('═══════════════════════════════════════════════════════════════')
-        
+
         // Afficher les erreurs de validation détaillées
         if (error.response?.status === 422 && error.response?.data?.errors) {
           const validationErrors = error.response.data.errors
@@ -358,7 +393,7 @@ export const BcegContractCreateOfficial = () => {
           <ArrowLeft className="h-4 w-4 mr-2" />
           Retour
         </Button>
-        
+
         <div className="flex items-center gap-2">
           {isContractValid ? (
             <span className="flex items-center gap-1 text-green-600 text-sm font-medium">
@@ -378,22 +413,21 @@ export const BcegContractCreateOfficial = () => {
             <Printer className="h-4 w-4 mr-2" />
             Imprimer
           </Button>
-          <Button 
+          <Button
             onClick={handleSubmit}
-            disabled={isPending || !isFormComplete}
-            className={`${
-              isFormComplete 
-                ? 'bg-[#F48232] hover:bg-[#e0742a]' 
-                : 'bg-gray-400 cursor-not-allowed'
-            }`}
-            title={!isFormComplete ? 'Veuillez remplir tous les champs obligatoires' : ''}
+            disabled={isPending || !isFormComplete || Object.keys(formErrors).length > 0}
+            className={`${isFormComplete && Object.keys(formErrors).length === 0
+              ? 'bg-[#F48232] hover:bg-[#e0742a]'
+              : 'bg-gray-400 cursor-not-allowed'
+              }`}
+            title={!isFormComplete ? 'Veuillez remplir tous les champs obligatoires' : (Object.keys(formErrors).length > 0 ? 'Veuillez corriger les erreurs de validation' : '')}
           >
             {isPending ? (
               <>
                 <LoadingSpinner size="sm" />
                 <span className="ml-2">Création en cours...</span>
               </>
-            ) : !isFormComplete ? (
+            ) : !isFormComplete || Object.keys(formErrors).length > 0 ? (
               <>
                 <AlertCircle className="h-4 w-4 mr-2" />
                 Remplir les champs obligatoires
@@ -431,8 +465,8 @@ export const BcegContractCreateOfficial = () => {
               {isSection2Complete ? <CheckCircle className="h-4 w-4" /> : <span className="w-4 h-4 rounded-full border-2 border-current" />}
               <span>Assuré</span>
             </div>
-            <div className={`flex items-center gap-1 px-2 py-1 rounded ${isFormComplete ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'}`}>
-              {isFormComplete ? <CheckCircle className="h-4 w-4" /> : <span className="w-4 h-4 rounded-full border-2 border-current" />}
+            <div className={`flex items-center gap-1 px-2 py-1 rounded ${isFormComplete && Object.keys(formErrors).length === 0 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'}`}>
+              {isFormComplete && Object.keys(formErrors).length === 0 ? <CheckCircle className="h-4 w-4" /> : <span className="w-4 h-4 rounded-full border-2 border-current" />}
               <span>Prêt à créer</span>
             </div>
           </div>
@@ -472,7 +506,7 @@ export const BcegContractCreateOfficial = () => {
 
         {/* Form Body */}
         <div className="border-2 border-[#F48232] w-full flex flex-col text-sm">
-          
+
           {/* Section: Couverture */}
           <div className="flex border-b border-[#F48232]">
             <div className="w-36 flex-shrink-0 p-2 bg-orange-50 italic border-r border-[#F48232] flex items-center text-gray-900 text-xs">
@@ -487,43 +521,49 @@ export const BcegContractCreateOfficial = () => {
                 </span>
               </div>
               <div className="flex gap-4">
-                <div className="flex items-end flex-1 min-w-0">
-                  <span className="text-xs text-gray-800 mr-2 whitespace-nowrap">Montant du prêt :</span>
-                  <input 
-                    type="number"
-                    value={formData.montant_pret}
-                    onChange={(e) => setFormData({...formData, montant_pret: e.target.value})}
-                    className="flex-1 min-w-0 border-b border-gray-800 bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold text-right"
-                    placeholder="0"
-                  />
-                  <span className="text-xs ml-1 flex-shrink-0">FCFA</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-end">
+                    <span className="text-xs text-gray-800 mr-2 whitespace-nowrap">Montant du prêt :</span>
+                    <input
+                      type="number"
+                      value={formData.montant_pret}
+                      onChange={(e) => setFormData({ ...formData, montant_pret: e.target.value })}
+                      className={`flex-1 min-w-0 border-b ${formErrors.montant_pret ? 'border-red-500' : 'border-gray-800'} bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold text-right`}
+                      placeholder="0"
+                    />
+                    <span className="text-xs ml-1 flex-shrink-0">FCFA</span>
+                  </div>
+                  {formErrors.montant_pret && <div className="text-[9px] text-red-600 text-right font-bold mt-0.5">{formErrors.montant_pret}</div>}
                 </div>
-                <div className="flex items-end flex-1 min-w-0">
-                  <span className="text-xs text-gray-800 mr-2 whitespace-nowrap">Durée du prêt :</span>
-                  <input 
-                    type="number"
-                    value={formData.duree_pret_mois}
-                    onChange={(e) => setFormData({...formData, duree_pret_mois: e.target.value})}
-                    className="flex-1 min-w-0 border-b border-gray-800 bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold text-center"
-                    placeholder="0"
-                    max="60"
-                  />
-                  <span className="text-xs ml-1 flex-shrink-0">mois</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-end">
+                    <span className="text-xs text-gray-800 mr-2 whitespace-nowrap">Durée du prêt :</span>
+                    <input
+                      type="number"
+                      value={formData.duree_pret_mois}
+                      onChange={(e) => setFormData({ ...formData, duree_pret_mois: e.target.value })}
+                      className={`flex-1 min-w-0 border-b ${formErrors.duree_pret_mois ? 'border-red-500' : 'border-gray-800'} bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold text-center`}
+                      placeholder="0"
+                      max="60"
+                    />
+                    <span className="text-xs ml-1 flex-shrink-0">mois</span>
+                  </div>
+                  {formErrors.duree_pret_mois && <div className="text-[9px] text-red-600 text-right font-bold mt-0.5">{formErrors.duree_pret_mois}</div>}
                 </div>
               </div>
               <div className="flex gap-4">
                 <div className="flex items-end flex-1 min-w-0">
                   <span className="text-xs text-gray-800 mr-2 whitespace-nowrap">Date d'effet :</span>
-                  <input 
+                  <input
                     type="date"
                     value={formData.date_effet}
-                    onChange={(e) => setFormData({...formData, date_effet: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, date_effet: e.target.value })}
                     className="flex-1 min-w-0 border-b border-gray-800 bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold"
                   />
                 </div>
                 <div className="flex items-end flex-1 min-w-0">
                   <span className="text-xs text-gray-800 mr-2 whitespace-nowrap">Date fin échéance :</span>
-                  <input 
+                  <input
                     type="date"
                     value={formData.date_fin_echeance}
                     readOnly
@@ -543,64 +583,64 @@ export const BcegContractCreateOfficial = () => {
           <div className={`flex border-b border-[#F48232] ${!isSection2Enabled ? 'opacity-50 pointer-events-none' : ''}`}>
             <div className="w-36 flex-shrink-0 p-2 bg-orange-50 italic border-r border-[#F48232] flex items-center text-gray-900 text-xs leading-tight">
               {!isSection2Enabled && <Lock className="h-3 w-3 mr-1" />}
-              Assuré/<br/>Bénéficiaire du prêt
+              Assuré/<br />Bénéficiaire du prêt
             </div>
             <div className="flex-grow p-2 space-y-1.5">
               <div className="flex items-end">
                 <span className="text-xs text-gray-800 mr-2 w-20">Nom :</span>
-                <input 
+                <input
                   type="text"
                   value={formData.nom}
-                  onChange={(e) => setFormData({...formData, nom: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
                   disabled={!isSection2Enabled}
                   className="flex-grow border-b border-gray-800 bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold disabled:bg-gray-100"
                 />
               </div>
               <div className="flex items-end">
                 <span className="text-xs text-gray-800 mr-2 w-20">Prénom :</span>
-                <input 
+                <input
                   type="text"
                   value={formData.prenom}
-                  onChange={(e) => setFormData({...formData, prenom: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, prenom: e.target.value })}
                   disabled={!isSection2Enabled}
                   className="flex-grow border-b border-gray-800 bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold disabled:bg-gray-100"
                 />
               </div>
               <div className="flex items-end">
                 <span className="text-xs text-gray-800 mr-2 w-20">Adresse :</span>
-                <input 
+                <input
                   type="text"
                   value={formData.adresse_assure}
-                  onChange={(e) => setFormData({...formData, adresse_assure: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, adresse_assure: e.target.value })}
                   disabled={!isSection2Enabled}
                   className="flex-grow border-b border-gray-800 bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold disabled:bg-gray-100"
                 />
               </div>
               <div className="flex items-end">
                 <span className="text-xs text-gray-800 mr-2 w-20">Ville :</span>
-                <input 
+                <input
                   type="text"
                   value={formData.ville_assure}
-                  onChange={(e) => setFormData({...formData, ville_assure: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, ville_assure: e.target.value })}
                   disabled={!isSection2Enabled}
                   className="flex-grow border-b border-gray-800 bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold disabled:bg-gray-100"
                 />
               </div>
               <div className="flex items-end">
                 <span className="text-xs text-gray-800 mr-2 w-20">Tél / Email :</span>
-                <input 
+                <input
                   type="text"
                   value={formData.telephone_assure}
-                  onChange={(e) => setFormData({...formData, telephone_assure: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, telephone_assure: e.target.value })}
                   disabled={!isSection2Enabled}
                   className="flex-1 border-b border-gray-800 bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold disabled:bg-gray-100"
                   placeholder="Téléphone"
                 />
                 <span className="mx-2 text-gray-400">/</span>
-                <input 
+                <input
                   type="email"
                   value={formData.email_assure}
-                  onChange={(e) => setFormData({...formData, email_assure: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, email_assure: e.target.value })}
                   disabled={!isSection2Enabled}
                   className="flex-1 border-b border-gray-800 bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold disabled:bg-gray-100"
                   placeholder="Email"
@@ -611,41 +651,41 @@ export const BcegContractCreateOfficial = () => {
                 <div className="flex items-start gap-x-3">
                   <span className="text-xs text-gray-800 whitespace-nowrap pt-0.5">Catégorie :</span>
                   <div className="grid grid-cols-3 gap-x-4 gap-y-1">
-                    <Checkbox 
-                      label="Commerçants" 
+                    <Checkbox
+                      label="Commerçants"
                       checked={formData.categorie === 'commercants'}
-                      onChange={() => setFormData({...formData, categorie: 'commercants'})}
+                      onChange={() => setFormData({ ...formData, categorie: 'commercants' })}
                       disabled={!isSection2Enabled}
                     />
-                    <Checkbox 
-                      label="Sal. public" 
+                    <Checkbox
+                      label="Sal. public"
                       checked={formData.categorie === 'salaries_public'}
-                      onChange={() => setFormData({...formData, categorie: 'salaries_public'})}
+                      onChange={() => setFormData({ ...formData, categorie: 'salaries_public' })}
                       disabled={!isSection2Enabled}
                     />
-                    <Checkbox 
-                      label="Sal. privé" 
+                    <Checkbox
+                      label="Sal. privé"
                       checked={formData.categorie === 'salaries_prive'}
-                      onChange={() => setFormData({...formData, categorie: 'salaries_prive'})}
+                      onChange={() => setFormData({ ...formData, categorie: 'salaries_prive' })}
                       disabled={!isSection2Enabled}
                     />
-                    <Checkbox 
-                      label="Retraités" 
+                    <Checkbox
+                      label="Retraités"
                       checked={formData.categorie === 'retraites'}
-                      onChange={() => setFormData({...formData, categorie: 'retraites'})}
+                      onChange={() => setFormData({ ...formData, categorie: 'retraites' })}
                       disabled={!isSection2Enabled}
                     />
                     <div className="flex items-center col-span-2">
-                      <Checkbox 
-                        label="Autre :" 
+                      <Checkbox
+                        label="Autre :"
                         checked={formData.categorie === 'autre'}
-                        onChange={() => setFormData({...formData, categorie: 'autre'})}
+                        onChange={() => setFormData({ ...formData, categorie: 'autre' })}
                         disabled={!isSection2Enabled}
                       />
-                      <input 
+                      <input
                         type="text"
                         value={formData.autre_categorie_precision}
-                        onChange={(e) => setFormData({...formData, autre_categorie_precision: e.target.value})}
+                        onChange={(e) => setFormData({ ...formData, autre_categorie_precision: e.target.value })}
                         className="border-b border-gray-400 flex-grow bg-transparent focus:outline-none focus:border-[#F48232] text-xs ml-1"
                         placeholder="Préciser..."
                         disabled={!isSection2Enabled || formData.categorie !== 'autre'}
@@ -678,10 +718,10 @@ export const BcegContractCreateOfficial = () => {
               </div>
               <div className="flex items-end">
                 <span className="mr-2 text-gray-800">Agence :</span>
-                <input 
+                <input
                   type="text"
                   value={formData.agence}
-                  onChange={(e) => setFormData({...formData, agence: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, agence: e.target.value })}
                   disabled={!isSection3Enabled}
                   className="flex-grow border-b border-gray-600 bg-transparent text-[10px] px-1 focus:outline-none focus:bg-orange-50 font-semibold disabled:bg-gray-100"
                   placeholder="Nom de l'agence"
@@ -694,34 +734,34 @@ export const BcegContractCreateOfficial = () => {
           <div className={`flex border-b border-[#F48232] ${!isSection4Enabled ? 'opacity-50 pointer-events-none' : ''}`}>
             <div className="w-36 flex-shrink-0 p-2 bg-orange-50 italic border-r border-[#F48232] flex items-center text-gray-900 text-xs leading-tight">
               {!isSection4Enabled && <Lock className="h-3 w-3 mr-1" />}
-              Bénéficiaire de<br/>la Prévoyance
+              Bénéficiaire de<br />la Prévoyance
             </div>
             <div className="flex-grow p-2 space-y-1.5">
               <div className="flex items-end">
                 <span className="text-xs text-gray-800 mr-2 whitespace-nowrap">Nom et Prénom :</span>
-                <input 
+                <input
                   type="text"
                   value={formData.beneficiaire_prevoyance_nom_prenom}
-                  onChange={(e) => setFormData({...formData, beneficiaire_prevoyance_nom_prenom: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, beneficiaire_prevoyance_nom_prenom: e.target.value })}
                   disabled={!isSection4Enabled}
                   className="flex-grow border-b border-gray-800 bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold disabled:bg-gray-100"
                 />
               </div>
               <div className="flex items-end">
                 <span className="text-xs text-gray-800 mr-2 whitespace-nowrap">Adresse et contact :</span>
-                <input 
+                <input
                   type="text"
                   value={formData.beneficiaire_prevoyance_adresse}
-                  onChange={(e) => setFormData({...formData, beneficiaire_prevoyance_adresse: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, beneficiaire_prevoyance_adresse: e.target.value })}
                   disabled={!isSection4Enabled}
                   className="flex-1 border-b border-gray-800 bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold disabled:bg-gray-100"
                   placeholder="Adresse"
                 />
                 <span className="mx-2 text-gray-400">/</span>
-                <input 
+                <input
                   type="text"
                   value={formData.beneficiaire_prevoyance_contact}
-                  onChange={(e) => setFormData({...formData, beneficiaire_prevoyance_contact: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, beneficiaire_prevoyance_contact: e.target.value })}
                   disabled={!isSection4Enabled}
                   className="w-32 border-b border-gray-800 bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold disabled:bg-gray-100"
                   placeholder="Contact"
@@ -747,41 +787,47 @@ export const BcegContractCreateOfficial = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  <GarantieRow 
-                    label="Décès/IAD (Durée max. à 24 mois)" 
-                    rate="1,00%" 
+                  <GarantieRow
+                    label="Décès/IAD (Durée max. à 24 mois)"
+                    rate="1,00%"
                     prime={formData.tranche_duree === 'max_24' ? `${formatCurrency(cotisationDeces)} FCFA` : 'N/A'}
                     isSelected={formData.tranche_duree === 'max_24'}
-                    onClick={() => setFormData({...formData, tranche_duree: 'max_24', duree_pret_mois: '24'})}
+                    onClick={() => setFormData({ ...formData, tranche_duree: 'max_24', duree_pret_mois: '24' })}
                   />
-                  <GarantieRow 
-                    label="Décès/IAD (Durée entre 24 à 36 mois)" 
-                    rate="1,50%" 
+                  <GarantieRow
+                    label="Décès/IAD (Durée entre 24 à 36 mois)"
+                    rate="1,50%"
                     prime={formData.tranche_duree === '24_36' ? `${formatCurrency(cotisationDeces)} FCFA` : 'N/A'}
                     isSelected={formData.tranche_duree === '24_36'}
-                    onClick={() => setFormData({...formData, tranche_duree: '24_36', duree_pret_mois: '36'})}
+                    onClick={() => setFormData({ ...formData, tranche_duree: '24_36', duree_pret_mois: '36' })}
                   />
-                  <GarantieRow 
-                    label="Décès/IAD (Durée entre 36 à 48 mois)" 
-                    rate="1,75%" 
+                  <GarantieRow
+                    label="Décès/IAD (Durée entre 36 à 48 mois)"
+                    rate="1,75%"
                     prime={formData.tranche_duree === '36_48' ? `${formatCurrency(cotisationDeces)} FCFA` : 'N/A'}
                     isSelected={formData.tranche_duree === '36_48'}
-                    onClick={() => setFormData({...formData, tranche_duree: '36_48', duree_pret_mois: '48'})}
+                    onClick={() => setFormData({ ...formData, tranche_duree: '36_48', duree_pret_mois: '48' })}
                   />
-                  <GarantieRow 
-                    label="Décès/IAD (Durée entre 48 à 60 mois)" 
-                    rate="2,00%" 
+                  <GarantieRow
+                    label="Décès/IAD (Durée entre 48 à 60 mois)"
+                    rate="2,00%"
                     prime={formData.tranche_duree === '48_60' ? `${formatCurrency(cotisationDeces)} FCFA` : 'N/A'}
                     isSelected={formData.tranche_duree === '48_60'}
-                    onClick={() => setFormData({...formData, tranche_duree: '48_60', duree_pret_mois: '60'})}
+                    onClick={() => setFormData({ ...formData, tranche_duree: '48_60', duree_pret_mois: '60' })}
                   />
                   <tr className="border-t border-[#F48232]">
                     <td className="p-1.5 text-left pl-3 border-r border-[#F48232] font-medium text-[10px]">Prévoyance Décès/IAD</td>
                     <td className="border-r border-[#F48232] p-1">
-                      <div 
-                        onClick={() => setFormData({...formData, garantie_prevoyance: !formData.garantie_prevoyance})}
-                        className={`w-6 h-4 border border-black rounded-sm mx-auto cursor-pointer transition-colors ${formData.garantie_prevoyance ? 'bg-gray-800' : 'bg-white'}`}
-                      />
+                      <div
+                        onClick={() => setFormData({ ...formData, garantie_prevoyance: !formData.garantie_prevoyance })}
+                        className={`w-6 h-4 border border-black rounded-sm mx-auto cursor-pointer transition-colors flex items-center justify-center bg-white`}
+                      >
+                        {formData.garantie_prevoyance && (
+                          <svg className="w-4 h-4 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </div>
                     </td>
                     <td className="border-r border-[#F48232] p-1.5 text-[10px]">N/A</td>
                     <td className="p-1.5 font-bold text-[10px]">10 000 FCFA</td>
@@ -810,14 +856,14 @@ export const BcegContractCreateOfficial = () => {
 
         {/* Footnotes */}
         <div className="mt-3 text-[10px] font-bold space-y-0.5 text-black">
-          <p>(1) Le montant maximal de couverture de prêt est de 20 000 000 FCFA</p>
+          <p>(1) Le montant maximal de couverture de prêt est de 50 000 000 FCFA</p>
           <p>(2) La protection forfaitaire est d'un montant de 250 000 FCFA en cas de décès ou d'invalidité absolue et définitive.</p>
         </div>
 
         {/* Signatures */}
         <div className="mt-auto mb-2">
           <div className="text-right mb-4 pr-4 font-medium text-xs">
-            Fait à <span className="border-b border-black px-2 mx-1 font-semibold">{formData.lieu_signature}</span>, 
+            Fait à <span className="border-b border-black px-2 mx-1 font-semibold">{formData.lieu_signature}</span>,
             le <span className="border-b border-black px-2 mx-1 font-semibold">{formatDate(formData.date_signature || new Date().toISOString())}</span>
           </div>
 
@@ -828,7 +874,7 @@ export const BcegContractCreateOfficial = () => {
                 Signature
               </div>
             </div>
-            
+
             <div className="w-[35%] flex flex-col items-center justify-end pb-2 font-bold text-[9px] space-y-0.5 self-end">
               <div className="flex gap-4">
                 <span>Feuillet 1 : Assuré</span>

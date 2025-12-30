@@ -15,7 +15,7 @@ interface FormInputProps {
 const FormInput: React.FC<FormInputProps> = ({ label, value, className = "" }) => (
   <div className="flex items-end w-full">
     {label && <span className="mr-2 whitespace-nowrap text-sm text-gray-800">{label}</span>}
-    <div className={`flex-grow border-b border-gray-800 bg-transparent text-sm px-1 py-0.5 font-semibold ${className}`}>
+    <div className={`flex-grow border-b border-gray-800 bg-transparent text-xs px-1 py-0.5 font-semibold ${className}`}>
       {value || ''}
     </div>
   </div>
@@ -55,7 +55,7 @@ const Footer: React.FC<{ pageNum?: number }> = ({ pageNum = 1 }) => {
       <div>
         R.C.C.M : N° GA - LBV - 01 - 2024 - B14 - 00003 | N° STATISTIQUE : 202401003647 R
       </div>
-      
+
       <div className="flex justify-between items-end mt-4 px-8 border-t border-gray-300 pt-2 relative">
         <div className="flex flex-col items-center w-1/3">
           <MapPin size={16} className="mb-1 text-gray-500" />
@@ -88,14 +88,14 @@ interface FinamContratPrintProps {
 export const FinamContratPrint: React.FC<FinamContratPrintProps> = ({ contrat }) => {
   // Déterminer la catégorie
   const isPersonnel = contrat.categorie === 'Personnel FINAM'
-  
+
   // Format date for signature display
   const signatureDate = contrat.date_signature || contrat.created_at || new Date().toISOString()
   const dateObj = new Date(signatureDate)
 
   return (
     <div className="page bg-white w-[210mm] min-h-[297mm] p-[10mm] shadow-xl relative flex flex-col mx-auto print:shadow-none">
-      
+
       {/* Header */}
       <div className="flex flex-col items-center mb-6">
         <Logo />
@@ -112,16 +112,12 @@ export const FinamContratPrint: React.FC<FinamContratPrintProps> = ({ contrat })
           </h3>
         </div>
         {/* Numéro de police en haut à droite */}
-        <div className="absolute top-[10mm] right-[15mm]">
-          <span className="text-red-500 font-mono text-xl font-bold">
-            {contrat.numero_police || String(contrat.id).padStart(7, '0')}
-          </span>
-        </div>
+
       </div>
 
       {/* Form Body - Table Structure */}
-      <div className="border-2 border-[#F48232] w-full flex flex-col text-sm">
-        
+      <div className="border-2 border-[#F48232] w-full flex flex-col text-xs">
+
         {/* Section: Couverture */}
         <div className="flex border-b border-[#F48232]">
           <div className="w-32 flex-shrink-0 p-3 bg-orange-50 italic border-r border-[#F48232] flex items-center text-gray-900 font-serif text-xs">Couverture</div>
@@ -280,12 +276,7 @@ export const FinamContratPrint: React.FC<FinamContratPrintProps> = ({ contrat })
             </div>
           </div>
 
-          <div className="w-[15%] flex flex-col items-center justify-center space-y-1 text-[9px] pt-6 font-semibold text-gray-700">
-            <div>Feuillet 1 : SAMB'A ASSURANCES</div>
-            <div>Feuillet 2 : FINAM</div>
-            <div>Feuillet 3 : ASSURÉ</div>
-            <div>Feuillet 4 : SOUCHE</div>
-          </div>
+
 
           <div className="w-[40%] flex flex-col">
             <span className="font-bold mb-2 text-right mr-4">L'Assureur par délégation</span>

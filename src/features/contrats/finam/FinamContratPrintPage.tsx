@@ -20,8 +20,8 @@ const SambaLogo = () => (
         <circle cx="65" cy="25" r="5" fill="#F48232" />
       </svg>
     </div>
-    <h1 className="font-bold text-xl leading-none text-black tracking-tight">SAMB'A</h1>
-    <span className="text-[0.6rem] font-semibold tracking-widest text-black">ASSURANCES</span>
+    <h1 className="font-bold text-[18px] leading-none text-black tracking-tight">SAMB'A</h1>
+    <span className="text-[0.5rem] font-semibold tracking-widest text-black">ASSURANCES</span>
   </div>
 )
 
@@ -31,21 +31,21 @@ const Checkbox = ({ label, checked }: { label: string; checked?: boolean }) => (
     <div className={`w-4 h-4 border border-black mr-2 flex items-center justify-center ${checked ? 'bg-black' : 'bg-white'}`}>
       {checked && <div className="w-2 h-2 bg-white" />}
     </div>
-    <span className="text-[10px] text-gray-800">{label}</span>
+    <span className="text-[8px] text-gray-800">{label}</span>
   </div>
 )
 
 // Section Label
 const SectionLabel = ({ children }: { children: React.ReactNode }) => (
-  <div className="w-40 flex-shrink-0 p-2 bg-gray-50 italic border-r border-gray-300 flex items-center text-[11px] text-gray-700">
+  <div className="w-40 flex-shrink-0 p-2 bg-gray-50 italic border-r border-gray-300 flex items-center text-[9px] text-gray-700">
     {children}
   </div>
 )
 
 // Footer
 const Footer = ({ pageNum }: { pageNum: number }) => (
-  <div className="mt-auto pt-6 text-center text-[8px] text-gray-600 space-y-1 leading-tight border-t border-gray-200">
-    <div className="font-bold uppercase text-black text-[10px]">SAMB'A ASSURANCES GABON S.A.</div>
+  <div className="mt-auto pt-6 text-center text-[6px] text-gray-600 space-y-1 leading-tight border-t border-gray-200">
+    <div className="font-bold uppercase text-black text-[8px]">SAMB'A ASSURANCES GABON S.A.</div>
     <div>Société Anonyme avec Conseil d'Administration et Président Directeur Général.</div>
     <div>
       Entreprise de micro-assurance régie par le Code des Assurances CIMA et agréée par la CRCA sous le N° 0270 / L / CIMA / CRCA / PDT / 2024,
@@ -56,7 +56,7 @@ const Footer = ({ pageNum }: { pageNum: number }) => (
     <div>
       R.C.C.M : N° GA - LBV - 01 - 2024 - B14 - 00003 | N° STATISTIQUE : 202401003647 R
     </div>
-    
+
     <div className="flex justify-between items-start pt-3 px-8 relative">
       <div className="flex flex-col items-center w-1/3 text-center">
         <div className="font-semibold text-gray-700">326 Rue Jean-Baptiste NDENDE</div>
@@ -70,7 +70,7 @@ const Footer = ({ pageNum }: { pageNum: number }) => (
         <div className="font-semibold text-gray-700">(+241) 060 08 62 62 - 074 40 41 41</div>
         <div>074 40 51 51</div>
       </div>
-      <div className="absolute right-0 bottom-0 border border-gray-400 px-2 py-0.5 font-bold text-xs">{pageNum}</div>
+      <div className="absolute right-0 bottom-0 border border-gray-400 px-2 py-0.5 font-bold text-[10px]">{pageNum}</div>
     </div>
   </div>
 )
@@ -136,7 +136,7 @@ export const FinamContratPrintPage = () => {
       </div>
 
       {/* A4 Document Container */}
-      <div 
+      <div
         ref={printRef}
         className="bg-white w-[210mm] min-h-[297mm] p-[10mm] shadow-2xl relative flex flex-col border border-gray-200 mx-auto print:shadow-none print:border-0"
       >
@@ -144,61 +144,57 @@ export const FinamContratPrintPage = () => {
         <div className="flex justify-between items-start mb-2">
           <SambaLogo />
           <div className="flex flex-col items-center flex-grow pt-4">
-            <h1 className="text-[#005C94] text-xl font-bold uppercase text-center tracking-tight leading-none">
+            <h1 className="text-[#005C94] text-[18px] font-bold uppercase text-center tracking-tight leading-none">
               CONTRAT DECES GROUPE EMPRUNTEUR : FINAM
             </h1>
-            <p className="text-[10px] text-gray-500 italic mt-1 text-center">
-              Contrat régi par les dispositions du Code des assurances CIMA<br/>
+            <p className="text-[8px] text-gray-500 italic mt-1 text-center">
+              Contrat régi par les dispositions du Code des assurances CIMA<br />
               Convention N° : 508.111/0824
             </p>
-            <h2 className="text-black text-lg font-bold uppercase mt-3 tracking-widest border-b-2 border-black px-4">
+            <h2 className="text-black text-[16px] font-bold uppercase mt-3 tracking-widest border-b-2 border-black px-4">
               CONDITIONS PARTICULIERES
             </h2>
           </div>
-          <div className="w-24 text-right">
-            <span className="text-red-500 font-mono text-xl font-bold">
-              {contrat.numero_police || String(contrat.id).padStart(7, '0')}
-            </span>
-          </div>
+          <div className="w-24"></div>
         </div>
 
         {/* Main Form Table */}
         <div className="border border-gray-400 w-full flex flex-col mt-4">
-          
+
           {/* Section: Couverture */}
           <div className="flex border-b border-gray-300">
             <SectionLabel>Couverture</SectionLabel>
             <div className="flex-grow p-2 grid grid-cols-2 gap-x-4 gap-y-1">
               <div className="space-y-1">
                 <div className="flex items-end">
-                  <span className="mr-2 whitespace-nowrap text-[11px] text-gray-800">Numéro de police :</span>
-                  <span className="flex-grow border-b border-gray-400 text-[11px] px-1 font-bold">{contrat.numero_police || 'En attente'}</span>
+                  <span className="mr-2 whitespace-nowrap text-[9px] text-gray-800">Numéro de police :</span>
+                  <span className="flex-grow border-b border-gray-400 text-[9px] px-1 font-bold">{contrat.numero_police || 'En attente'}</span>
                 </div>
                 <div className="flex items-end">
-                  <span className="mr-2 whitespace-nowrap text-[11px] text-gray-800">Montant à assurer :</span>
-                  <span className="flex-grow border-b border-gray-400 text-[11px] px-1 font-bold">{formatCurrency(contrat.montant_a_assurer)}</span>
+                  <span className="mr-2 whitespace-nowrap text-[9px] text-gray-800">Montant à assurer :</span>
+                  <span className="flex-grow border-b border-gray-400 text-[9px] px-1 font-bold">{formatCurrency(contrat.montant_a_assurer)}</span>
                 </div>
                 <div className="flex items-end">
-                  <span className="mr-2 whitespace-nowrap text-[11px] text-gray-800">Date d'effet :</span>
-                  <span className="flex-grow border-b border-gray-400 text-[11px] px-1 font-bold">{formatDate(contrat.date_effet)}</span>
+                  <span className="mr-2 whitespace-nowrap text-[9px] text-gray-800">Date d'effet :</span>
+                  <span className="flex-grow border-b border-gray-400 text-[9px] px-1 font-bold">{formatDate(contrat.date_effet)}</span>
                 </div>
                 <div className="flex items-end">
-                  <span className="mr-2 whitespace-nowrap text-[11px] text-gray-800">Date de fin d'échéance :</span>
-                  <span className="flex-grow border-b border-gray-400 text-[11px] px-1 font-bold">{formatDate(contrat.date_fin_echeance)}</span>
+                  <span className="mr-2 whitespace-nowrap text-[9px] text-gray-800">Date de fin d'échéance :</span>
+                  <span className="flex-grow border-b border-gray-400 text-[9px] px-1 font-bold">{formatDate(contrat.date_fin_echeance)}</span>
                 </div>
               </div>
               <div className="space-y-1">
                 <div className="flex items-end">
-                  <span className="mr-2 whitespace-nowrap text-[11px] text-gray-800">Durée du prêt :</span>
-                  <span className="flex-grow border-b border-gray-400 text-[11px] px-1 font-bold">{contrat.duree_pret} mois</span>
+                  <span className="mr-2 whitespace-nowrap text-[9px] text-gray-800">Durée du prêt :</span>
+                  <span className="flex-grow border-b border-gray-400 text-[9px] px-1 font-bold">{contrat.duree_pret} mois</span>
                 </div>
                 <div className="flex items-end">
-                  <span className="mr-2 whitespace-nowrap text-[11px] text-gray-800">Montant de la mensualité :</span>
-                  <span className="flex-grow border-b border-gray-400 text-[11px] px-1 font-bold">{formatCurrency(contrat.montant_mensualite || 0)}</span>
+                  <span className="mr-2 whitespace-nowrap text-[9px] text-gray-800">Montant de la mensualité :</span>
+                  <span className="flex-grow border-b border-gray-400 text-[9px] px-1 font-bold">{formatCurrency(contrat.montant_mensualite || 0)}</span>
                 </div>
                 <div className="flex items-end">
-                  <span className="mr-2 whitespace-nowrap text-[11px] text-gray-800">Taux du prêt :</span>
-                  <span className="flex-grow border-b border-gray-400 text-[11px] px-1 font-bold">{contrat.taux_pret || 0}%</span>
+                  <span className="mr-2 whitespace-nowrap text-[9px] text-gray-800">Taux du prêt :</span>
+                  <span className="flex-grow border-b border-gray-400 text-[9px] px-1 font-bold">{contrat.taux_pret || 0}%</span>
                 </div>
               </div>
             </div>
@@ -207,35 +203,35 @@ export const FinamContratPrintPage = () => {
           {/* Section: Souscripteur / Personne assurée */}
           <div className="flex border-b border-gray-300">
             <SectionLabel>
-              Souscripteur<br/>/ Personne<br/>assurée
+              Souscripteur<br />/ Personne<br />assurée
             </SectionLabel>
             <div className="flex-grow p-2 space-y-1">
               <div className="flex items-end">
-                <span className="mr-2 whitespace-nowrap text-[11px] text-gray-800">Nom :</span>
-                <span className="flex-grow border-b border-gray-400 text-[11px] px-1 font-bold">{contrat.nom}</span>
+                <span className="mr-2 whitespace-nowrap text-[9px] text-gray-800">Nom :</span>
+                <span className="flex-grow border-b border-gray-400 text-[9px] px-1 font-bold">{contrat.nom}</span>
               </div>
               <div className="flex items-end">
-                <span className="mr-2 whitespace-nowrap text-[11px] text-gray-800">Prénom :</span>
-                <span className="flex-grow border-b border-gray-400 text-[11px] px-1 font-bold">{contrat.prenom}</span>
+                <span className="mr-2 whitespace-nowrap text-[9px] text-gray-800">Prénom :</span>
+                <span className="flex-grow border-b border-gray-400 text-[9px] px-1 font-bold">{contrat.prenom}</span>
               </div>
               <div className="flex items-end">
-                <span className="mr-2 whitespace-nowrap text-[11px] text-gray-800">Adresse :</span>
-                <span className="flex-grow border-b border-gray-400 text-[11px] px-1 font-bold">{contrat.adresse || '-'}</span>
+                <span className="mr-2 whitespace-nowrap text-[9px] text-gray-800">Adresse :</span>
+                <span className="flex-grow border-b border-gray-400 text-[9px] px-1 font-bold">{contrat.adresse || '-'}</span>
               </div>
               <div className="flex items-end">
-                <span className="mr-2 whitespace-nowrap text-[11px] text-gray-800">Ville :</span>
-                <span className="flex-grow border-b border-gray-400 text-[11px] px-1 font-bold">{contrat.ville || '-'}</span>
+                <span className="mr-2 whitespace-nowrap text-[9px] text-gray-800">Ville :</span>
+                <span className="flex-grow border-b border-gray-400 text-[9px] px-1 font-bold">{contrat.ville || '-'}</span>
               </div>
               <div className="flex items-end">
-                <span className="mr-2 whitespace-nowrap text-[11px] text-gray-800">Téléphone :</span>
-                <span className="flex-grow border-b border-gray-400 text-[11px] px-1 font-bold">{contrat.telephone || '-'}</span>
+                <span className="mr-2 whitespace-nowrap text-[9px] text-gray-800">Téléphone :</span>
+                <span className="flex-grow border-b border-gray-400 text-[9px] px-1 font-bold">{contrat.telephone || '-'}</span>
               </div>
               <div className="flex items-end">
-                <span className="mr-2 whitespace-nowrap text-[11px] text-gray-800">Email :</span>
-                <span className="flex-grow border-b border-gray-400 text-[11px] px-1 font-bold">{contrat.email || '-'}</span>
+                <span className="mr-2 whitespace-nowrap text-[9px] text-gray-800">Email :</span>
+                <span className="flex-grow border-b border-gray-400 text-[9px] px-1 font-bold">{contrat.email || '-'}</span>
               </div>
               <div className="flex items-center mt-2">
-                <span className="mr-4 text-[11px] font-medium">Catégorie :</span>
+                <span className="mr-4 text-[9px] font-medium">Catégorie :</span>
                 <Checkbox label="Personnel FINAM" checked={isPersonnel} />
                 <Checkbox label="Retraités" checked={!isPersonnel} />
               </div>
@@ -245,7 +241,7 @@ export const FinamContratPrintPage = () => {
           {/* Section: Bénéficiaire */}
           <div className="flex border-b border-gray-300">
             <SectionLabel>Bénéficiaire</SectionLabel>
-            <div className="flex-grow p-2 space-y-1 text-[11px]">
+            <div className="flex-grow p-2 space-y-1 text-[9px]">
               <div className="flex mb-1"><span className="w-28 text-gray-600">Raison sociale :</span> <span className="font-bold">La Financière Africaine de Microprojets (EMF – FINAM)</span></div>
               <div className="flex mb-1"><span className="w-28 text-gray-600">RCCM :</span> <span className="font-bold">2004B03852 / NIF : 783780 H / Agrément COBAC N° 76/CI/05/CNC</span></div>
               <div className="flex mb-1"><span className="w-28 text-gray-600">Adresse :</span> <span className="font-bold">Ancienne Sobraga, Avenue Lubin Martial NTOUTOUME OBAME / B.P. 22.408</span></div>
@@ -261,7 +257,7 @@ export const FinamContratPrintPage = () => {
           <div className="flex border-b border-gray-300">
             <SectionLabel>Garanties</SectionLabel>
             <div className="flex-grow">
-              <table className="w-full text-[11px] border-collapse">
+              <table className="w-full text-[9px] border-collapse">
                 <thead className="bg-gray-50">
                   <tr className="border-b border-gray-300 font-bold">
                     <th className="p-1 border-r border-gray-300 text-left w-3/5"></th>
@@ -296,7 +292,7 @@ export const FinamContratPrintPage = () => {
           <div className="flex bg-gray-50/30">
             <SectionLabel>Cotisations</SectionLabel>
             <div className="flex-grow p-3">
-              <div className="flex items-center font-bold text-sm">
+              <div className="flex items-center font-bold text-[12px]">
                 <span className="whitespace-nowrap">Prime totale :</span>
                 <div className="flex-grow border-b-2 border-black mx-4 min-w-[200px] text-center">
                   {formatCurrency(contrat.prime_totale || 0)}
@@ -308,35 +304,30 @@ export const FinamContratPrintPage = () => {
         </div>
 
         {/* Legal Notes */}
-        <div className="mt-4 space-y-1 text-[10px] font-bold text-black px-1">
+        <div className="mt-4 space-y-1 text-[8px] font-bold text-black px-1">
           <div className="flex items-start"><span className="w-6 flex-shrink-0">(1)</span> <p>Le montant maximal de couverture est de {formatCurrency(FINAM_CONSTANTS.PERSONNEL_MONTANT_MAX)} pour le Personnel et de {formatCurrency(FINAM_CONSTANTS.RETRAITES_MONTANT_MAX)} pour les Retraités.</p></div>
           <div className="flex items-start"><span className="w-6 flex-shrink-0">(2)</span> <p>La durée maximale de couverture est de {FINAM_CONSTANTS.PERSONNEL_DUREE_MAX} mois pour le Personnel et de {FINAM_CONSTANTS.RETRAITES_DUREE_MAX} mois pour les Retraités.</p></div>
         </div>
 
         {/* Signatures and Date */}
         <div className="mt-8 mb-4">
-          <div className="text-right text-xs mb-6 pr-12 font-medium italic">
+          <div className="text-right text-[10px] mb-6 pr-12 font-medium italic">
             Fait à <span className="border-b border-black px-4">{contrat.lieu_signature || '____________'}</span>, le <span className="border-b border-black px-2">{contrat.date_signature ? formatDate(contrat.date_signature) : '__ / __ / ____'}</span>
           </div>
 
           <div className="flex justify-between items-start px-4">
             <div className="w-1/3 flex flex-col items-center">
-              <div className="font-bold text-sm mb-1 uppercase">Le Souscripteur</div>
-              <div className="w-full h-24 border border-gray-300 rounded p-2 text-[9px] text-gray-300 italic flex items-end justify-center">
+              <div className="font-bold text-[12px] mb-1 uppercase">Le Souscripteur</div>
+              <div className="w-full h-24 border border-gray-300 rounded p-2 text-[8px] text-gray-300 italic flex items-end justify-center">
                 Signature et cachet
               </div>
             </div>
 
-            <div className="w-1/4 flex flex-col items-center justify-center space-y-1 text-[10px] pt-4 font-semibold">
-              <div>Feuillet 1 : SAMB'A ASSURANCES</div>
-              <div>Feuillet 2 : FINAM</div>
-              <div>Feuillet 3 : ASSURÉ</div>
-              <div>Feuillet 4 : SOUCHE</div>
-            </div>
+            <div className="w-1/4"></div>
 
             <div className="w-1/3 flex flex-col items-center">
-              <div className="font-bold text-sm mb-1 uppercase">L'Assureur par délégation</div>
-              <div className="w-full h-24 border border-gray-300 rounded p-2 text-[9px] text-gray-300 italic flex items-end justify-center">
+              <div className="font-bold text-[12px] mb-1 uppercase">L'Assureur par délégation</div>
+              <div className="w-full h-24 border border-gray-300 rounded p-2 text-[8px] text-gray-300 italic flex items-end justify-center">
                 Signature et cachet
               </div>
             </div>
@@ -344,7 +335,7 @@ export const FinamContratPrintPage = () => {
         </div>
 
         {/* Footnote */}
-        <div className="mt-4 text-[9px] text-gray-500 italic px-2 leading-tight">
+        <div className="mt-4 text-[7px] text-gray-500 italic px-2 leading-tight">
           ¹Au titre du présent contrat, l'Assuré est considéré comme atteint d'Invalidité Totale et Définitive si avant l'âge limite prévu aux conditions générales, à la suite de maladie ou d'accident, il est reconnu définitivement incapable de se livrer à la moindre occupation, ni au moindre travail lui procurant gain ou profit, et est en outre dans l'obligation d'avoir recours définitivement pour les actes ordinaires de la vie à l'assistance d'une tierce personne.
         </div>
 

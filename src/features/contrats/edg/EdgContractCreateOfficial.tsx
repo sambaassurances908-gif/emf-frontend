@@ -23,11 +23,11 @@ interface FormInputProps {
   disabled?: boolean
 }
 
-const FormInput: React.FC<FormInputProps> = ({ 
-  label, 
-  value = '', 
-  onChange, 
-  type = 'text', 
+const FormInput: React.FC<FormInputProps> = ({
+  label,
+  value = '',
+  onChange,
+  type = 'text',
   placeholder = '',
   required = false,
   error,
@@ -68,8 +68,12 @@ const Checkbox: React.FC<CheckboxProps> = ({ label, checked = false, onChange, d
       disabled={disabled}
       className="sr-only"
     />
-    <div className={`w-5 h-5 border-2 border-black mr-2 flex items-center justify-center transition-colors ${checked ? 'bg-black' : 'bg-white'} ${!disabled && 'hover:bg-gray-100'}`}>
-      {checked && <div className="w-3 h-3 bg-white" />}
+    <div className={`w-5 h-5 border-2 border-black mr-2 flex items-center justify-center transition-colors bg-white ${!disabled && 'hover:bg-gray-100'}`}>
+      {checked && (
+        <svg className="w-4 h-4 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M5 13l4 4L19 7" />
+        </svg>
+      )}
     </div>
     <span className="text-sm text-gray-800">{label}</span>
   </label>
@@ -99,7 +103,7 @@ const Footer: React.FC<{ pageNum?: number }> = ({ pageNum = 1 }) => {
       <div>
         R.C.C.M : N° GA - LBV - 01 - 2024 - B14 - 00003 | N° STATISTIQUE : 202401003647 R
       </div>
-      
+
       <div className="flex justify-between items-end mt-4 px-8 border-t border-gray-300 pt-2 relative">
         <div className="flex flex-col items-center w-1/3">
           <MapPin size={16} className="mb-1 text-gray-500" />
@@ -127,6 +131,7 @@ const Footer: React.FC<{ pageNum?: number }> = ({ pageNum = 1 }) => {
 export const EdgContractCreateOfficial = () => {
   const navigate = useNavigate()
   const { user } = useAuthStore()
+  const { mutate: createContract, isError, error, isSuccess, isPending } = useCreateEdgContract()
 
   // ═══════════════════════════════════════════════════════════════════
   // 🔒 VÉRIFICATION EMF - EDG = emf_id 4
@@ -177,26 +182,75 @@ export const EdgContractCreateOfficial = () => {
   const [submitError, setSubmitError] = useState('')
   const [showLimitesModal, setShowLimitesModal] = useState(false)
   const [createdContrat, setCreatedContrat] = useState<ContratCreationResponse | null>(null)
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
 
-  const { mutate: createContract, isPending, isSuccess, isError, error } = useCreateEdgContract()
+  // Calcul de l'âge à la fin de couverture
+  const calculateAgeAtEndOfCoverage = () => {
+    if (!formData.date_naissance || !formData.date_fin_echeance) return null
+    const dateNaissance = new Date(formData.date_naissance)
+    const dateFinCouverture = new Date(formData.date_fin_echeance)
+    let age = dateFinCouverture.getFullYear() - dateNaissance.getFullYear()
+    const monthDiff = dateFinCouverture.getMonth() - dateNaissance.getMonth()
+    if (monthDiff < 0 || (monthDiff === 0 && dateFinCouverture.getDate() < dateNaissance.getDate())) {
+      age--
+    }
+    return age
+  }
+
+  const ageAtEndOfCoverage = calculateAgeAtEndOfCoverage()
+
+  // Validation continue des règles métier
+  useEffect(() => {
+    const errors: Record<string, string> = {}
+    const montant = parseInt(formData.montant_pret) || 0
+    const duree = parseInt(formData.duree_pret_mois) || 0
+    const capital = parseInt(formData.capital_compte_protege) || 0
+    const isVipMode = formData.garantie_vip || formData.categorie === 'vip'
+
+    // Règle (2) Montant
+    const maxMontant = isVipMode ? 65000000 : 25000000
+    if (montant > maxMontant) {
+      errors.montant_pret = `Max ${isVipMode ? '65 000 000' : '25 000 000'} FCFA`
+    }
+
+    // Règle (3) Durée
+    const maxDuree = isVipMode ? 36 : 60
+    if (duree > maxDuree) {
+      errors.duree_pret_mois = `Max ${maxDuree} mois${isVipMode ? ' (VIP)' : ''}`
+    }
+
+    // Règle (1) Capital Compte Protégé
+    if (capital > 250000) {
+      errors.capital_compte_protege = "Max 250 000 FCFA"
+    }
+
+    // Règle (4) Âge
+    if (ageAtEndOfCoverage !== null && ageAtEndOfCoverage > 70) {
+      errors.date_naissance = "Âge max fin de couverture : 70 ans"
+    }
+
+    setValidationErrors(errors)
+  }, [formData.montant_pret, formData.duree_pret_mois, formData.capital_compte_protege, formData.garantie_vip, formData.categorie, ageAtEndOfCoverage])
 
   // ═══════════════════════════════════════════════════════════════════
   // 🔒 VALIDATION PROGRESSIVE - Activation des sections par étapes
   // ═══════════════════════════════════════════════════════════════════
-  
+
   // Section 1: Couverture Prêt (toujours active)
   const isSection1Complete = Boolean(
-    formData.montant_pret && 
-    formData.duree_pret_mois && 
-    formData.date_effet
+    formData.montant_pret &&
+    formData.duree_pret_mois &&
+    formData.date_effet &&
+    !validationErrors.montant_pret &&
+    !validationErrors.duree_pret_mois
   )
 
   // Section 2: Assuré (active si Section 1 complète)
   const isSection2Enabled = isSection1Complete
   const isSection2Complete = Boolean(
-    formData.nom_prenom.trim() && 
-    formData.adresse_assure.trim() && 
-    formData.ville_assure.trim() && 
+    formData.nom_prenom.trim() &&
+    formData.adresse_assure.trim() &&
+    formData.ville_assure.trim() &&
     formData.telephone_assure.trim() &&
     (formData.categorie || formData.garantie_vip)
   )
@@ -260,33 +314,20 @@ export const EdgContractCreateOfficial = () => {
   const capitalCompteProtegeMax = 250000 // 250.000 FCFA max
   const ageMaxCouverture = 70 // 70 ans max
 
-  // Calcul de l'âge à la fin de couverture
-  const calculateAgeAtEndOfCoverage = () => {
-    if (!formData.date_naissance || !formData.date_fin_echeance) return null
-    const dateNaissance = new Date(formData.date_naissance)
-    const dateFinCouverture = new Date(formData.date_fin_echeance)
-    let age = dateFinCouverture.getFullYear() - dateNaissance.getFullYear()
-    const monthDiff = dateFinCouverture.getMonth() - dateNaissance.getMonth()
-    if (monthDiff < 0 || (monthDiff === 0 && dateFinCouverture.getDate() < dateNaissance.getDate())) {
-      age--
-    }
-    return age
-  }
 
-  const ageAtEndOfCoverage = calculateAgeAtEndOfCoverage()
   const capitalCompteProtege = parseInt(formData.capital_compte_protege) || 0
 
   const validateBusinessRules = () => {
     const warnings: string[] = []
-    
+
     const montantMax = isVip ? montantMaxPretVip : montantMaxPretStandard
     const dureeMax = isVip ? dureeMaxVip : dureeMaxStandard
-    
+
     // Montant max prêt
     if (montant > montantMax) {
       warnings.push(`Montant prêt (${formatCurrency(montant)}) dépasse le max ${isVip ? 'VIP' : 'standard'}: ${formatCurrency(montantMax)}`)
     }
-    
+
     // Durée max
     if (duree > dureeMax) {
       warnings.push(`Durée (${duree} mois) dépasse le max ${isVip ? 'VIP' : 'standard'}: ${dureeMax} mois`)
@@ -301,7 +342,7 @@ export const EdgContractCreateOfficial = () => {
     if (ageAtEndOfCoverage !== null && ageAtEndOfCoverage > ageMaxCouverture) {
       warnings.push(`Âge à la fin de couverture (${ageAtEndOfCoverage} ans) dépasse le maximum: ${ageMaxCouverture} ans`)
     }
-    
+
     return warnings
   }
 
@@ -322,8 +363,8 @@ export const EdgContractCreateOfficial = () => {
               <br />
               Ce formulaire est réservé aux utilisateurs EDG.
             </p>
-            <Button 
-              onClick={() => navigate(-1)} 
+            <Button
+              onClick={() => navigate(-1)}
               className="bg-red-600 hover:bg-red-700 text-white"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
@@ -343,9 +384,9 @@ export const EdgContractCreateOfficial = () => {
     try {
       console.log('═══════════════════════════════════════════════════════════════')
       console.log('📋 EDG - Validation des champs obligatoires...')
-      
+
       const newErrors: Record<string, string> = {}
-      
+
       if (!formData.nom_prenom.trim()) {
         newErrors.nom_prenom = 'Le nom et prénom sont obligatoires'
       }
@@ -378,7 +419,7 @@ export const EdgContractCreateOfficial = () => {
         setSubmitError(`⚠️ ${Object.keys(newErrors).length} champ(s) obligatoire(s) manquant(s)`)
         return
       }
-      
+
       console.log('✅ Tous les champs obligatoires sont remplis')
 
       if (businessWarnings.length > 0) {
@@ -400,10 +441,10 @@ export const EdgContractCreateOfficial = () => {
         lieu_naissance: string
         contact?: string
       }> = []
-      
+
       if (assuresAssocies.assure1.nom?.trim() && assuresAssocies.assure1.lieu_naissance?.trim()) {
-        assuresArray.push({ 
-          type_assure: 'assure_associe_1', 
+        assuresArray.push({
+          type_assure: 'assure_associe_1',
           nom: assuresAssocies.assure1.nom.trim(),
           prenom: assuresAssocies.assure1.prenom?.trim() || '',
           date_naissance: assuresAssocies.assure1.date_naissance || '',
@@ -411,10 +452,10 @@ export const EdgContractCreateOfficial = () => {
           contact: assuresAssocies.assure1.contact?.trim() || ''
         })
       }
-      
+
       if (assuresAssocies.assure2.nom?.trim() && assuresAssocies.assure2.lieu_naissance?.trim()) {
-        assuresArray.push({ 
-          type_assure: 'assure_associe_2', 
+        assuresArray.push({
+          type_assure: 'assure_associe_2',
           nom: assuresAssocies.assure2.nom.trim(),
           prenom: assuresAssocies.assure2.prenom?.trim() || '',
           date_naissance: assuresAssocies.assure2.date_naissance || '',
@@ -422,10 +463,10 @@ export const EdgContractCreateOfficial = () => {
           contact: assuresAssocies.assure2.contact?.trim() || ''
         })
       }
-      
+
       if (assuresAssocies.assure3.nom?.trim() && assuresAssocies.assure3.lieu_naissance?.trim()) {
-        assuresArray.push({ 
-          type_assure: 'assure_associe_3', 
+        assuresArray.push({
+          type_assure: 'assure_associe_3',
           nom: assuresAssocies.assure3.nom.trim(),
           prenom: assuresAssocies.assure3.prenom?.trim() || '',
           date_naissance: assuresAssocies.assure3.date_naissance || '',
@@ -607,7 +648,7 @@ export const EdgContractCreateOfficial = () => {
       {/* Formulaire style contrat officiel */}
       <form onSubmit={handleSubmit}>
         <div className="page bg-white w-[210mm] min-h-[297mm] p-[10mm] shadow-xl relative flex flex-col mx-auto">
-          
+
           {/* Header */}
           <div className="flex flex-col items-center mb-6">
             <Logo />
@@ -627,53 +668,62 @@ export const EdgContractCreateOfficial = () => {
 
           {/* Form Body - Table Structure */}
           <div className="border-2 border-[#F48232] w-full flex flex-col text-sm">
-            
+
             {/* Section: Couverture Prêt */}
             <div className="flex border-b border-[#F48232]">
               <div className="w-32 flex-shrink-0 p-3 bg-orange-50 italic border-r border-[#F48232] flex items-center text-gray-900 font-serif text-xs">Couverture Prêt</div>
               <div className="flex-grow p-2 space-y-3 overflow-hidden">
+                <div className="flex justify-end">
+                  <Checkbox
+                    label="Client VIP (Plafond 65M / 36 mois)"
+                    checked={formData.garantie_vip}
+                    onChange={(checked) => setFormData({ ...formData, garantie_vip: checked, categorie: checked ? 'vip' : 'commercants' })}
+                  />
+                </div>
                 <div className="grid grid-cols-3 gap-3">
                   <div className="flex flex-col">
                     <span className="text-xs text-gray-600 mb-1">N° Police</span>
-                    <input 
+                    <input
                       value={formData.numero_police}
-                      onChange={(e) => setFormData({...formData, numero_police: e.target.value})}
+                      onChange={(e) => setFormData({ ...formData, numero_police: e.target.value })}
                       placeholder="EDG-2024-001"
                       className="border-b border-gray-800 bg-transparent text-sm px-1 py-0.5 focus:outline-none focus:border-[#F48232] w-full"
                     />
                   </div>
                   <div className="flex flex-col">
                     <span className="text-xs text-gray-600 mb-1">Montant <span className="text-red-500">*</span></span>
-                    <input 
+                    <input
                       type="number"
                       value={formData.montant_pret}
-                      onChange={(e) => setFormData({...formData, montant_pret: e.target.value})}
+                      onChange={(e) => setFormData({ ...formData, montant_pret: e.target.value })}
                       placeholder="10000000"
-                      className={`border-b ${errors.montant_pret ? 'border-red-400 bg-red-50' : 'border-gray-800'} bg-transparent text-sm px-1 py-0.5 focus:outline-none focus:border-[#F48232] w-full`}
+                      className={`border-b ${validationErrors.montant_pret ? 'border-red-500 bg-red-50' : (errors.montant_pret ? 'border-red-400 bg-red-50' : 'border-gray-800')} bg-transparent text-sm px-1 py-0.5 focus:outline-none focus:border-[#F48232] w-full`}
                     />
+                    {validationErrors.montant_pret && <span className="text-[10px] text-red-600 font-bold mt-0.5">{validationErrors.montant_pret}</span>}
                   </div>
                   <div className="flex flex-col">
                     <span className="text-xs text-gray-600 mb-1">Durée (mois) <span className="text-red-500">*</span></span>
-                    <input 
+                    <input
                       type="number"
                       value={formData.duree_pret_mois}
-                      onChange={(e) => setFormData({...formData, duree_pret_mois: e.target.value})}
+                      onChange={(e) => setFormData({ ...formData, duree_pret_mois: e.target.value })}
                       placeholder="24"
-                      className={`border-b ${errors.duree_pret_mois ? 'border-red-400 bg-red-50' : 'border-gray-800'} bg-transparent text-sm px-1 py-0.5 focus:outline-none focus:border-[#F48232] w-full`}
+                      className={`border-b ${validationErrors.duree_pret_mois ? 'border-red-500 bg-red-50' : (errors.duree_pret_mois ? 'border-red-400 bg-red-50' : 'border-gray-800')} bg-transparent text-sm px-1 py-0.5 focus:outline-none focus:border-[#F48232] w-full`}
                     />
+                    {validationErrors.duree_pret_mois && <span className="text-[10px] text-red-600 font-bold mt-0.5">{validationErrors.duree_pret_mois}</span>}
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <FormInput 
-                    label="Date d'effet :" 
+                  <FormInput
+                    label="Date d'effet :"
                     value={formData.date_effet}
-                    onChange={(v) => setFormData({...formData, date_effet: v})}
+                    onChange={(v) => setFormData({ ...formData, date_effet: v })}
                     type="date"
                     required
                     error={errors.date_effet}
                   />
-                  <FormInput 
-                    label="Fin d'échéance :" 
+                  <FormInput
+                    label="Fin d'échéance :"
                     value={formData.date_fin_echeance}
                     disabled
                   />
@@ -689,29 +739,29 @@ export const EdgContractCreateOfficial = () => {
               </div>
               <div className="flex-grow p-2 space-y-2 overflow-hidden">
                 <div className="grid grid-cols-2 gap-3">
-                  <FormInput 
-                    label="Nom & Prénom :" 
+                  <FormInput
+                    label="Nom & Prénom :"
                     value={formData.nom_prenom}
-                    onChange={(v) => setFormData({...formData, nom_prenom: v})}
+                    onChange={(v) => setFormData({ ...formData, nom_prenom: v })}
                     placeholder="Ex: Jean NGUEMA"
                     required
                     error={errors.nom_prenom}
                     disabled={!isSection2Enabled}
                   />
-                  <FormInput 
-                    label="Date de naissance :" 
+                  <FormInput
+                    label="Date de naissance :"
                     value={formData.date_naissance}
-                    onChange={(v) => setFormData({...formData, date_naissance: v})}
+                    onChange={(v) => setFormData({ ...formData, date_naissance: v })}
                     type="date"
                     required
                     error={errors.date_naissance}
                     disabled={!isSection2Enabled}
                   />
                 </div>
-                <FormInput 
-                  label="Adresse :" 
+                <FormInput
+                  label="Adresse :"
                   value={formData.adresse_assure}
-                  onChange={(v) => setFormData({...formData, adresse_assure: v})}
+                  onChange={(v) => setFormData({ ...formData, adresse_assure: v })}
                   placeholder="Ex: Quartier Louis"
                   required
                   error={errors.adresse_assure}
@@ -719,10 +769,10 @@ export const EdgContractCreateOfficial = () => {
                 />
                 <div className="grid grid-cols-3 gap-2 overflow-hidden">
                   <div className="overflow-hidden">
-                    <FormInput 
-                      label="Tél :" 
+                    <FormInput
+                      label="Tél :"
                       value={formData.telephone_assure}
-                      onChange={(v) => setFormData({...formData, telephone_assure: v})}
+                      onChange={(v) => setFormData({ ...formData, telephone_assure: v })}
                       placeholder="06XXXXXX"
                       required
                       error={errors.telephone_assure}
@@ -730,10 +780,10 @@ export const EdgContractCreateOfficial = () => {
                     />
                   </div>
                   <div className="overflow-hidden">
-                    <FormInput 
-                      label="Ville :" 
+                    <FormInput
+                      label="Ville :"
                       value={formData.ville_assure}
-                      onChange={(v) => setFormData({...formData, ville_assure: v})}
+                      onChange={(v) => setFormData({ ...formData, ville_assure: v })}
                       placeholder="Libreville"
                       error={errors.ville_assure}
                       disabled={!isSection2Enabled}
@@ -745,7 +795,7 @@ export const EdgContractCreateOfficial = () => {
                       <input
                         type="email"
                         value={formData.email_assure}
-                        onChange={(e) => setFormData({...formData, email_assure: e.target.value})}
+                        onChange={(e) => setFormData({ ...formData, email_assure: e.target.value })}
                         placeholder="email@ex.com"
                         disabled={!isSection2Enabled}
                         className={`w-full border-b border-gray-800 bg-transparent text-sm px-1 py-0.5 focus:outline-none focus:border-[#F48232] ${!isSection2Enabled ? 'cursor-not-allowed' : ''}`}
@@ -757,41 +807,41 @@ export const EdgContractCreateOfficial = () => {
                   <div className="flex items-start gap-x-4">
                     <span className="text-sm text-gray-800 whitespace-nowrap pt-0.5">Catégorie :</span>
                     <div className="grid grid-cols-2 gap-x-6 gap-y-1">
-                      <Checkbox 
-                        label="Commerçants" 
+                      <Checkbox
+                        label="Commerçants"
                         checked={formData.categorie === 'commercants'}
-                        onChange={() => setFormData({...formData, categorie: 'commercants', garantie_vip: false})}
+                        onChange={() => setFormData({ ...formData, categorie: 'commercants', garantie_vip: false })}
                         disabled={!isSection2Enabled}
                       />
-                      <Checkbox 
-                        label="Salariés du public" 
+                      <Checkbox
+                        label="Salariés du public"
                         checked={formData.categorie === 'salaries_public'}
-                        onChange={() => setFormData({...formData, categorie: 'salaries_public', garantie_vip: false})}
+                        onChange={() => setFormData({ ...formData, categorie: 'salaries_public', garantie_vip: false })}
                         disabled={!isSection2Enabled}
                       />
-                      <Checkbox 
-                        label="Salariés du privé" 
+                      <Checkbox
+                        label="Salariés du privé"
                         checked={formData.categorie === 'salaries_prive'}
-                        onChange={() => setFormData({...formData, categorie: 'salaries_prive', garantie_vip: false})}
+                        onChange={() => setFormData({ ...formData, categorie: 'salaries_prive', garantie_vip: false })}
                         disabled={!isSection2Enabled}
                       />
-                      <Checkbox 
-                        label="Retraités" 
+                      <Checkbox
+                        label="Retraités"
                         checked={formData.categorie === 'retraites'}
-                        onChange={() => setFormData({...formData, categorie: 'retraites', garantie_vip: false})}
+                        onChange={() => setFormData({ ...formData, categorie: 'retraites', garantie_vip: false })}
                         disabled={!isSection2Enabled}
                       />
                       <div className="flex items-center col-span-2">
-                        <Checkbox 
-                          label="Autre :" 
+                        <Checkbox
+                          label="Autre :"
                           checked={formData.categorie === 'autre'}
-                          onChange={() => setFormData({...formData, categorie: 'autre', garantie_vip: false})}
+                          onChange={() => setFormData({ ...formData, categorie: 'autre', garantie_vip: false })}
                           disabled={!isSection2Enabled}
                         />
-                        <input 
+                        <input
                           type="text"
                           value={formData.autre_categorie_precision}
-                          onChange={(e) => setFormData({...formData, autre_categorie_precision: e.target.value})}
+                          onChange={(e) => setFormData({ ...formData, autre_categorie_precision: e.target.value })}
                           className="border-b border-gray-400 flex-grow bg-transparent focus:outline-none focus:border-[#F48232] text-sm ml-1"
                           placeholder="Préciser..."
                           disabled={!isSection2Enabled || formData.categorie !== 'autre'}
@@ -819,10 +869,10 @@ export const EdgContractCreateOfficial = () => {
                     <span className="mr-2 whitespace-nowrap text-gray-800 text-sm">Adresse :</span>
                     <span className="font-medium text-sm">B.P. 14.736 Libreville</span>
                   </div>
-                  <FormInput 
-                    label="Agence :" 
+                  <FormInput
+                    label="Agence :"
                     value={formData.agence}
-                    onChange={(v) => setFormData({...formData, agence: v})}
+                    onChange={(v) => setFormData({ ...formData, agence: v })}
                     placeholder="Agence Centre"
                     disabled={!isSection3Enabled}
                   />
@@ -845,7 +895,7 @@ export const EdgContractCreateOfficial = () => {
                   <input
                     type="text"
                     value={formData.numero_compte_protege}
-                    onChange={(e) => setFormData({...formData, numero_compte_protege: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, numero_compte_protege: e.target.value })}
                     placeholder="Ex: CP-2024-001234"
                     disabled={!isSection4Enabled}
                     className="flex-1 min-w-0 border-b border-gray-800 bg-transparent text-sm px-1 py-0.5 focus:outline-none focus:border-[#F48232]"
@@ -857,7 +907,7 @@ export const EdgContractCreateOfficial = () => {
                     <input
                       type="text"
                       value={formData.beneficiaire_deces}
-                      onChange={(e) => setFormData({...formData, beneficiaire_deces: e.target.value})}
+                      onChange={(e) => setFormData({ ...formData, beneficiaire_deces: e.target.value })}
                       placeholder="Nom complet"
                       disabled={!isSection4Enabled}
                       className="flex-1 min-w-0 border-b border-gray-800 bg-transparent text-sm px-1 py-0.5 focus:outline-none focus:border-[#F48232]"
@@ -868,7 +918,7 @@ export const EdgContractCreateOfficial = () => {
                     <input
                       type="text"
                       value={formData.beneficiaire_telephone}
-                      onChange={(e) => setFormData({...formData, beneficiaire_telephone: e.target.value})}
+                      onChange={(e) => setFormData({ ...formData, beneficiaire_telephone: e.target.value })}
                       placeholder="06XXXXXX"
                       disabled={!isSection4Enabled}
                       className="flex-1 min-w-0 border-b border-gray-800 bg-transparent text-sm px-1 py-0.5 focus:outline-none focus:border-[#F48232]"
@@ -902,14 +952,20 @@ export const EdgContractCreateOfficial = () => {
                       <td className="p-1 border-r border-[#F48232] text-[#F48232]">Toute catégorie</td>
                       <td className="p-1 border-r border-[#F48232]">
                         <label className={`flex justify-center ${isSection5Enabled ? 'cursor-pointer' : 'cursor-not-allowed'}`}>
-                          <input 
-                            type="checkbox" 
+                          <input
+                            type="checkbox"
                             checked={formData.garantie_compte_protege}
-                            onChange={(e) => setFormData({...formData, garantie_compte_protege: e.target.checked})}
+                            onChange={(e) => setFormData({ ...formData, garantie_compte_protege: e.target.checked })}
                             disabled={!isSection5Enabled}
                             className="sr-only"
                           />
-                          <div className={`w-8 h-4 border border-black rounded-sm ${formData.garantie_compte_protege ? 'bg-black' : 'bg-white'}`}></div>
+                          <div className="w-8 h-4 border border-black rounded-sm flex items-center justify-center bg-white">
+                            {formData.garantie_compte_protege && (
+                              <svg className="w-4 h-4 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M5 13l4 4L19 7" />
+                              </svg>
+                            )}
+                          </div>
                         </label>
                       </td>
                       <td className="p-1 border-r border-[#F48232] text-[#F48232]">N/A</td>
@@ -921,15 +977,21 @@ export const EdgContractCreateOfficial = () => {
                       <td className="p-1 border-r border-[#F48232] text-[#F48232]">Toute catégorie</td>
                       <td className="p-1 border-r border-[#F48232]">
                         <label className={`flex justify-center ${isSection5Enabled ? 'cursor-pointer' : 'cursor-not-allowed'}`}>
-                          <input 
-                            type="radio" 
+                          <input
+                            type="radio"
                             name="type_contrat"
                             checked={formData.garantie_deces_iad && !formData.garantie_vip}
-                            onChange={() => setFormData({...formData, garantie_deces_iad: true, garantie_vip: false, categorie: formData.categorie === 'vip' ? '' : formData.categorie})}
+                            onChange={() => setFormData({ ...formData, garantie_deces_iad: true, garantie_vip: false, categorie: formData.categorie === 'vip' ? '' : formData.categorie })}
                             disabled={!isSection5Enabled}
                             className="sr-only"
                           />
-                          <div className={`w-8 h-4 border border-black rounded-sm ${formData.garantie_deces_iad && !formData.garantie_vip ? 'bg-black' : 'bg-white'}`}></div>
+                          <div className="w-8 h-4 border border-black rounded-sm flex items-center justify-center bg-white">
+                            {formData.garantie_deces_iad && !formData.garantie_vip && (
+                              <svg className="w-4 h-4 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M5 13l4 4L19 7" />
+                              </svg>
+                            )}
+                          </div>
                         </label>
                       </td>
                       <td className="p-1 border-r border-[#F48232] text-[#F48232] font-bold">2,50%</td>
@@ -941,15 +1003,21 @@ export const EdgContractCreateOfficial = () => {
                       <td className="p-1 border-r border-[#F48232] text-[#F48232] font-bold">VIP</td>
                       <td className="p-1 border-r border-[#F48232]">
                         <label className={`flex justify-center ${isSection5Enabled ? 'cursor-pointer' : 'cursor-not-allowed'}`}>
-                          <input 
-                            type="radio" 
+                          <input
+                            type="radio"
                             name="type_contrat"
                             checked={formData.garantie_vip}
-                            onChange={() => setFormData({...formData, garantie_deces_iad: true, garantie_vip: true, categorie: 'vip'})}
+                            onChange={() => setFormData({ ...formData, garantie_deces_iad: true, garantie_vip: true, categorie: 'vip' })}
                             disabled={!isSection5Enabled}
                             className="sr-only"
                           />
-                          <div className={`w-8 h-4 border border-black rounded-sm ${formData.garantie_vip ? 'bg-black' : 'bg-white'}`}></div>
+                          <div className="w-8 h-4 border border-black rounded-sm flex items-center justify-center bg-white">
+                            {formData.garantie_vip && (
+                              <svg className="w-4 h-4 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M5 13l4 4L19 7" />
+                              </svg>
+                            )}
+                          </div>
                         </label>
                       </td>
                       <td className="p-1 border-r border-[#F48232] text-[#F48232] font-bold">3,50%</td>
@@ -994,22 +1062,22 @@ export const EdgContractCreateOfficial = () => {
           {/* Signatures */}
           <div className="mt-auto mb-4">
             <div className="text-right mb-6 pr-4 font-medium">
-              Fait à <input 
-                type="text" 
+              Fait à <input
+                type="text"
                 value={formData.lieu_signature}
-                onChange={(e) => setFormData({...formData, lieu_signature: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, lieu_signature: e.target.value })}
                 className="border-b border-black w-32 inline-block mx-1 text-center font-handwriting bg-transparent focus:outline-none focus:border-[#F48232]"
-              />, le <input 
+              />, le <input
                 type="text"
                 value={formData.date_signature ? new Date(formData.date_signature).toLocaleDateString('fr-FR', { day: '2-digit' }) : ''}
                 readOnly
                 className="border-b border-black w-8 text-center inline-block bg-transparent"
-              /> / <input 
+              /> / <input
                 type="text"
                 value={formData.date_signature ? new Date(formData.date_signature).toLocaleDateString('fr-FR', { month: '2-digit' }) : ''}
                 readOnly
                 className="border-b border-black w-8 text-center inline-block bg-transparent"
-              /> / <input 
+              /> / <input
                 type="text"
                 value={formData.date_signature ? new Date(formData.date_signature).toLocaleDateString('fr-FR', { year: 'numeric' }) : ''}
                 readOnly
@@ -1052,11 +1120,10 @@ export const EdgContractCreateOfficial = () => {
           <Button
             type="submit"
             disabled={isPending || !isFormComplete}
-            className={`flex-1 text-white font-semibold text-lg py-3 ${
-              isFormComplete 
-                ? 'bg-[#F48232] hover:bg-[#e0742a]' 
-                : 'bg-gray-400 cursor-not-allowed'
-            }`}
+            className={`flex-1 text-white font-semibold text-lg py-3 ${isFormComplete
+              ? 'bg-[#F48232] hover:bg-[#e0742a]'
+              : 'bg-gray-400 cursor-not-allowed'
+              }`}
             title={!isFormComplete ? 'Veuillez remplir tous les champs obligatoires' : ''}
           >
             {isPending ? (

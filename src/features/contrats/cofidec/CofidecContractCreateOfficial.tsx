@@ -12,9 +12,9 @@ import logoSamba from '@/assets/logo-samba.png'
 const Logo: React.FC = () => {
   return (
     <div className="flex flex-col items-center justify-center mb-0">
-      <img 
-        src={logoSamba} 
-        alt="SAMB'A Assurances" 
+      <img
+        src={logoSamba}
+        alt="SAMB'A Assurances"
         className="h-[70px] w-auto"
       />
     </div>
@@ -38,18 +38,22 @@ const Footer: React.FC<{ pageNum: number }> = ({ pageNum }) => {
 }
 
 // --- Checkbox Component ---
-const Checkbox: React.FC<{ 
+const Checkbox: React.FC<{
   label: string
   checked?: boolean
   onChange?: () => void
-  disabled?: boolean 
+  disabled?: boolean
 }> = ({ label, checked, onChange, disabled }) => (
-  <div 
-    className={`flex items-center mr-3 ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`} 
+  <div
+    className={`flex items-center mr-3 ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
     onClick={disabled ? undefined : onChange}
   >
-    <div className={`w-4 h-4 border-2 border-black mr-1.5 flex items-center justify-center transition-colors ${checked ? 'bg-[#F48232]' : disabled ? 'bg-gray-200' : 'bg-white hover:bg-orange-50'}`}>
-      {checked && <div className="w-2 h-2 bg-white" />}
+    <div className={`w-4 h-4 border-2 border-black mr-1.5 flex items-center justify-center transition-colors ${checked ? 'bg-white' : disabled ? 'bg-gray-200' : 'bg-white hover:bg-orange-50'}`}>
+      {checked && (
+        <svg className="w-3 h-3 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M5 13l4 4L19 7" />
+        </svg>
+      )}
     </div>
     <span className="text-[10px] text-gray-800">{label}</span>
   </div>
@@ -97,23 +101,66 @@ export const CofidecContractCreateOfficial = () => {
   const [submitError, setSubmitError] = useState('')
   const { mutate: createContract, isPending } = useCreateCofidecContract()
 
+  // Variable dérivée pour l'affichage conditionnel dans le JSX
+  const duree = parseInt(formData.duree_pret_mois) || 0
+
   // ═══════════════════════════════════════════════════════════════════
   // 🔒 VALIDATION PROGRESSIVE - Activation des sections par étapes
   // ═══════════════════════════════════════════════════════════════════
-  
-  // Section 1: Couverture Prêt (toujours active)
+
+  // Validation des règles métier spécifiques
+  const [formErrors, setFormErrors] = useState<{ montant_pret?: string, duree_pret_mois?: string }>({})
+
+  // Règles de validation strictes (PROMPT MÉTIER)
+  useEffect(() => {
+    const montant = parseInt(formData.montant_pret) || 0
+    const duree = parseInt(formData.duree_pret_mois) || 0
+    const cat = formData.categorie || ''
+    const errors: { montant_pret?: string, duree_pret_mois?: string } = {}
+
+    // Règle générale : Montant et durée doivent être positifs
+    if (montant <= 0 && formData.montant_pret !== '') errors.montant_pret = "Le montant doit être valide"
+    if (duree <= 0 && formData.duree_pret_mois !== '') errors.duree_pret_mois = "La durée doit être valide"
+
+    // 1. Salariés COFIDEC : Plafond 20M, peu importe la durée (tant que <= max global)
+    if (cat === 'salarie_cofidec') {
+      if (montant > 20000000) errors.montant_pret = "Salariés COFIDEC : Max 20 000 000 FCFA"
+    }
+    // 2. Autres catégories : Plafond dépend de la durée
+    else if (cat !== '') { // Seulement si une catégorie est sélectionnée (hors COFIDEC)
+      if (duree >= 1 && duree <= 6) {
+        if (montant > 5000000) errors.montant_pret = "Durée 1-6 mois : Max 5 000 000 FCFA"
+      } else if (duree > 6 && duree <= 13) {
+        if (montant > 10000000) errors.montant_pret = "Durée 7-13 mois : Max 10 000 000 FCFA"
+      } else if (duree > 13 && duree <= 24) {
+        if (montant > 20000000) errors.montant_pret = "Durée 14-24 mois : Max 20 000 000 FCFA"
+      }
+    } else {
+      // Pas de catégorie, on applique limites globales par défaut
+      if (montant > 20000000) errors.montant_pret = "Max 20 000 000 FCFA"
+    }
+
+    // Limites globales (doublon de sécurité)
+    if (duree > 24) errors.duree_pret_mois = "Dépassement limite globale : Max 24 mois"
+
+    setFormErrors(errors)
+  }, [formData.montant_pret, formData.duree_pret_mois, formData.categorie])
+
+  // Section 1: Couverture Prêt (active si valide)
   const isSection1Complete = Boolean(
-    formData.montant_pret && 
-    formData.duree_pret_mois && 
-    formData.date_effet
+    formData.montant_pret &&
+    formData.duree_pret_mois &&
+    formData.date_effet &&
+    !formErrors.montant_pret &&
+    !formErrors.duree_pret_mois
   )
 
   // Section 2: Assuré (active si Section 1 complète)
   const isSection2Enabled = isSection1Complete
   const isSection2Complete = Boolean(
-    formData.nom_prenom.trim() && 
-    formData.adresse_assure.trim() && 
-    formData.ville_assure.trim() && 
+    formData.nom_prenom.trim() &&
+    formData.adresse_assure.trim() &&
+    formData.ville_assure.trim() &&
     formData.telephone_assure.trim() &&
     formData.categorie
   )
@@ -136,32 +183,55 @@ export const CofidecContractCreateOfficial = () => {
     }
   }, [formData.date_effet, formData.duree_pret_mois])
 
-  // Calcul des cotisations COFIDEC
-  const montant = parseInt(formData.montant_pret) || 0
-  const duree = parseInt(formData.duree_pret_mois) || 0
-  
-  // Taux selon catégorie et durée
-  const getTaux = () => {
-    if (formData.categorie === 'salarie_cofidec') return 0.0075 // 0.75%
-    if (duree >= 1 && duree <= 6) return 0.005 // 0.50%
-    if (duree > 6 && duree <= 13) return 0.01 // 1.00%
-    if (duree > 13 && duree <= 24) return 0.0175 // 1.75%
-    return 0
-  }
-  
-  const tauxDeces = getTaux()
-  const cotisationDeces = montant * tauxDeces
-  const cotisationPrevoyance = formData.garantie_prevoyance ? 5000 : 0
-  const tauxPerteEmploi = formData.garantie_perte_emploi ? 0.02 : 0
-  const cotisationPerteEmploi = montant * tauxPerteEmploi
-  const cotisationTotale = cotisationDeces + cotisationPrevoyance + cotisationPerteEmploi
+  // --- AUTOMATION: Activation de la garantie Perte d'Emploi ---
+  // Règle: Si "Commerçants" ou "Salariés du privé", la garantie est active d'office.
+  useEffect(() => {
+    const isEligible = ['commercants', 'salaries_prive'].includes(formData.categorie)
+    setFormData(prev => ({ ...prev, garantie_perte_emploi: isEligible }))
+  }, [formData.categorie])
 
-  // Validation des règles métier
-  const montantMaxPret = formData.categorie === 'salarie_cofidec' ? 20000000 : 
-                         duree <= 6 ? 5000000 : 
-                         duree <= 13 ? 10000000 : 20000000
-  const dureeMaxPret = 24
-  const isContractValid = montant > 0 && montant <= montantMaxPret && duree > 0 && duree <= dureeMaxPret && formData.categorie !== ''
+  // --- CALCUL DÉTAILLÉ DE LA COTISATION (PROMPT MÉTIER) ---
+  const calculerCotisation = () => {
+    const montant = parseInt(formData.montant_pret) || 0
+    const duree = parseInt(formData.duree_pret_mois) || 0
+    const cat = formData.categorie
+
+    // Si données invalides ou manquantes, ou erreurs présentes, pas de calcul
+    if (!montant || !duree || !cat || Object.keys(formErrors).length > 0) return 0
+
+    // 1. Taux Décès/IAD
+    let tauxDeces = 0
+    if (cat === 'salarie_cofidec') {
+      tauxDeces = 0.0075 // 0.75% fixe
+    } else {
+      // Autres
+      if (duree >= 1 && duree <= 6) tauxDeces = 0.0050 // 0.50%
+      else if (duree > 6 && duree <= 13) tauxDeces = 0.0100 // 1.00%
+      else if (duree > 13 && duree <= 24) tauxDeces = 0.0175 // 1.75%
+      else return 0 // Hors grille, pas de calcul
+    }
+
+    // 2. Cotisation Décès (Arrondi)
+    const cotisDeces = Math.round(montant * tauxDeces)
+
+    // 3. Taux Perte d'Emploi (specifique)
+    let cotisPerteEmploi = 0
+    const isEligiblePerteEmploi = ['salaries_prive', 'commercants'].includes(cat)
+    if (formData.garantie_perte_emploi && isEligiblePerteEmploi) {
+      cotisPerteEmploi = Math.round(montant * 0.02) // 2.00%
+    }
+
+    // 4. Prévoyance (Fixe et Obligatoire)
+    const cotisPrevoyance = 5000
+
+    // Total
+    return cotisDeces + cotisPerteEmploi + cotisPrevoyance
+  }
+
+  const cotisationTotale = calculerCotisation()
+
+  // Validation globale
+  const isContractValid = isFormComplete && Object.keys(formErrors).length === 0
 
   // ═══════════════════════════════════════════════════════════════════
   // 🔒 VÉRIFICATION D'ACCÈS - Après tous les hooks (Rules of Hooks)
@@ -178,8 +248,8 @@ export const CofidecContractCreateOfficial = () => {
               <br />
               Ce formulaire est réservé aux utilisateurs COFIDEC.
             </p>
-            <Button 
-              onClick={() => navigate(-1)} 
+            <Button
+              onClick={() => navigate(-1)}
               className="bg-red-600 hover:bg-red-700 text-white"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
@@ -193,7 +263,7 @@ export const CofidecContractCreateOfficial = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     console.log('═══════════════════════════════════════════════════════════════')
     console.log('📋 COFIDEC - Validation des champs obligatoires...')
 
@@ -252,10 +322,10 @@ export const CofidecContractCreateOfficial = () => {
     createContract(payload, {
       onSuccess: (response: any) => {
         console.log('✅ Contrat COFIDEC créé - Réponse complète:', response)
-        
+
         // Extraire l'ID selon le format de réponse du backend
         const contratId = response?.id || response?.data?.id || response?.contrat?.id
-        
+
         if (contratId) {
           console.log('✅ ID du contrat:', contratId)
           navigate(`/contrats/cofidec/${contratId}`, {
@@ -271,16 +341,16 @@ export const CofidecContractCreateOfficial = () => {
       },
       onError: (error: any) => {
         console.error('❌ Erreur création COFIDEC:', error.response?.data)
-        
+
         // Afficher les erreurs de validation détaillées
         if (error.response?.status === 422) {
           const validationErrors = error.response.data.errors || {}
           console.error('❌ Erreurs de validation:', validationErrors)
-          
+
           const errorMessages = Object.entries(validationErrors)
             .map(([field, msgs]) => `• ${field}: ${Array.isArray(msgs) ? msgs[0] : msgs}`)
             .join('\n')
-          
+
           setSubmitError(`Erreurs de validation:\n${errorMessages || error.response.data.message || 'Champs invalides'}`)
         } else {
           setSubmitError(error.response?.data?.message || 'Erreur lors de la création')
@@ -307,7 +377,7 @@ export const CofidecContractCreateOfficial = () => {
           <ArrowLeft className="h-4 w-4 mr-2" />
           Retour
         </Button>
-        
+
         <div className="flex items-center gap-2">
           {isContractValid ? (
             <span className="flex items-center gap-1 text-green-600 text-sm font-medium">
@@ -327,7 +397,7 @@ export const CofidecContractCreateOfficial = () => {
             <Printer className="h-4 w-4 mr-2" />
             Imprimer
           </Button>
-          <Button 
+          <Button
             onClick={handleSubmit}
             disabled={isPending}
             className="bg-[#F48232] hover:bg-orange-600"
@@ -396,7 +466,7 @@ export const CofidecContractCreateOfficial = () => {
 
         {/* Form Body */}
         <div className="border-2 border-[#F48232] w-full flex flex-col text-sm">
-          
+
           {/* Section: Couverture */}
           <div className="flex border-b border-[#F48232]">
             <div className="w-28 flex-shrink-0 p-2 bg-orange-50 italic border-r border-[#F48232] flex items-center text-gray-900 text-xs">
@@ -410,43 +480,49 @@ export const CofidecContractCreateOfficial = () => {
                 </span>
               </div>
               <div className="flex gap-4">
-                <div className="flex items-end flex-1">
-                  <span className="text-[10px] text-gray-800 mr-1 whitespace-nowrap">Montant du prêt :</span>
-                  <input 
-                    type="number"
-                    value={formData.montant_pret}
-                    onChange={(e) => setFormData({...formData, montant_pret: e.target.value})}
-                    className="flex-grow border-b border-gray-800 bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold text-right"
-                    placeholder="0"
-                  />
-                  <span className="text-[10px] ml-1">FCFA</span>
+                <div className="flex flex-col flex-1 relative">
+                  <div className="flex items-end w-full">
+                    <span className="text-[10px] text-gray-800 mr-1 whitespace-nowrap">Montant du prêt :</span>
+                    <input
+                      type="number"
+                      value={formData.montant_pret}
+                      onChange={(e) => setFormData({ ...formData, montant_pret: e.target.value })}
+                      className="flex-grow border-b border-gray-800 bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold text-right"
+                      placeholder="0"
+                    />
+                    <span className="text-[10px] ml-1">FCFA</span>
+                  </div>
+                  {formErrors.montant_pret && <span className="text-[8px] text-red-600 font-bold ml-24">{formErrors.montant_pret}</span>}
                 </div>
-                <div className="flex items-end w-[140px] flex-shrink-0">
-                  <span className="text-[10px] text-gray-800 mr-1">Durée :</span>
-                  <input 
-                    type="number"
-                    value={formData.duree_pret_mois}
-                    onChange={(e) => setFormData({...formData, duree_pret_mois: e.target.value})}
-                    className="w-12 border-b border-gray-800 bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold text-center"
-                    placeholder="0"
-                    max="24"
-                  />
-                  <span className="text-[10px] ml-1">mois</span>
+                <div className="flex flex-col w-[140px] flex-shrink-0 relative">
+                  <div className="flex items-end w-full">
+                    <span className="text-[10px] text-gray-800 mr-1">Durée :</span>
+                    <input
+                      type="number"
+                      value={formData.duree_pret_mois}
+                      onChange={(e) => setFormData({ ...formData, duree_pret_mois: e.target.value })}
+                      className="w-12 border-b border-gray-800 bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold text-center"
+                      placeholder="0"
+                      max="24"
+                    />
+                    <span className="text-[10px] ml-1">mois</span>
+                  </div>
+                  {formErrors.duree_pret_mois && <span className="text-[8px] text-red-600 font-bold">{formErrors.duree_pret_mois}</span>}
                 </div>
               </div>
               <div className="flex gap-4">
                 <div className="flex items-end flex-1">
                   <span className="text-[10px] text-gray-800 mr-1 whitespace-nowrap">Date d'effet :</span>
-                  <input 
+                  <input
                     type="date"
                     value={formData.date_effet}
-                    onChange={(e) => setFormData({...formData, date_effet: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, date_effet: e.target.value })}
                     className="flex-grow border-b border-gray-800 bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold"
                   />
                 </div>
                 <div className="flex items-end flex-1">
                   <span className="text-[10px] text-gray-800 mr-1 whitespace-nowrap">Fin échéance :</span>
-                  <input 
+                  <input
                     type="date"
                     value={formData.date_fin_echeance}
                     readOnly
@@ -466,10 +542,10 @@ export const CofidecContractCreateOfficial = () => {
             <div className="flex-grow p-2 space-y-1.5">
               <div className="flex items-end">
                 <span className="text-xs text-gray-800 mr-2 w-24">Nom & Prénom :</span>
-                <input 
+                <input
                   type="text"
                   value={formData.nom_prenom}
-                  onChange={(e) => setFormData({...formData, nom_prenom: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, nom_prenom: e.target.value })}
                   disabled={!isSection2Enabled}
                   className="flex-grow border-b border-gray-800 bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold disabled:bg-gray-100"
                 />
@@ -477,20 +553,20 @@ export const CofidecContractCreateOfficial = () => {
               <div className="flex gap-4">
                 <div className="flex items-end flex-1">
                   <span className="text-xs text-gray-800 mr-2">Adresse :</span>
-                  <input 
+                  <input
                     type="text"
                     value={formData.adresse_assure}
-                    onChange={(e) => setFormData({...formData, adresse_assure: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, adresse_assure: e.target.value })}
                     disabled={!isSection2Enabled}
                     className="flex-grow border-b border-gray-800 bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold disabled:bg-gray-100"
                   />
                 </div>
                 <div className="flex items-end flex-1">
                   <span className="text-xs text-gray-800 mr-2">Ville :</span>
-                  <input 
+                  <input
                     type="text"
                     value={formData.ville_assure}
-                    onChange={(e) => setFormData({...formData, ville_assure: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, ville_assure: e.target.value })}
                     disabled={!isSection2Enabled}
                     className="flex-grow border-b border-gray-800 bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold disabled:bg-gray-100"
                   />
@@ -499,20 +575,20 @@ export const CofidecContractCreateOfficial = () => {
               <div className="flex gap-4">
                 <div className="flex items-end flex-1">
                   <span className="text-xs text-gray-800 mr-2">Téléphone :</span>
-                  <input 
+                  <input
                     type="text"
                     value={formData.telephone_assure}
-                    onChange={(e) => setFormData({...formData, telephone_assure: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, telephone_assure: e.target.value })}
                     disabled={!isSection2Enabled}
                     className="flex-grow border-b border-gray-800 bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold disabled:bg-gray-100"
                   />
                 </div>
                 <div className="flex items-end flex-1">
                   <span className="text-xs text-gray-800 mr-2">Email :</span>
-                  <input 
+                  <input
                     type="email"
                     value={formData.email_assure}
-                    onChange={(e) => setFormData({...formData, email_assure: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, email_assure: e.target.value })}
                     disabled={!isSection2Enabled}
                     className="flex-grow border-b border-gray-800 bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold disabled:bg-gray-100"
                   />
@@ -522,47 +598,47 @@ export const CofidecContractCreateOfficial = () => {
               <div className="flex items-start gap-x-4 mt-1">
                 <span className="text-xs text-gray-800 whitespace-nowrap pt-0.5">Catégorie :</span>
                 <div className="grid grid-cols-2 gap-x-6 gap-y-1">
-                  <Checkbox 
-                    label="Commerçants" 
+                  <Checkbox
+                    label="Commerçants"
                     checked={formData.categorie === 'commercants'}
-                    onChange={() => setFormData({...formData, categorie: 'commercants'})}
+                    onChange={() => setFormData({ ...formData, categorie: 'commercants' })}
                     disabled={!isSection2Enabled}
                   />
-                  <Checkbox 
-                    label="Salariés du public" 
+                  <Checkbox
+                    label="Salariés du public"
                     checked={formData.categorie === 'salaries_public'}
-                    onChange={() => setFormData({...formData, categorie: 'salaries_public'})}
+                    onChange={() => setFormData({ ...formData, categorie: 'salaries_public' })}
                     disabled={!isSection2Enabled}
                   />
-                  <Checkbox 
-                    label="Salariés du privé" 
+                  <Checkbox
+                    label="Salariés du privé"
                     checked={formData.categorie === 'salaries_prive'}
-                    onChange={() => setFormData({...formData, categorie: 'salaries_prive'})}
+                    onChange={() => setFormData({ ...formData, categorie: 'salaries_prive' })}
                     disabled={!isSection2Enabled}
                   />
-                  <Checkbox 
-                    label="Salariés COFIDEC" 
+                  <Checkbox
+                    label="Salariés COFIDEC"
                     checked={formData.categorie === 'salarie_cofidec'}
-                    onChange={() => setFormData({...formData, categorie: 'salarie_cofidec'})}
+                    onChange={() => setFormData({ ...formData, categorie: 'salarie_cofidec' })}
                     disabled={!isSection2Enabled}
                   />
-                  <Checkbox 
-                    label="Retraités" 
+                  <Checkbox
+                    label="Retraités"
                     checked={formData.categorie === 'retraites'}
-                    onChange={() => setFormData({...formData, categorie: 'retraites'})}
+                    onChange={() => setFormData({ ...formData, categorie: 'retraites' })}
                     disabled={!isSection2Enabled}
                   />
                   <div className="flex items-center">
-                    <Checkbox 
-                      label="Autre :" 
+                    <Checkbox
+                      label="Autre :"
                       checked={formData.categorie === 'autre'}
-                      onChange={() => setFormData({...formData, categorie: 'autre'})}
+                      onChange={() => setFormData({ ...formData, categorie: 'autre' })}
                       disabled={!isSection2Enabled}
                     />
-                    <input 
+                    <input
                       type="text"
                       value={formData.autre_categorie_precision}
-                      onChange={(e) => setFormData({...formData, autre_categorie_precision: e.target.value})}
+                      onChange={(e) => setFormData({ ...formData, autre_categorie_precision: e.target.value })}
                       disabled={!isSection2Enabled || formData.categorie !== 'autre'}
                       className="border-b border-gray-400 flex-grow bg-transparent focus:outline-none text-xs font-semibold ml-1 disabled:opacity-50 disabled:bg-gray-100"
                       placeholder="Préciser..."
@@ -583,30 +659,30 @@ export const CofidecContractCreateOfficial = () => {
               <div className="flex gap-4">
                 <div className="flex items-end flex-1">
                   <span className="text-xs text-gray-800 mr-2">Nom :</span>
-                  <input 
+                  <input
                     type="text"
                     value={formData.beneficiaire_nom}
-                    onChange={(e) => setFormData({...formData, beneficiaire_nom: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, beneficiaire_nom: e.target.value })}
                     disabled={!isSection2Enabled}
                     className="flex-grow border-b border-gray-800 bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold disabled:bg-gray-100"
                   />
                 </div>
                 <div className="flex items-end flex-1">
                   <span className="text-xs text-gray-800 mr-2">Prénom :</span>
-                  <input 
+                  <input
                     type="text"
                     value={formData.beneficiaire_prenom}
-                    onChange={(e) => setFormData({...formData, beneficiaire_prenom: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, beneficiaire_prenom: e.target.value })}
                     disabled={!isSection2Enabled}
                     className="flex-grow border-b border-gray-800 bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold disabled:bg-gray-100"
                   />
                 </div>
                 <div className="flex items-end flex-1">
                   <span className="text-xs text-gray-800 mr-2">Contact :</span>
-                  <input 
+                  <input
                     type="text"
                     value={formData.beneficiaire_contact}
-                    onChange={(e) => setFormData({...formData, beneficiaire_contact: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, beneficiaire_contact: e.target.value })}
                     disabled={!isSection2Enabled}
                     className="flex-grow border-b border-gray-800 bg-transparent text-xs px-1 focus:outline-none focus:bg-orange-50 font-semibold disabled:bg-gray-100"
                   />
@@ -633,10 +709,10 @@ export const CofidecContractCreateOfficial = () => {
                 </div>
                 <div className="flex items-end flex-grow">
                   <span className="mr-2 text-gray-800">Agence :</span>
-                  <input 
+                  <input
                     type="text"
                     value={formData.agence}
-                    onChange={(e) => setFormData({...formData, agence: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, agence: e.target.value })}
                     disabled={!isSection3Enabled}
                     className="flex-grow border-b border-gray-600 bg-transparent text-[10px] px-1 focus:outline-none focus:bg-orange-50 font-semibold disabled:bg-gray-100"
                   />
@@ -741,7 +817,7 @@ export const CofidecContractCreateOfficial = () => {
         {/* Signatures */}
         <div className="mt-auto mb-1">
           <div className="text-right mb-3 pr-4 font-medium text-xs">
-            Fait à <span className="border-b border-black px-2 mx-1 font-semibold">{formData.lieu_signature}</span>, 
+            Fait à <span className="border-b border-black px-2 mx-1 font-semibold">{formData.lieu_signature}</span>,
             le <span className="border-b border-black px-2 mx-1 font-semibold">{formatDate(formData.date_signature || new Date().toISOString())}</span>
           </div>
 
@@ -752,7 +828,7 @@ export const CofidecContractCreateOfficial = () => {
                 Signature
               </div>
             </div>
-            
+
             <div className="w-[38%] flex flex-col items-center justify-end pb-1 font-bold text-[8px] space-y-0.5 self-end">
               <div className="flex gap-3">
                 <span>Feuillet 1 : Assuré</span>
@@ -792,11 +868,10 @@ export const CofidecContractCreateOfficial = () => {
           type="button"
           onClick={handleSubmit}
           disabled={isPending || !isFormComplete}
-          className={`flex-1 text-white font-semibold text-lg py-3 ${
-            isFormComplete 
-              ? 'bg-[#F48232] hover:bg-[#e0742a]' 
-              : 'bg-gray-400 cursor-not-allowed'
-          }`}
+          className={`flex-1 text-white font-semibold text-lg py-3 ${isFormComplete
+            ? 'bg-[#F48232] hover:bg-[#e0742a]'
+            : 'bg-gray-400 cursor-not-allowed'
+            }`}
           title={!isFormComplete ? 'Veuillez remplir tous les champs obligatoires' : ''}
         >
           {isPending ? (
