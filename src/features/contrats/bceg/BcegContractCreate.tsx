@@ -7,12 +7,10 @@ import { useCreateBcegContract } from '@/hooks/useBcegContracts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-import { Select } from '@/components/ui/Select'
 import { Checkbox } from '@/components/ui/Checkbox'
 import { Label } from '@/components/ui/Label'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { LimitesDepasseesModal, type ContratCreationResponse } from '@/components/ui/LimitesDepasseesModal'
-import { formatCurrency } from '@/lib/utils'
 import axios from '@/lib/axios'
 
 interface SimulationResult {
@@ -154,11 +152,11 @@ export const BcegContractCreate = () => {
       ...formData,
       montant_pret: parseFloat(formData.montant_pret),
       duree_pret_mois: parseInt(formData.duree_pret_mois),
-      garantie_deces_iad: formData.garantie_deces_iad ? 1 : 0,
-      garantie_prevoyance: formData.garantie_prevoyance ? 1 : 0,
+      garantie_deces_iad: formData.garantie_deces_iad,
+      garantie_prevoyance: formData.garantie_prevoyance,
     }
 
-    createContract(payload, {
+    createContract(payload as any, {
       onSuccess: (data: any) => {
         setCreatedContrat({
           id: data.data?.id || data.id,

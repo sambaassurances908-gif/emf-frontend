@@ -8,8 +8,8 @@ import { Badge } from '@/components/ui/Badge';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
-import { 
-  ArrowLeft, CheckCircle, XCircle, DollarSign, 
+import {
+  ArrowLeft, CheckCircle, XCircle, DollarSign,
   FileText, Upload, Download, Trash2, Eye, Calendar,
   User, Phone, Mail, AlertCircle
 } from 'lucide-react';
@@ -22,7 +22,7 @@ export const SinistreDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  
+
   const [showValiderModal, setShowValiderModal] = useState(false);
   const [showRejeterModal, setShowRejeterModal] = useState(false);
   const [showPayerModal, setShowPayerModal] = useState(false);
@@ -43,7 +43,7 @@ export const SinistreDetailPage = () => {
   const sinistre = sinistreResponse?.data;
 
   const validerMutation = useMutation({
-    mutationFn: (data: { montant_accorde: number; observations?: string }) => 
+    mutationFn: (data: { montant_accorde: number; observations?: string }) =>
       sinistreService.valider(Number(id), data),
     onSuccess: () => {
       toast.success('Sinistre validé avec succès');
@@ -56,7 +56,7 @@ export const SinistreDetailPage = () => {
   });
 
   const rejeterMutation = useMutation({
-    mutationFn: (data: { motif_rejet: string }) => 
+    mutationFn: (data: { motif_rejet: string }) =>
       sinistreService.rejeter(Number(id), data),
     onSuccess: () => {
       toast.success('Sinistre rejeté');
@@ -69,7 +69,7 @@ export const SinistreDetailPage = () => {
   });
 
   const payerMutation = useMutation({
-    mutationFn: (data: { mode_paiement: string; reference_paiement: string }) => 
+    mutationFn: (data: { mode_paiement: string; reference_paiement: string }) =>
       sinistreService.payer(Number(id), data),
     onSuccess: () => {
       toast.success('Paiement enregistré avec succès');
@@ -82,7 +82,8 @@ export const SinistreDetailPage = () => {
   });
 
   const uploadMutation = useMutation({
-    mutationFn: (formData: FormData) => sinistreService.uploadDocument(Number(id), formData),
+    mutationFn: ({ file, typeDocument, description }: { file: File; typeDocument: string; description?: string }) =>
+      sinistreService.uploadDocument(Number(id), file, typeDocument, description),
     onSuccess: () => {
       toast.success('Document uploadé avec succès');
       queryClient.invalidateQueries({ queryKey: ['sinistre', id] });
@@ -140,14 +141,20 @@ export const SinistreDetailPage = () => {
     const formData = new FormData();
     formData.append('document', selectedFile);
 
-    uploadMutation.mutate(formData);
+    uploadMutation.mutate({
+      file: selectedFile,
+      typeDocument: 'autre', // Type par défaut ou à sélectionner dans l'UI
+      description: ''
+    });
   };
 
   const getStatusColor = (statut: string) => {
     const colors: Record<string, string> = {
       en_attente: 'bg-yellow-100 text-yellow-800',
       en_cours: 'bg-blue-100 text-blue-800',
-      valide: 'bg-green-100 text-green-800',
+      en_instruction: 'bg-indigo-100 text-indigo-800',
+      en_reglement: 'bg-teal-100 text-teal-800',
+      en_paiement: 'bg-green-100 text-green-800', // Remplacé 'valide' par 'en_paiement'
       rejete: 'bg-red-100 text-red-800',
       paye: 'bg-purple-100 text-purple-800',
       cloture: 'bg-gray-100 text-gray-800',
@@ -215,7 +222,7 @@ export const SinistreDetailPage = () => {
               </Button>
             </>
           )}
-          {sinistre.statut === 'valide' && (
+          {sinistre.statut === 'en_paiement' && (
             <Button onClick={() => setShowPayerModal(true)}>
               <DollarSign className="h-4 w-4 mr-2" />
               Enregistrer Paiement
@@ -260,7 +267,7 @@ export const SinistreDetailPage = () => {
               <div>
                 <p className="text-sm text-gray-600">Montant Réclamé</p>
                 <p className="text-xl font-bold text-gray-900 mt-1">
-                  {formatCurrency(sinistre.montant_reclame)}
+                  {formatCurrency(sinistre.montant_reclame || 0)}
                 </p>
               </div>
               <DollarSign className="h-8 w-8 text-gray-400" />
@@ -273,9 +280,8 @@ export const SinistreDetailPage = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Délai Traitement</p>
-                <p className={`text-xl font-bold mt-1 ${
-                  (sinistre.delai_traitement_jours ?? 0) > 15 ? 'text-red-600' : 'text-gray-900'
-                }`}>
+                <p className={`text-xl font-bold mt-1 ${(sinistre.delai_traitement_jours ?? 0) > 15 ? 'text-red-600' : 'text-gray-900'
+                  }`}>
                   {sinistre.delai_traitement_jours ?? 0} jours
                 </p>
               </div>

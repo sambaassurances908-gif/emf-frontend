@@ -2,7 +2,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import axios from '@/lib/axios'
 import { sinistreService } from '@/services/sinistre.service'
-import { SinistreCreatePayload, BambooSinistre } from '@/types/sinistre.types'
+import { SinistreCreatePayload, SinistreStatut } from '@/types/sinistre.types'
 
 /**
  * Hook pour récupérer les contrats BAMBOO actifs (pour le sélecteur du formulaire)
@@ -22,7 +22,7 @@ export const useBambooContratsForSinistre = (emfId: number) => {
 /**
  * Hook pour récupérer les sinistres BAMBOO
  */
-export const useBambooSinistres = (params?: { page?: number; statut?: string }) => {
+export const useBambooSinistres = (params?: { page?: number; statut?: SinistreStatut }) => {
   return useQuery({
     queryKey: ['bamboo-sinistres', params],
     queryFn: async () => {

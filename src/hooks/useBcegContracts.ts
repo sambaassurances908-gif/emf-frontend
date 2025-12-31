@@ -3,10 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { BcegContrat, BcegContratFormData } from '@/types/bceg'
 
-type BcegContractsResponse = {
-  data: BcegContrat[]
-  meta?: any
-}
+
 
 // ✅ Hook pour la LISTE des contrats BCEG
 export const useBcegContracts = (emfId: number) => {
@@ -14,16 +11,16 @@ export const useBcegContracts = (emfId: number) => {
     queryKey: ['bceg-contracts', emfId],
     queryFn: async () => {
       console.log('🔍 BCEG HOOK - Récupération contrats BCEG:', { emfId })
-      
-      const response = await api.get('/bceg/contrats', { 
-        params: { emf_id: emfId, per_page: 50 } 
+
+      const response = await api.get('/bceg/contrats', {
+        params: { emf_id: emfId, per_page: 50 }
       })
-      
+
       console.log('📦 BCEG HOOK - Réponse brute:', response.data)
-      
+
       // Gérer différentes structures de réponse API
       let contrats: BcegContrat[] = []
-      
+
       if (Array.isArray(response.data)) {
         // Si la réponse est directement un tableau
         contrats = response.data
@@ -36,9 +33,9 @@ export const useBcegContracts = (emfId: number) => {
           contrats = response.data.data.data
         }
       }
-      
+
       console.log('✅ BCEG HOOK - Contrats extraits:', contrats.length, contrats.slice(0, 2))
-      
+
       return contrats
     },
     staleTime: 5 * 60 * 1000,
@@ -53,22 +50,22 @@ export const useBcegContract = (id?: number) => {
     queryKey: ['bceg-contract', id],
     queryFn: async () => {
       console.log('🔍 BCEG HOOK - Récupération contrat BCEG:', { id })
-      
+
       const response = await api.get(`/bceg/contrats/${id}`)
-      
+
       console.log('📦 BCEG HOOK - Réponse détail:', response.data)
-      
+
       // Gérer différentes structures de réponse API
       let contrat: BcegContrat
-      
+
       if (response.data?.data) {
         contrat = response.data.data
       } else {
         contrat = response.data
       }
-      
+
       console.log('✅ BCEG HOOK - Contrat extrait:', contrat)
-      
+
       return contrat
     },
     enabled: !!id,

@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/Button'
 import { useCreateCofigaContract } from '@/hooks/useCofigaContracts'
 import { useReactToPrint } from 'react-to-print'
 import { COFIGA_CONSTANTS } from '@/types/cofiga'
-import { formatCurrency } from '@/lib/utils'
 import logoSamba from '@/assets/logo-samba.png'
 
 // --- FormInput Component ---

@@ -14,6 +14,7 @@ import { sinistreService } from '@/services/sinistre.service';
 import { contratService } from '@/services/contrat.service';
 import toast from 'react-hot-toast';
 import { formatCurrency } from '@/lib/utils';
+import { SinistreCreatePayload } from '@/types/sinistre.types';
 
 const sinistreSchema = z.object({
   numero_police: z.string().min(1, 'Numéro de police requis'),
@@ -41,6 +42,7 @@ interface ContratRecherche {
   email_assure?: string;
   montant_pret_assure?: number;
   montant_pret?: number;
+  capital_restant_du?: number;
   statut: string;
   emf?: {
     sigle: string;
@@ -48,22 +50,6 @@ interface ContratRecherche {
   garantie_deces_iad?: boolean;
   garantie_prevoyance?: boolean;
   garantie_perte_emploi?: boolean;
-}
-
-interface SinistreCreateData {
-  numero_police: string;
-  type_sinistre: 'deces' | 'iad' | 'maladie' | 'perte_emploi' | 'prevoyance';
-  date_survenance: string;
-  date_declaration: string;
-  montant_reclame: number;
-  description: string;
-  cause_sinistre?: string;
-  nom_assure: string;
-  telephone_assure: string;
-  email_assure?: string;
-  contrat_type: 'ContratBamboo' | 'ContratCofidec' | 'ContratBceg' | 'ContratEdg' | 'ContratSodec';
-  contrat_id: number;
-  statut: 'en_attente' | 'en_cours' | 'valide' | 'rejete' | 'paye' | 'cloture';
 }
 
 export const SinistreDeclarationForm = () => {
@@ -88,7 +74,7 @@ export const SinistreDeclarationForm = () => {
   const typeSinistre = watch('type_sinistre');
 
   const createMutation = useMutation({
-    mutationFn: (data: SinistreCreateData) => sinistreService.create(data),
+    mutationFn: (data: SinistreCreatePayload) => sinistreService.create(data),
     onSuccess: (response) => {
       toast.success('Sinistre déclaré avec succès');
       navigate(`/sinistres/${response.data.id}`);
@@ -107,16 +93,16 @@ export const SinistreDeclarationForm = () => {
     setIsSearching(true);
     try {
       const response = await contratService.searchByPolice(searchPolice);
-      
+
       if (response.data) {
         setContratTrouve(response.data as ContratRecherche);
-        
+
         // Pré-remplir le formulaire
         setValue('numero_police', response.data.numero_police);
         setValue('nom_assure', response.data.nom_prenom || `${response.data.nom} ${response.data.prenom}`);
         setValue('telephone_assure', response.data.telephone_assure);
         setValue('email_assure', response.data.email_assure || '');
-        
+
         toast.success('Contrat trouvé');
       } else {
         toast.error('Contrat non trouvé');
@@ -137,23 +123,35 @@ export const SinistreDeclarationForm = () => {
       return;
     }
 
-    const formattedData: SinistreCreateData = {
+    const payload: SinistreCreatePayload = {
       numero_police: data.numero_police,
-      type_sinistre: data.type_sinistre,
-      date_survenance: data.date_survenance,
+      type_sinistre: data.type_sinistre as any,
+      date_sinistre: data.date_survenance,
       date_declaration: data.date_declaration,
       montant_reclame: parseFloat(data.montant_reclame),
+      capital_restant_du: contratTrouve.capital_restant_du || 0,
       description: data.description,
-      cause_sinistre: data.cause_sinistre,
+
+      // Champs Déclarant
+      nom_declarant: data.nom_assure,
+      prenom_declarant: '',
+      qualite_declarant: 'ASSURE',
+      telephone_declarant: data.telephone_assure,
+      email_declarant: data.email_assure || undefined,
+
+      // Contrat
+      contrat_type: (contratTrouve.type === 'ContratBamboo' ? 'ContratBambooEmf' : contratTrouve.type) as any,
+      contrat_id: contratTrouve.id,
+      statut: 'en_cours', // Statut initial valide selon SinistreStatut
+
+      // Champs additionnels mappés
       nom_assure: data.nom_assure,
       telephone_assure: data.telephone_assure,
-      email_assure: data.email_assure,
-      contrat_type: contratTrouve.type,
-      contrat_id: contratTrouve.id,
-      statut: 'en_attente',
-    };
+      email_assure: data.email_assure || undefined,
+      observations: data.cause_sinistre ? `Cause: ${data.cause_sinistre}` : undefined,
+    } as any;
 
-    createMutation.mutate(formattedData);
+    createMutation.mutate(payload);
   };
 
   const getTypeSinistreOptions = () => {
@@ -344,14 +342,14 @@ export const SinistreDeclarationForm = () => {
                   error={errors.montant_reclame?.message}
                   {...register('montant_reclame')}
                 />
-                
+
                 {typeSinistre && (
                   <Input
                     label="Cause du sinistre"
                     placeholder={
                       typeSinistre === 'deces' ? 'Ex: Maladie, Accident...' :
-                      typeSinistre === 'perte_emploi' ? 'Ex: Licenciement économique...' :
-                      'Ex: Pathologie, Accident...'
+                        typeSinistre === 'perte_emploi' ? 'Ex: Licenciement économique...' :
+                          'Ex: Pathologie, Accident...'
                     }
                     error={errors.cause_sinistre?.message}
                     {...register('cause_sinistre')}
@@ -469,8 +467,8 @@ export const SinistreDeclarationForm = () => {
                 <div className="text-sm text-red-900">
                   <p className="font-semibold mb-1">Déclaration sur l'honneur</p>
                   <p>
-                    En soumettant ce formulaire, je certifie sur l'honneur l'exactitude 
-                    des informations fournies. Toute fausse déclaration peut entraîner 
+                    En soumettant ce formulaire, je certifie sur l'honneur l'exactitude
+                    des informations fournies. Toute fausse déclaration peut entraîner
                     le rejet du sinistre et des poursuites judiciaires.
                   </p>
                 </div>

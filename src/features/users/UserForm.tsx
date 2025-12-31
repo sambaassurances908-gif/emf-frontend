@@ -80,7 +80,7 @@ export const UserForm = () => {
       reset({
         name: user.name,
         email: user.email,
-        role: user.role,
+        role: user.role as any,
         emf_id: user.emf_id?.toString() || '',
         statut: user.statut,
       });
@@ -89,7 +89,10 @@ export const UserForm = () => {
 
   const createMutation = useMutation({
     mutationFn: (data: UserCreateData & { password: string }) => {
-      return userService.create(data);
+      return userService.create({
+        ...data,
+        password_confirmation: data.password_confirmation || ''
+      });
     },
     onSuccess: (response) => {
       toast.success('Utilisateur créé avec succès');
@@ -109,7 +112,7 @@ export const UserForm = () => {
   });
 
   const updateMutation = useMutation({
-    mutationFn: (data: UserCreateData) => userService.update(Number(id), data),
+    mutationFn: (data: UserCreateData) => userService.update(Number(id), data as any),
     onSuccess: (response) => {
       toast.success('Utilisateur mis à jour avec succès');
       navigate(`/users/${response.data.id}`);
@@ -136,7 +139,7 @@ export const UserForm = () => {
       const createData = {
         ...formattedData,
         password: data.password,
-        password_confirmation: data.password_confirmation,
+        password_confirmation: data.password_confirmation || '',
       } as UserCreateData & { password: string };
       createMutation.mutate(createData);
     } else {

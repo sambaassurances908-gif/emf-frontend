@@ -9,8 +9,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/Badge';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { EmptyState } from '@/components/shared/EmptyState';
-import { SinistreStatutBadge, TypeSinistreBadge, ArchiveBadge } from '@/components/sinistres';
-import { Plus, Search, Eye, Settings, Archive, Filter, X } from 'lucide-react';
+import { SinistreStatutBadge, TypeSinistreBadge } from '@/components/sinistres';
+import { Plus, Search, Eye, Settings, Archive, X } from 'lucide-react';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { Sinistre, SinistreStatut } from '@/types/sinistre.types';
 import { sinistreService } from '@/services/sinistre.service';
@@ -52,7 +52,7 @@ export const SinistreListPage = () => {
   const [typeFilter, setTypeFilter] = useState('');
   const [selectedEmfId, setSelectedEmfId] = useState<number | null>(null);
   const [showArchives, setShowArchives] = useState(false);
-  
+
   // Vérification des droits admin
   const { isAdmin, peutCloturerSinistre } = useAuthStore();
   const isAdminUser = isAdmin();
@@ -72,7 +72,7 @@ export const SinistreListPage = () => {
   });
 
   // Récupérer les sinistres archivés séparément si demandé
-  const { data: archivesData, isLoading: isLoadingArchives } = useQuery({
+  const { data: archivesData } = useQuery({
     queryKey: ['sinistres-archives'],
     queryFn: () => sinistreService.getArchives({ per_page: 100 }),
     enabled: showArchives && canViewArchives,
@@ -80,21 +80,21 @@ export const SinistreListPage = () => {
 
   const allSinistres = useMemo(() => {
     let sinistres = Array.isArray(allSinistresData?.data) ? allSinistresData.data : [];
-    
+
     // Ajouter les archives si activé
     if (showArchives && archivesData?.data) {
       const archiveIds = new Set(sinistres.filter((s: Sinistre) => s.est_archive).map((s: Sinistre) => s.id));
       const newArchives = (archivesData.data as Sinistre[]).filter((s: Sinistre) => !archiveIds.has(s.id));
       sinistres = [...sinistres, ...newArchives];
     }
-    
+
     return sinistres;
   }, [allSinistresData, archivesData, showArchives]);
 
   // Statistiques par EMF basées sur emf_id
   const emfStats = useMemo(() => {
     const stats: Record<number, { total: number; montant: number }> = {};
-    
+
     // Initialiser les stats pour chaque EMF
     EMF_CONFIG.filter(e => e.id !== null).forEach(emf => {
       stats[emf.id!] = { total: 0, montant: 0 };
@@ -119,7 +119,7 @@ export const SinistreListPage = () => {
   // Sinistres filtrés selon l'EMF sélectionné et les filtres de recherche
   const filteredSinistres = useMemo(() => {
     let sinistres = [...allSinistres];
-    
+
     // Filtre par EMF
     if (selectedEmfId !== null) {
       sinistres = sinistres.filter((s: Sinistre) => {
@@ -183,7 +183,8 @@ export const SinistreListPage = () => {
 
   const handleSinistreClick = (sinistre: Sinistre) => {
     const emfId = sinistre.emf_id || sinistre.contrat?.emf_id;
-    const emfConfig = getEmfConfig(emfId);
+    // emfConfig is used for navigation context
+    getEmfConfig(emfId);
     // Navigation vers la page de détail V2 (avec quittances et délais)
     navigate(`/sinistres/${sinistre.id}`);
   };
@@ -208,8 +209,8 @@ export const SinistreListPage = () => {
         </div>
         <div className="flex items-center gap-3">
           {canViewArchives && (
-            <Button 
-              variant={showArchives ? "default" : "outline"}
+            <Button
+              variant={showArchives ? "primary" : "outline"}
               onClick={() => setShowArchives(!showArchives)}
               className={showArchives ? "bg-purple-600 hover:bg-purple-700" : ""}
             >
@@ -227,14 +228,14 @@ export const SinistreListPage = () => {
       {/* Stats Cards par EMF */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {EMF_CONFIG.map((emf) => {
-          const stats = emf.id === null 
+          const stats = emf.id === null
             ? { total: totalSinistres, montant: totalMontant }
             : emfStats[emf.id] || { total: 0, montant: 0 };
-          
+
           const isSelected = selectedEmfId === emf.id;
-          
+
           return (
-            <Card 
+            <Card
               key={emf.key}
               className={`cursor-pointer transition-all hover:shadow-lg ${isSelected ? `ring-2 ${emf.ringColor} shadow-lg` : ''}`}
               onClick={() => setSelectedEmfId(emf.id)}
@@ -323,9 +324,9 @@ export const SinistreListPage = () => {
               </button>
             </Badge>
           )}
-          <Button 
-            variant="ghost" 
-            size="sm" 
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={clearFilters}
             className="text-gray-500 hover:text-gray-700"
           >
@@ -344,7 +345,7 @@ export const SinistreListPage = () => {
           ) : filteredSinistres.length === 0 ? (
             <EmptyState
               title="Aucun sinistre trouvé"
-              description={selectedEmfId !== null 
+              description={selectedEmfId !== null
                 ? `Aucun sinistre ${selectedEmfConfig.label} ne correspond à vos critères`
                 : "Aucun sinistre ne correspond à vos critères de recherche"
               }
@@ -377,8 +378,8 @@ export const SinistreListPage = () => {
                   const emfConfig = getEmfConfig(emfId);
                   const isArchived = sinistre.est_archive;
                   return (
-                    <TableRow 
-                      key={sinistre.id} 
+                    <TableRow
+                      key={sinistre.id}
                       className={`hover:bg-gray-50 ${isArchived ? 'bg-purple-50/30' : ''}`}
                     >
                       <TableCell>
@@ -390,7 +391,7 @@ export const SinistreListPage = () => {
                         <div className="flex items-center gap-2">
                           {sinistre.numero_sinistre}
                           {isArchived && (
-                            <Archive size={14} className="text-purple-500" title="Archivé" />
+                            <Archive size={14} className="text-purple-500" />
                           )}
                         </div>
                       </TableCell>
@@ -415,9 +416,8 @@ export const SinistreListPage = () => {
                       </TableCell>
                       <TableCell>
                         {sinistre.delai_traitement_jours !== undefined && sinistre.delai_traitement_jours !== null ? (
-                          <span className={`text-sm ${
-                            sinistre.delai_traitement_jours > 15 ? 'text-red-600' : 'text-gray-600'
-                          }`}>
+                          <span className={`text-sm ${sinistre.delai_traitement_jours > 15 ? 'text-red-600' : 'text-gray-600'
+                            }`}>
                             {sinistre.delai_traitement_jours}j
                           </span>
                         ) : (
@@ -427,7 +427,7 @@ export const SinistreListPage = () => {
                       <TableCell>
                         <Button
                           size="sm"
-                          variant={isAdminUser && !isArchived ? "default" : "ghost"}
+                          variant={isAdminUser && !isArchived ? "primary" : "ghost"}
                           onClick={(e) => {
                             e.stopPropagation();
                             handleSinistreClick(sinistre);

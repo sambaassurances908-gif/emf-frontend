@@ -2,7 +2,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import axios from '@/lib/axios'
 import { sinistreService } from '@/services/sinistre.service'
-import { SinistreCreatePayload } from '@/types/sinistre.types'
+import { SinistreCreatePayload, SinistreStatut } from '@/types/sinistre.types'
 
 /**
  * Hook pour récupérer les contrats FINAM actifs (pour le sélecteur du formulaire)
@@ -22,7 +22,7 @@ export const useFinamContratsForSinistre = (emfId: number) => {
 /**
  * Hook pour récupérer les sinistres FINAM
  */
-export const useFinamSinistres = (params?: { page?: number; statut?: string }) => {
+export const useFinamSinistres = (params?: { page?: number; statut?: SinistreStatut }) => {
     return useQuery({
         queryKey: ['finam-sinistres', params],
         queryFn: async () => {

@@ -5,13 +5,12 @@ import { useEffect, useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { useSinistresEvolution } from '@/hooks/useSinistresEvolution';
-import { 
-  FileText, 
-  AlertCircle, 
-  Wallet, 
-  CheckCircle, 
+import {
+  FileText,
+  AlertCircle,
+  Wallet,
+  CheckCircle,
   TrendingUp,
-  Calendar,
   AlertTriangle,
   MoreHorizontal,
   ChevronDown,
@@ -27,15 +26,15 @@ import {
   Hourglass,
   ArrowRight,
 } from 'lucide-react';
-import { formatCurrencyShort, formatCurrency, formatDate } from '@/lib/utils';
+import { formatCurrencyShort, formatDate } from '@/lib/utils';
 import api from '@/lib/api';
 import { DashboardStats, EmfStats, SinistreRecent } from '@/types/dashboard.types';
-import { 
-  PieChart as RechartsPieChart, 
-  Pie, 
-  Cell, 
-  ResponsiveContainer, 
-  Legend, 
+import {
+  PieChart as RechartsPieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  Legend,
   Tooltip,
   BarChart,
   Bar,
@@ -88,22 +87,22 @@ const SINISTRE_STATUTS = {
 };
 
 // Composant StatCard style Finve
-const StatCard = ({ 
-  title, 
-  amount, 
-  percent, 
+const StatCard = ({
+  title,
+  amount,
+  percent,
   isPositive,
   icon: Icon,
   onClick
-}: { 
-  title: string; 
-  amount: string; 
-  percent?: string; 
+}: {
+  title: string;
+  amount: string;
+  percent?: string;
   isPositive?: boolean;
   icon?: React.ComponentType<{ className?: string; size?: number }>;
   onClick?: () => void;
 }) => (
-  <div 
+  <div
     className={`bg-white p-6 rounded-3xl shadow-soft border border-gray-100/50 ${onClick ? 'cursor-pointer hover:shadow-lg hover:border-gray-200 transition-all duration-200' : ''}`}
     onClick={onClick}
   >
@@ -130,23 +129,23 @@ const StatCard = ({
 );
 
 // Dropdown component
-const Dropdown = ({ 
-  label, 
-  options, 
-  value, 
-  onChange 
-}: { 
-  label: string; 
-  options: { value: string; label: string }[]; 
-  value: string; 
+const Dropdown = ({
+  label,
+  options,
+  value,
+  onChange
+}: {
+  label: string;
+  options: { value: string; label: string }[];
+  value: string;
   onChange: (value: string) => void;
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const selected = options.find(o => o.value === value);
-  
+
   return (
     <div className="relative">
-      <button 
+      <button
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-1 text-xs font-bold text-gray-500 bg-gray-50 px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors"
       >
@@ -175,7 +174,7 @@ const Dropdown = ({
 export const DashboardPage = () => {
   const { user } = useAuthStore();
   const navigate = useNavigate();
-  
+
   // États pour les filtres et tris
   const [emfSortField, setEmfSortField] = useState<SortField>('cotisation_totale_ttc');
   const [emfSortOrder, setEmfSortOrder] = useState<SortOrder>('desc');
@@ -190,7 +189,7 @@ export const DashboardPage = () => {
         4: '/dashboard/edg',
         5: '/dashboard/sodec',
       };
-      
+
       const dashboardPath = emfDashboards[user.emf_id];
       if (dashboardPath) {
         navigate(dashboardPath, { replace: true });
@@ -212,7 +211,7 @@ export const DashboardPage = () => {
     // Toujours utiliser details_par_type car c'est la source fiable
     const detailsParType = (stats as any)?.details_par_type;
     if (!detailsParType) return [];
-    
+
     const emfMapping: { key: string; id: number; sigle: string }[] = [
       { key: 'bamboo_emf', id: 1, sigle: 'BAMBOO' },
       { key: 'cofidec', id: 2, sigle: 'COFIDEC' },
@@ -220,7 +219,7 @@ export const DashboardPage = () => {
       { key: 'edg', id: 4, sigle: 'EDG' },
       { key: 'sodec', id: 5, sigle: 'SODEC' },
     ];
-    
+
     // Inclure TOUS les EMF (même ceux avec 0 contrats pour visibilité)
     return emfMapping.map(emf => ({
       emf_id: emf.id,
@@ -234,9 +233,9 @@ export const DashboardPage = () => {
 
   // Calculs
   const tauxCroissance = stats?.evolution_contrats && stats.evolution_contrats.length > 1
-    ? ((stats.evolution_contrats[stats.evolution_contrats.length - 1]?.total || 0) - 
-       (stats.evolution_contrats[stats.evolution_contrats.length - 2]?.total || 0)) / 
-       (stats.evolution_contrats[stats.evolution_contrats.length - 2]?.total || 1) * 100
+    ? ((stats.evolution_contrats[stats.evolution_contrats.length - 1]?.total || 0) -
+      (stats.evolution_contrats[stats.evolution_contrats.length - 2]?.total || 0)) /
+    (stats.evolution_contrats[stats.evolution_contrats.length - 2]?.total || 1) * 100
     : 0;
 
   const tauxSinistralite = stats?.contrats_actifs
@@ -263,7 +262,7 @@ export const DashboardPage = () => {
       agence: loc.agence || loc.ville || loc.localisation,
       nombre: loc.nombre
     })) || [];
-    
+
     const totalAgences = agences.reduce((acc: number, ag: any) => acc + ag.nombre, 0);
     return { agences, total: totalAgences };
   }, [stats]);
@@ -271,7 +270,7 @@ export const DashboardPage = () => {
   // EMF triés selon les options de tri
   const sortedEmfData = useMemo(() => {
     if (!emfDataFromDetails || emfDataFromDetails.length === 0) return [];
-    
+
     const sorted = [...emfDataFromDetails].sort((a, b) => {
       let comparison = 0;
       switch (emfSortField) {
@@ -293,7 +292,7 @@ export const DashboardPage = () => {
       }
       return emfSortOrder === 'desc' ? -comparison : comparison;
     });
-    
+
     return sorted;
   }, [emfDataFromDetails, emfSortField, emfSortOrder]);
 
@@ -343,8 +342,8 @@ export const DashboardPage = () => {
           <div className="text-xs text-gray-500 font-bold mb-2">{label}</div>
           {payload.map((item: any, index: number) => (
             <div key={index} className="flex items-center gap-2 text-sm">
-              <div 
-                className="w-2 h-2 rounded-full" 
+              <div
+                className="w-2 h-2 rounded-full"
                 style={{ backgroundColor: item.color }}
               />
               <span className="text-gray-600 capitalize">{item.dataKey}:</span>
@@ -376,7 +375,7 @@ export const DashboardPage = () => {
   if (isError) {
     const errorMessage = (error as any)?.response?.data?.message || (error as Error).message;
     const isCotisationError = errorMessage?.includes('cotisation_totale_ht');
-    
+
     return (
       <div className="p-6 text-center bg-red-50 rounded-3xl mx-6 mt-6 border border-red-100">
         <h2 className="text-lg font-bold text-red-600">Une erreur est survenue</h2>
@@ -393,8 +392,8 @@ export const DashboardPage = () => {
         ) : (
           <p className="text-xs mt-1 text-red-400">{errorMessage}</p>
         )}
-        <button 
-          onClick={() => window.location.reload()} 
+        <button
+          onClick={() => window.location.reload()}
           className="mt-4 px-4 py-2 bg-red-600 text-white rounded-xl text-sm font-medium hover:bg-red-700 transition-colors"
         >
           Réessayer
@@ -413,7 +412,7 @@ export const DashboardPage = () => {
             Vue d'ensemble du portefeuille SAMB'A Assurances
           </p>
         </div>
-        
+
         <div className="flex items-center gap-4">
           <Dropdown
             label="Période"
@@ -431,14 +430,14 @@ export const DashboardPage = () => {
 
       {/* Grid Layout */}
       <div className="grid grid-cols-12 gap-6">
-        
+
         {/* Row 1: Balance Card & Chart */}
         <div className="col-span-12 lg:col-span-4 bg-white p-6 rounded-3xl shadow-soft border border-gray-100/50 flex flex-col justify-between h-[320px]">
           <div className="flex justify-between items-start">
             <span className="font-bold text-gray-700">Portefeuille</span>
             <MoreHorizontal size={20} className="text-gray-300" />
           </div>
-          
+
           <div>
             <div className="text-4xl font-extrabold text-gray-900 mb-4">
               {formatCurrencyShort(stats?.montant_total_assure || 0)}
@@ -495,28 +494,28 @@ export const DashboardPage = () => {
             <ResponsiveContainer width="100%" height="100%" minWidth={0}>
               <BarChart data={monthlyData} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                <XAxis 
-                  dataKey="name" 
-                  axisLine={false} 
-                  tickLine={false} 
+                <XAxis
+                  dataKey="name"
+                  axisLine={false}
+                  tickLine={false}
                   tick={{ fontSize: 10, fill: '#9CA3AF', fontWeight: 500 }}
                 />
-                <YAxis 
-                  axisLine={false} 
-                  tickLine={false} 
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
                   tick={{ fontSize: 10, fill: '#D1D5DB', fontWeight: 500 }}
                   tickFormatter={(value) => value > 0 ? value : ''}
                 />
                 <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(0,0,0,0.02)' }} />
-                <Bar 
-                  dataKey="value" 
+                <Bar
+                  dataKey="value"
                   radius={[6, 6, 0, 0]}
                   maxBarSize={28}
                 >
                   {monthlyData.map((entry: any, index: number) => (
-                    <Cell 
-                      key={`cell-${index}`} 
-                      fill={entry.isHighlight ? ACCENT_COLOR : '#E5E7EB'} 
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={entry.isHighlight ? ACCENT_COLOR : '#E5E7EB'}
                     />
                   ))}
                 </Bar>
@@ -527,37 +526,37 @@ export const DashboardPage = () => {
 
         {/* Row 2: Stats Cards */}
         <div className="col-span-12 md:col-span-6 lg:col-span-3">
-          <StatCard 
-            title="Contrats Actifs" 
-            amount={String(stats?.contrats_actifs || 0)} 
-            percent={Math.abs(tauxCroissance).toFixed(1)} 
+          <StatCard
+            title="Contrats Actifs"
+            amount={String(stats?.contrats_actifs || 0)}
+            percent={Math.abs(tauxCroissance).toFixed(1)}
             isPositive={tauxCroissance >= 0}
             icon={FileText}
             onClick={() => navigate('/contrats?statut=actif')}
           />
         </div>
         <div className="col-span-12 md:col-span-6 lg:col-span-3">
-          <StatCard 
-            title="Sinistres en Cours" 
-            amount={String(stats?.sinistres_en_cours || 0)} 
-            percent="3.1" 
+          <StatCard
+            title="Sinistres en Cours"
+            amount={String(stats?.sinistres_en_cours || 0)}
+            percent="3.1"
             isPositive={false}
             icon={AlertCircle}
             onClick={() => navigate('/sinistres?statut=en_cours')}
           />
         </div>
         <div className="col-span-12 md:col-span-6 lg:col-span-3">
-          <StatCard 
-            title="Taux Règlement" 
+          <StatCard
+            title="Taux Règlement"
             amount={`${stats?.taux_reglement || 0}%`}
-            percent="5.4" 
+            percent="5.4"
             isPositive={true}
             icon={CheckCircle}
           />
         </div>
         <div className="col-span-12 md:col-span-6 lg:col-span-3">
-          <StatCard 
-            title="Sinistralité" 
+          <StatCard
+            title="Sinistralité"
             amount={`${tauxSinistralite.toFixed(1)}%`}
             icon={TrendingUp}
           />
@@ -571,7 +570,7 @@ export const DashboardPage = () => {
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            <div 
+            <div
               className="text-center p-5 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl cursor-pointer hover:from-gray-100 hover:to-gray-200 transition-all group"
               onClick={() => navigate('/statistiques')}
             >
@@ -584,7 +583,7 @@ export const DashboardPage = () => {
               <p className="text-xs text-gray-500 mt-1 font-medium">Croissance</p>
             </div>
 
-            <div 
+            <div
               className="text-center p-5 bg-gradient-to-br from-yellow-50 to-amber-50 rounded-2xl cursor-pointer hover:from-yellow-100 hover:to-amber-100 transition-all group"
               onClick={() => navigate('/contrats?statut=en_attente')}
             >
@@ -595,7 +594,7 @@ export const DashboardPage = () => {
               <p className="text-xs text-gray-500 mt-1 font-medium">Contrats en Attente</p>
             </div>
 
-            <div 
+            <div
               className="text-center p-5 bg-gradient-to-br from-red-50 to-orange-50 rounded-2xl cursor-pointer hover:from-red-100 hover:to-orange-100 transition-all group"
               onClick={() => navigate('/contrats?statut=expire')}
             >
@@ -606,7 +605,7 @@ export const DashboardPage = () => {
               <p className="text-xs text-gray-500 mt-1 font-medium">Expirés ce Mois</p>
             </div>
 
-            <div 
+            <div
               className="text-center p-5 bg-gradient-to-br from-emerald-50 to-green-50 rounded-2xl cursor-pointer hover:from-emerald-100 hover:to-green-100 transition-all group"
               onClick={() => navigate('/statistiques')}
             >
@@ -617,7 +616,7 @@ export const DashboardPage = () => {
               <p className="text-xs text-gray-500 mt-1 font-medium">Primes Collectées</p>
             </div>
 
-            <div 
+            <div
               className="text-center p-5 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl cursor-pointer hover:from-blue-100 hover:to-indigo-100 transition-all group"
               onClick={() => navigate('/sinistres?statut=en_cours')}
             >
@@ -628,7 +627,7 @@ export const DashboardPage = () => {
               <p className="text-xs text-gray-500 mt-1 font-medium">Sinistres en Cours</p>
             </div>
 
-            <div 
+            <div
               className="text-center p-5 bg-gradient-to-br from-purple-50 to-violet-50 rounded-2xl cursor-pointer hover:from-purple-100 hover:to-violet-100 transition-all group"
               onClick={() => navigate('/statistiques')}
             >
@@ -680,38 +679,38 @@ export const DashboardPage = () => {
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={sinistresEvolutionData} margin={{ top: 10, right: 20, left: -10, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
-                    <XAxis 
-                      dataKey="name" 
-                      tick={{ fontSize: 11, fill: '#9CA3AF' }} 
+                    <XAxis
+                      dataKey="name"
+                      tick={{ fontSize: 11, fill: '#9CA3AF' }}
                       axisLine={false}
                       tickLine={false}
                     />
-                    <YAxis 
-                      tick={{ fontSize: 11, fill: '#9CA3AF' }} 
+                    <YAxis
+                      tick={{ fontSize: 11, fill: '#9CA3AF' }}
                       axisLine={false}
                       tickLine={false}
                     />
                     <Tooltip content={<SinistresCustomTooltip />} />
-                    <Line 
-                      type="monotone" 
-                      dataKey="declares" 
-                      stroke="#3B82F6" 
+                    <Line
+                      type="monotone"
+                      dataKey="declares"
+                      stroke="#3B82F6"
                       strokeWidth={3}
                       dot={{ fill: '#3B82F6', strokeWidth: 2, r: 4 }}
                       activeDot={{ r: 6, stroke: '#fff', strokeWidth: 2 }}
                     />
-                    <Line 
-                      type="monotone" 
-                      dataKey="regles" 
-                      stroke="#10B981" 
+                    <Line
+                      type="monotone"
+                      dataKey="regles"
+                      stroke="#10B981"
                       strokeWidth={3}
                       dot={{ fill: '#10B981', strokeWidth: 2, r: 4 }}
                       activeDot={{ r: 6, stroke: '#fff', strokeWidth: 2 }}
                     />
-                    <Line 
-                      type="monotone" 
-                      dataKey="rejetes" 
-                      stroke="#F87171" 
+                    <Line
+                      type="monotone"
+                      dataKey="rejetes"
+                      stroke="#F87171"
                       strokeWidth={2}
                       strokeDasharray="5 5"
                       dot={{ fill: '#F87171', strokeWidth: 2, r: 3 }}
@@ -729,39 +728,39 @@ export const DashboardPage = () => {
                   <AreaChart data={sinistresEvolutionData} margin={{ top: 10, right: 20, left: -10, bottom: 5 }}>
                     <defs>
                       <linearGradient id="colorDeclares" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
+                        <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
                       </linearGradient>
                       <linearGradient id="colorRegles" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#10B981" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
+                        <stop offset="5%" stopColor="#10B981" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
-                    <XAxis 
-                      dataKey="name" 
-                      tick={{ fontSize: 11, fill: '#9CA3AF' }} 
+                    <XAxis
+                      dataKey="name"
+                      tick={{ fontSize: 11, fill: '#9CA3AF' }}
                       axisLine={false}
                       tickLine={false}
                     />
-                    <YAxis 
-                      tick={{ fontSize: 11, fill: '#9CA3AF' }} 
+                    <YAxis
+                      tick={{ fontSize: 11, fill: '#9CA3AF' }}
                       axisLine={false}
                       tickLine={false}
                     />
                     <Tooltip content={<SinistresCustomTooltip />} />
-                    <Area 
-                      type="monotone" 
-                      dataKey="declares" 
-                      stroke="#3B82F6" 
+                    <Area
+                      type="monotone"
+                      dataKey="declares"
+                      stroke="#3B82F6"
                       strokeWidth={2}
                       fillOpacity={1}
                       fill="url(#colorDeclares)"
                     />
-                    <Area 
-                      type="monotone" 
-                      dataKey="regles" 
-                      stroke="#10B981" 
+                    <Area
+                      type="monotone"
+                      dataKey="regles"
+                      stroke="#10B981"
                       strokeWidth={2}
                       fillOpacity={1}
                       fill="url(#colorRegles)"
@@ -794,8 +793,8 @@ export const DashboardPage = () => {
             </div>
             <div className="text-center">
               <p className="text-2xl font-bold text-blue-600">
-                {sinistresEvolutionData.length > 0 
-                  ? Math.round(sinistresEvolutionData.reduce((acc, item) => acc + item.regles, 0) / 
+                {sinistresEvolutionData.length > 0
+                  ? Math.round(sinistresEvolutionData.reduce((acc, item) => acc + item.regles, 0) /
                     sinistresEvolutionData.reduce((acc, item) => acc + item.declares, 0) * 100) || 0
                   : 0}%
               </p>
@@ -826,22 +825,22 @@ export const DashboardPage = () => {
             {sortedEmfData.length > 0 ? (
               sortedEmfData.map((emf: any, index: number) => {
                 const totalCotisations = emfDataFromDetails.reduce((acc: number, e: any) => acc + (e.cotisation_totale_ttc || 0), 0);
-                const percentage = totalCotisations > 0 
+                const percentage = totalCotisations > 0
                   ? ((emf.cotisation_totale_ttc || 0) / totalCotisations * 100)
                   : 0;
                 const emfSlug = getEmfSlug(emf.emf_id);
                 const sigle = emf.emf?.sigle?.toUpperCase() || 'INCONNU';
                 const emfColor = EMF_COLORS[sigle] || CHART_COLORS[index % CHART_COLORS.length];
-                
+
                 return (
-                  <div 
-                    key={emf.emf_id} 
+                  <div
+                    key={emf.emf_id}
                     className="group cursor-pointer p-3 -mx-3 rounded-xl hover:bg-gray-50 transition-colors"
                     onClick={() => navigate(emfSlug ? `/dashboard/${emfSlug}` : `/contrats?emf_id=${emf.emf_id}`)}
                   >
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-3">
-                        <div 
+                        <div
                           className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold shadow-sm"
                           style={{ backgroundColor: emfColor }}
                         >
@@ -863,7 +862,7 @@ export const DashboardPage = () => {
                     <div className="w-full bg-gray-100 rounded-full h-2">
                       <div
                         className="h-2 rounded-full transition-all duration-500 group-hover:opacity-80"
-                        style={{ 
+                        style={{
                           width: `${Math.min(percentage, 100)}%`,
                           backgroundColor: emfColor
                         }}
@@ -888,12 +887,12 @@ export const DashboardPage = () => {
           <div className="space-y-3">
             {agencesData.agences.length > 0 ? (
               agencesData.agences.slice(0, 5).map((agence: any, index: number) => {
-                const pourcentage = agencesData.total > 0 
-                  ? ((agence.nombre / agencesData.total) * 100).toFixed(0) 
+                const pourcentage = agencesData.total > 0
+                  ? ((agence.nombre / agencesData.total) * 100).toFixed(0)
                   : 0;
                 return (
-                  <div 
-                    key={index} 
+                  <div
+                    key={index}
                     className="flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer group"
                     onClick={() => navigate(`/contrats?agence=${encodeURIComponent(agence.agence)}`)}
                   >
@@ -933,7 +932,7 @@ export const DashboardPage = () => {
             <h3 className="font-bold text-gray-700">Répartition par EMF</h3>
             <MoreHorizontal size={20} className="text-gray-300" />
           </div>
-          
+
           {emfPieData.length > 0 ? (
             <div className="h-[280px]">
               <ResponsiveContainer width="100%" height="100%" minWidth={0}>
@@ -953,8 +952,8 @@ export const DashboardPage = () => {
                     ))}
                   </Pie>
                   <Tooltip content={<CustomTooltip />} />
-                  <Legend 
-                    verticalAlign="bottom" 
+                  <Legend
+                    verticalAlign="bottom"
                     height={36}
                     formatter={(value) => <span className="text-gray-600 text-xs">{value}</span>}
                   />
@@ -1034,20 +1033,20 @@ export const DashboardPage = () => {
               (() => {
                 const totalCategories = stats.par_categorie_socio_pro.reduce((acc, cat) => acc + cat.nombre, 0);
                 const sortedCategories = [...stats.par_categorie_socio_pro].sort((a, b) => b.nombre - a.nombre);
-                
+
                 return sortedCategories.map((categorie, index) => {
-                  const percentage = totalCategories > 0 
-                    ? ((categorie.nombre / totalCategories) * 100).toFixed(1) 
+                  const percentage = totalCategories > 0
+                    ? ((categorie.nombre / totalCategories) * 100).toFixed(1)
                     : 0;
-                  
+
                   return (
-                    <div 
+                    <div
                       key={index}
                       className="flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer group"
                       onClick={() => navigate(`/contrats?categorie_socio_pro=${encodeURIComponent(categorie.categorie)}`)}
                     >
                       <div className="flex items-center gap-3">
-                        <div 
+                        <div
                           className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold shadow-sm"
                           style={{ backgroundColor: CHART_COLORS[index % CHART_COLORS.length] }}
                         >
@@ -1099,7 +1098,7 @@ export const DashboardPage = () => {
                   { value: 'sigle', label: 'Nom EMF' },
                 ]}
               />
-              <button 
+              <button
                 onClick={() => setEmfSortOrder(emfSortOrder === 'desc' ? 'asc' : 'desc')}
                 className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
                 title={emfSortOrder === 'desc' ? 'Ordre décroissant' : 'Ordre croissant'}
@@ -1120,13 +1119,13 @@ export const DashboardPage = () => {
                 <tr className="text-xs text-gray-400 border-b border-gray-100">
                   <th className="font-medium py-3">#</th>
                   <th className="font-medium py-3">EMF</th>
-                  <th 
+                  <th
                     className="font-medium py-3 text-center cursor-pointer hover:text-gray-600"
                     onClick={() => { setEmfSortField('total'); setEmfSortOrder(emfSortOrder === 'desc' ? 'asc' : 'desc'); }}
                   >
                     Contrats {emfSortField === 'total' && (emfSortOrder === 'desc' ? '↓' : '↑')}
                   </th>
-                  <th 
+                  <th
                     className="font-medium py-3 text-center cursor-pointer hover:text-gray-600"
                     onClick={() => { setEmfSortField('montant_total'); setEmfSortOrder(emfSortOrder === 'desc' ? 'asc' : 'desc'); }}
                   >
@@ -1140,22 +1139,22 @@ export const DashboardPage = () => {
               <tbody className="text-sm font-medium text-gray-700">
                 {sortedEmfData.length > 0 ? (
                   sortedEmfData.map((emf: EmfStats, index: number) => {
-                    const percentage = stats?.contrats_actifs 
+                    const percentage = stats?.contrats_actifs
                       ? ((emf.total / stats.contrats_actifs) * 100)
                       : 0;
                     const moyenne = emf.total > 0 ? emf.montant_total / emf.total : 0;
                     const emfSlug = getEmfSlug(emf.emf_id);
-                    
+
                     return (
-                      <tr 
-                        key={emf.emf_id} 
+                      <tr
+                        key={emf.emf_id}
                         className="hover:bg-gray-50 transition-colors cursor-pointer group"
                         onClick={() => navigate(emfSlug ? `/dashboard/${emfSlug}` : `/contrats?emf_id=${emf.emf_id}`)}
                       >
                         <td className="py-4 border-b border-gray-50 text-gray-400 text-xs">{index + 1}</td>
                         <td className="py-4 border-b border-gray-50">
                           <div className="flex items-center gap-3">
-                            <div 
+                            <div
                               className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold shadow-sm"
                               style={{ backgroundColor: EMF_COLORS[(emf.emf?.sigle || '').toUpperCase()] || CHART_COLORS[index % CHART_COLORS.length] }}
                             >
@@ -1192,7 +1191,7 @@ export const DashboardPage = () => {
         <div className="col-span-12 lg:col-span-6 bg-white p-6 rounded-3xl shadow-soft border border-gray-100/50">
           <div className="flex justify-between items-center mb-5">
             <h3 className="font-bold text-gray-700">Activité Sinistres</h3>
-            <button 
+            <button
               onClick={() => navigate('/sinistres')}
               className="text-xs font-bold text-gray-500 hover:text-gray-700 flex items-center gap-1"
             >
@@ -1200,9 +1199,9 @@ export const DashboardPage = () => {
             </button>
           </div>
 
-          {/* Stats rapides sinistres - grille 3 colonnes */}     
+          {/* Stats rapides sinistres - grille 3 colonnes */}
           <div className="grid grid-cols-3 gap-2 mb-5">
-            <div 
+            <div
               className="bg-gradient-to-br from-yellow-50 to-amber-50 rounded-xl p-3 text-center cursor-pointer hover:from-yellow-100 hover:to-amber-100 transition-all"
               onClick={() => navigate('/sinistres?statut=en_cours')}
             >
@@ -1212,7 +1211,7 @@ export const DashboardPage = () => {
               <p className="text-lg font-bold text-gray-900">{stats?.sinistres_en_cours || 0}</p>
               <p className="text-[10px] text-gray-500 font-medium">En cours</p>
             </div>
-            <div 
+            <div
               className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-3 text-center cursor-pointer hover:from-green-100 hover:to-emerald-100 transition-all"
               onClick={() => navigate('/sinistres?statut=paye')}
             >
@@ -1222,7 +1221,7 @@ export const DashboardPage = () => {
               <p className="text-lg font-bold text-gray-900">{stats?.taux_reglement || 0}%</p>
               <p className="text-[10px] text-gray-500 font-medium">Réglés</p>
             </div>
-            <div 
+            <div
               className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-3 text-center cursor-pointer hover:from-blue-100 hover:to-indigo-100 transition-all"
               onClick={() => navigate('/sinistres?statut=en_attente')}
             >
@@ -1247,9 +1246,9 @@ export const DashboardPage = () => {
               stats.sinistres_recents.map((sinistre: SinistreRecent, index: number) => {
                 const statutInfo = SINISTRE_STATUTS[sinistre.statut as keyof typeof SINISTRE_STATUTS] || SINISTRE_STATUTS.en_attente;
                 const StatutIcon = statutInfo.icon;
-                
+
                 return (
-                  <div 
+                  <div
                     key={sinistre.id}
                     className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer group border border-transparent hover:border-gray-100"
                     onClick={() => navigate(`/sinistres/${sinistre.id}`)}
@@ -1263,7 +1262,7 @@ export const DashboardPage = () => {
                         <div className="w-0.5 h-3 bg-gray-100 mt-1"></div>
                       )}
                     </div>
-                    
+
                     {/* Contenu */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
@@ -1278,7 +1277,7 @@ export const DashboardPage = () => {
                         </span>
                       </div>
                     </div>
-                    
+
                     <ArrowRight size={14} className="text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
                   </div>
                 );
@@ -1296,7 +1295,7 @@ export const DashboardPage = () => {
 
           {/* Bouton voir tous les sinistres */}
           {stats?.sinistres_recents && stats.sinistres_recents.length > 0 && (
-            <button 
+            <button
               onClick={() => navigate('/sinistres')}
               className="w-full mt-4 py-3 bg-gray-900 hover:bg-gray-800 rounded-xl text-sm font-bold text-white transition-colors flex items-center justify-center gap-2"
             >

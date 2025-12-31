@@ -30,12 +30,12 @@ import { Eye, EyeOff } from 'lucide-react'
 import { CofigaContratPrint } from '@/components/contrats/CofigaContratPrint'
 
 // Composant InfoCard style Finve
-const InfoCard = ({ 
-  title, 
-  icon: Icon, 
+const InfoCard = ({
+  title,
+  icon: Icon,
   children,
   className = ''
-}: { 
+}: {
   title: string
   icon: React.ComponentType<{ className?: string; size?: number }>
   children: React.ReactNode
@@ -65,9 +65,9 @@ const StatusBadge = ({ statut }: { statut: string }) => {
     termine: { bg: 'bg-gray-100', text: 'text-gray-600', label: 'TERMINÉ' },
     sinistre: { bg: 'bg-orange-50', text: 'text-orange-600', label: 'SINISTRE' },
   }
-  
+
   const config = statusConfig[statut] || statusConfig.actif
-  
+
   return (
     <span className={`px-4 py-2 rounded-full text-sm font-bold ${config.bg} ${config.text}`}>
       {config.label}
@@ -160,7 +160,7 @@ export const CofigaContratDetailPage = () => {
       {/* Header */}
       <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-10">
         <div className="flex items-center gap-4">
-          <button 
+          <button
             onClick={() => navigate('/contrats/cofiga')}
             className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center text-gray-400 hover:bg-gray-50 hover:text-gray-600 transition-colors"
           >
@@ -180,9 +180,8 @@ export const CofigaContratDetailPage = () => {
         <div className="flex items-center gap-3">
           <button
             onClick={() => setShowContratOfficiel(!showContratOfficiel)}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-colors ${
-              showContratOfficiel ? 'bg-gray-600 text-white hover:bg-gray-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-colors ${showContratOfficiel ? 'bg-gray-600 text-white hover:bg-gray-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
           >
             {showContratOfficiel ? <EyeOff size={16} /> : <Eye size={16} />}
             {showContratOfficiel ? 'Masquer' : 'Aperçu'}
@@ -195,7 +194,7 @@ export const CofigaContratDetailPage = () => {
             Imprimer
           </button>
           <button
-            onClick={() => navigate(`/sinistres/nouveau/cofiga?contrat_id=${contrat.id}&contrat_type=ContratCofiga`) }
+            onClick={() => navigate(`/sinistres/nouveau/cofiga?contrat_id=${contrat.id}&contrat_type=ContratCofiga`)}
             className="flex items-center gap-2 px-4 py-2.5 bg-rose-500 text-white hover:bg-rose-600 rounded-xl font-bold text-sm shadow-lg shadow-rose-500/20 transition-colors"
           >
             <AlertTriangle size={16} />
@@ -239,14 +238,14 @@ export const CofigaContratDetailPage = () => {
 
       {/* Grid Layout */}
       <div className="grid grid-cols-12 gap-6">
-        
+
         {/* Row 1: Montant Principal & Statut */}
         <div className="col-span-12 lg:col-span-4 bg-white p-6 rounded-3xl shadow-soft border border-gray-100/50 flex flex-col justify-between min-h-[280px]">
           <div className="flex justify-between items-start">
             <span className="font-bold text-gray-700">Montant Prêt Assuré</span>
             <MoreHorizontal size={20} className="text-gray-300" />
           </div>
-          
+
           <div>
             <div className="text-4xl font-extrabold text-gray-900 mb-4">
               {formatCurrency(contrat.montant_pret_assure)}
@@ -265,11 +264,11 @@ export const CofigaContratDetailPage = () => {
         <InfoCard title="Assuré Principal" icon={User} className="col-span-12 lg:col-span-4">
           <div className="space-y-1">
             <div className="text-xl font-bold text-gray-900 mb-4">{contrat.nom} {contrat.prenom}</div>
-            
+
             <div className="bg-violet-50 rounded-xl p-3 mb-4">
               <div className="text-xs text-gray-500 mb-1">Catégorie</div>
               <div className="font-bold text-violet-700">
-                {getCategorieLabel(contrat.categorie, contrat.categorie_autre)}
+                {getCategorieLabel(contrat.categorie, contrat.categorie_autre ?? undefined)}
               </div>
             </div>
 
@@ -305,7 +304,7 @@ export const CofigaContratDetailPage = () => {
                 {formatCurrency(cotisationTotale)}
               </div>
             </div>
-            
+
             <div className="grid grid-cols-2 gap-2">
               <div className="bg-gray-50 rounded-xl p-3 text-center">
                 <div className="text-[10px] text-gray-500">Variable ({COFIGA_CONSTANTS.TAUX_GARANTIE}%)</div>
@@ -316,7 +315,7 @@ export const CofigaContratDetailPage = () => {
                 <div className="font-bold text-gray-800">{formatCurrency(cotisationFixe)}</div>
               </div>
             </div>
-            
+
             <div className="bg-violet-50 rounded-xl p-3 text-center">
               <div className="text-[10px] text-gray-500">Protection forfaitaire décès</div>
               <div className="font-bold text-violet-600">{formatCurrency(COFIGA_CONSTANTS.PROTECTION_FORFAITAIRE)}</div>
@@ -336,7 +335,7 @@ export const CofigaContratDetailPage = () => {
               <div className="font-bold text-gray-900">{formatDate(contrat.date_fin_echeance)}</div>
             </div>
           </div>
-          
+
           <div className="mt-4 pt-4 border-t border-gray-100">
             <InfoRow label="Durée totale" value={`${contrat.duree_pret} mois`} />
           </div>
@@ -361,7 +360,7 @@ export const CofigaContratDetailPage = () => {
                 </div>
               </div>
             </div>
-            
+
             {/* Indicateurs de conformité */}
             <div className="flex justify-between items-center py-2">
               <span className="text-gray-500 text-sm">Montant conforme</span>

@@ -172,11 +172,7 @@ export const SodecContractCreateOfficial = () => {
   const [createdContrat, setCreatedContrat] = useState<ContratCreationResponse | null>(null)
 
   // Validation des règles métier pour statut "actif"
-  const isRetraite = formData.categorie === 'retraites'
-  const montantMaxPret = isRetraite ? 5000000 : 20000000
-  const dureeMaxDeces = isRetraite ? 36 : 72
-  const dureeMaxPerteEmploi = 48
-  const montantMaxPerteEmploi = 5000000
+  // Les limites sont définies dans getValidationErrors() ci-dessous
 
   // Validation des règles métier bloquantes
   const getValidationErrors = () => {
@@ -276,14 +272,7 @@ export const SodecContractCreateOfficial = () => {
     }
   }, [formData.categorie])
 
-  const validateBusinessRules = () => {
-    const warnings: string[] = []
-    // Warnings for non-blocking UI feedback if needed, currently covered by blocking errors above mostly
-    return warnings
-  }
-
-  const businessWarnings = validateBusinessRules()
-  const isContractValid = businessWarnings.length === 0
+  // Note: validateBusinessRules was removed - validation is done via getValidationErrors()
 
   // ═══════════════════════════════════════════════════════════════════
   // 🔒 VÉRIFICATION D'ACCÈS - Après tous les hooks (Rules of Hooks)
@@ -429,20 +418,8 @@ export const SodecContractCreateOfficial = () => {
       // ═══════════════════════════════════════════════════════════════
       // ÉTAPE 2: VÉRIFICATION DES RÈGLES MÉTIER
       // ═══════════════════════════════════════════════════════════════
-      console.log('📋 ÉTAPE 2: Vérification des règles métier...')
-
-      if (businessWarnings.length > 0) {
-        console.warn('⚠️ Avertissements règles métier:', businessWarnings)
-        const confirmContinue = window.confirm(
-          `⚠️ Attention: Le contrat ne respecte pas certaines conditions:\n\n${businessWarnings.join('\n')}\n\nContinuer quand même ?`
-        )
-        if (!confirmContinue) {
-          console.log('🚫 Création annulée par l\'utilisateur')
-          return
-        }
-      }
-
-      console.log('✅ ÉTAPE 2: Règles métier validées')
+      // Note: Validation is done via getValidationErrors() - blocking errors are handled above
+      console.log('✅ ÉTAPE 2: Règles métier validées via getValidationErrors()')
 
       // ═══════════════════════════════════════════════════════════════
       // ÉTAPE 3: CONSTRUCTION DES ASSURÉS ASSOCIÉS
@@ -557,7 +534,7 @@ export const SodecContractCreateOfficial = () => {
         agence: formData.agence?.trim() || null,
         lieu_signature: formData.lieu_signature?.trim() || 'Libreville',
         date_signature: formData.date_signature || new Date().toISOString().split('T')[0],
-        statut: 'actif',
+        statut: 'actif' as 'actif',
         ...(assuresArray.length > 0 ? { assures_associes: assuresArray } : {})
       }
 
@@ -669,18 +646,7 @@ export const SodecContractCreateOfficial = () => {
         </div>
       )}
 
-      {/* Avertissements règles métier */}
-      {businessWarnings.length > 0 && (
-        <div className="max-w-[210mm] mx-auto mb-4 p-4 bg-yellow-50 border border-yellow-300 rounded-lg text-yellow-800">
-          <div className="flex items-center gap-2 mb-2">
-            <AlertCircle className="h-5 w-5" />
-            <span className="font-bold">⚠️ Conditions non respectées (le contrat sera créé avec statut "En attente")</span>
-          </div>
-          <ul className="list-disc list-inside text-sm space-y-1">
-            {businessWarnings.map((w, i) => <li key={i}>{w}</li>)}
-          </ul>
-        </div>
-      )}
+      {/* Les avertissements ont été supprimés - validation bloquée via errors */}
 
       {/* Indicateur de statut prévu */}
       <div className="max-w-[210mm] mx-auto mb-4 flex items-center justify-center gap-2">

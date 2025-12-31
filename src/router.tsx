@@ -18,17 +18,12 @@ import { EdgContratForm } from '@/features/contrats/edg/EdgContratForm'
 import { SodecContratForm } from '@/features/contrats/sodec/SodecContratForm'
 
 // ✅ Nouvelles pages de création par EMF (Import nommé)
-import { BambooContractCreate } from '@/features/contrats/bamboo/BambooContractCreate'
 import { BambooContractCreateOfficial } from '@/features/contrats/bamboo/BambooContractCreateOfficial'
 import { SodecContractCreateOfficial } from '@/features/contrats/sodec/SodecContractCreateOfficial'
-import { CofidecContractCreate } from '@/features/contrats/cofidec/CofidecContractCreate'
-import { BcegContractCreate } from '@/features/contrats/bceg/BcegContractCreate'
 import { BcegContractCreateOfficial } from '@/features/contrats/bceg/BcegContractCreateOfficial'
-import { EdgContractCreate } from '@/features/contrats/edg/EdgContractCreate'
 import { EdgContractCreateOfficial } from '@/features/contrats/edg/EdgContractCreateOfficial'
 
 import { SinistreListPage } from '@/features/sinistres/SinistreListPage'
-import { SinistreDetailPage } from '@/features/sinistres/SinistreDetailPage'
 import { SinistreDetailPageV2 } from '@/features/sinistres/SinistreDetailPageV2'
 import { SinistreDeclarationForm } from '@/features/sinistres/SinistreDeclarationForm'
 import { SinistreTraitementPage } from '@/features/sinistres/SinistreTraitementPage'
@@ -52,13 +47,8 @@ import { CofigaSinistresList } from '@/features/sinistres/cofiga/CofigaSinistres
 import { FinamSinistresList } from '@/features/sinistres/finam/FinamSinistresList'
 
 // ✅ Pages détail de sinistre par EMF
-import { BambooSinistreDetailPage } from '@/features/sinistres/bamboo/BambooSinistreDetailPage'
-import { CofidecSinistreDetailPage } from '@/features/sinistres/cofidec/CofidecSinistreDetailPage'
-import { BcegSinistreDetailPage } from '@/features/sinistres/bceg/BcegSinistreDetailPage'
-import { EdgSinistreDetailPage } from '@/features/sinistres/edg/EdgSinistreDetailPage'
-import { SodecSinistreDetailPage } from '@/features/sinistres/sodec/SodecSinistreDetailPage'
-import { CofigaSinistreDetailPage } from '@/features/sinistres/cofiga/CofigaSinistreDetailPage'
-import { FinamSinistreDetailPage } from '@/features/sinistres/finam/FinamSinistreDetailPage'
+// Note: Utilisation de SinistreDetailPageV2 générique ou spécifique si nécessaire
+
 
 import { EmfListPage } from '@/features/emfs/EmfListPage'
 import { EmfDetailPage } from '@/features/emfs/EmfDetailPage'
@@ -287,8 +277,8 @@ export const router = createBrowserRouter([
           { path: 'bceg/:id', element: <SinistreDetailPageV2 /> },
           { path: 'edg/:id', element: <SinistreDetailPageV2 /> },
           { path: 'sodec/:id', element: <SinistreDetailPageV2 /> },
-          { path: 'cofiga/:id', element: <CofigaSinistreDetailPage /> },
-          { path: 'finam/:id', element: <FinamSinistreDetailPage /> },
+          { path: 'cofiga/:id', element: <SinistreDetailPageV2 /> },
+          { path: 'finam/:id', element: <SinistreDetailPageV2 /> },
 
           // Détail générique d'un sinistre (V2 avec quittances)
           { path: ':id', element: <SinistreDetailPageV2 /> },

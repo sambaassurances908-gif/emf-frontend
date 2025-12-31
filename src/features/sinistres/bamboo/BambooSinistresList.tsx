@@ -1,8 +1,8 @@
 // src/features/sinistres/bamboo/BambooSinistresList.tsx
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { 
-  Search, AlertCircle, Filter, Plus, Eye, FileText 
+import {
+  Search, AlertCircle, Filter, Plus, Eye
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -66,7 +66,7 @@ export const BambooSinistresList = () => {
         per_page: '50'
       })
       const response = await axios.get(`/sinistres?${params}`)
-      
+
       // Extraire les données selon le format de réponse Laravel
       const rawData = response.data
       if (rawData?.data?.data) return rawData.data.data
@@ -131,9 +131,9 @@ export const BambooSinistresList = () => {
                 className="pl-10 h-11"
               />
             </div>
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => refetch()}
               className="h-11"
             >

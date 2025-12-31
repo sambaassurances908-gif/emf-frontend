@@ -24,18 +24,16 @@ import {
   CheckCircle,
   XCircle,
   Calendar,
-  FileText,
-  Clock,
   Percent,
 } from 'lucide-react'
 
 // Composant InfoCard style Finve
-const InfoCard = ({ 
-  title, 
-  icon: Icon, 
+const InfoCard = ({
+  title,
+  icon: Icon,
   children,
   className = ''
-}: { 
+}: {
   title: string
   icon: React.ComponentType<{ className?: string; size?: number }>
   children: React.ReactNode
@@ -65,9 +63,9 @@ const StatusBadge = ({ statut }: { statut: string }) => {
     termine: { bg: 'bg-gray-100', text: 'text-gray-600', label: 'TERMINÉ' },
     expire: { bg: 'bg-red-50', text: 'text-red-500', label: 'EXPIRÉ' },
   }
-  
+
   const config = statusConfig[statut] || statusConfig.en_attente
-  
+
   return (
     <span className={`px-4 py-2 rounded-full text-sm font-bold ${config.bg} ${config.text}`}>
       {config.label}
@@ -91,9 +89,8 @@ const GarantieBadge = ({ active, label, amount }: { active: boolean; label: stri
       {active && amount && (
         <span className="text-sm font-bold text-samba-green">{amount}</span>
       )}
-      <span className={`flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full ${
-        active ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-400'
-      }`}>
+      <span className={`flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full ${active ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-400'
+        }`}>
         {active ? <CheckCircle size={12} /> : <XCircle size={12} />}
         {active ? 'Oui' : 'Non'}
       </span>
@@ -165,7 +162,7 @@ export const CofidecContratDetailPage = () => {
   // Calcul des cotisations
   const montant = contrat.montant_pret || contrat.montant_pret_assure || 0
   const duree = contrat.duree_pret_mois || contrat.duree_mois || 0
-  
+
   const getTaux = () => {
     const cat = contrat.categorie
     if (cat === 'salarie_cofidec') return 0.0075
@@ -174,7 +171,7 @@ export const CofidecContratDetailPage = () => {
     if (duree > 13 && duree <= 24) return 0.0175
     return 0
   }
-  
+
   const taux = getTaux()
   const cotisationDeces = contrat.cotisation_deces_iad || montant * taux
   const cotisationPrevoyance = contrat.cotisation_prevoyance || 5000
@@ -198,7 +195,7 @@ export const CofidecContratDetailPage = () => {
       {/* Header */}
       <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-10">
         <div className="flex items-center gap-4">
-          <button 
+          <button
             onClick={() => navigate('/contrats/cofidec')}
             className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center text-gray-400 hover:bg-gray-50 hover:text-gray-600 transition-colors"
           >
@@ -218,11 +215,10 @@ export const CofidecContratDetailPage = () => {
         <div className="flex items-center gap-3">
           <button
             onClick={() => setShowContratOfficiel(!showContratOfficiel)}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-colors ${
-              showContratOfficiel 
-                ? 'bg-gray-600 text-white hover:bg-gray-700' 
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-colors ${showContratOfficiel
+                ? 'bg-gray-600 text-white hover:bg-gray-700'
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
+              }`}
           >
             {showContratOfficiel ? <EyeOff size={16} /> : <Eye size={16} />}
             {showContratOfficiel ? 'Masquer' : 'Aperçu'}
@@ -268,14 +264,14 @@ export const CofidecContratDetailPage = () => {
 
       {/* Grid Layout */}
       <div className="grid grid-cols-12 gap-6">
-        
+
         {/* Row 1: Montant Principal & Statut */}
         <div className="col-span-12 lg:col-span-4 bg-white p-6 rounded-3xl shadow-soft border border-gray-100/50 flex flex-col justify-between min-h-[280px]">
           <div className="flex justify-between items-start">
             <span className="font-bold text-gray-700">Montant du Prêt</span>
             <MoreHorizontal size={20} className="text-gray-300" />
           </div>
-          
+
           <div>
             <div className="text-4xl font-extrabold text-gray-900 mb-4">
               {formatCurrency(montant)}
@@ -294,12 +290,12 @@ export const CofidecContratDetailPage = () => {
         <InfoCard title="Assuré Principal" icon={User} className="col-span-12 lg:col-span-4">
           <div className="space-y-1">
             <div className="text-xl font-bold text-gray-900 mb-4">{contrat.nom_prenom}</div>
-            
+
             <div className="bg-gray-50 rounded-xl p-3 mb-4">
               <div className="text-xs text-gray-500 mb-1">Catégorie</div>
               <div className="font-bold text-gray-900">
                 {getCategorieLabel(contrat.categorie)}
-                {contrat.categorie === 'autre' && contrat.autre_categorie_precision && 
+                {contrat.categorie === 'autre' && contrat.autre_categorie_precision &&
                   `: ${contrat.autre_categorie_precision}`
                 }
               </div>
@@ -331,23 +327,23 @@ export const CofidecContratDetailPage = () => {
         {/* Garanties */}
         <InfoCard title="Garanties" icon={Shield} className="col-span-12 lg:col-span-4">
           <div className="space-y-1">
-            <GarantieBadge 
-              active={!!contrat.garantie_prevoyance} 
-              label="Prévoyance" 
+            <GarantieBadge
+              active={!!contrat.garantie_prevoyance}
+              label="Prévoyance"
               amount={contrat.garantie_prevoyance ? formatCurrency(cotisationPrevoyance) : undefined}
             />
-            <GarantieBadge 
-              active={!!(contrat.garantie_deces_iad || contrat.garantie_deces)} 
+            <GarantieBadge
+              active={!!(contrat.garantie_deces_iad || contrat.garantie_deces)}
               label={`Décès / IAD (${(taux * 100).toFixed(2)}%)`}
               amount={(contrat.garantie_deces_iad || contrat.garantie_deces) ? formatCurrency(cotisationDeces) : undefined}
             />
-            <GarantieBadge 
-              active={!!contrat.garantie_perte_emploi} 
+            <GarantieBadge
+              active={!!contrat.garantie_perte_emploi}
               label="Perte d'emploi (2%)"
               amount={contrat.garantie_perte_emploi ? formatCurrency(cotisationPerteEmploi) : undefined}
             />
           </div>
-          
+
           <div className="mt-4 pt-4 border-t border-gray-100">
             <div className="flex justify-between items-center">
               <span className="text-gray-500 text-sm">Cotisation TTC</span>
@@ -370,7 +366,7 @@ export const CofidecContratDetailPage = () => {
               <div className="font-bold text-gray-900">{formatDate(contrat.date_fin_echeance || contrat.date_echeance)}</div>
             </div>
           </div>
-          
+
           <div className="mt-4 pt-4 border-t border-gray-100">
             <InfoRow label="Durée totale" value={`${duree} mois`} />
             <InfoRow label="Taux appliqué" value={`${(taux * 100).toFixed(2)}%`} />
@@ -385,7 +381,7 @@ export const CofidecContratDetailPage = () => {
             </div>
             {contrat.agence && <InfoRow label="Agence" value={contrat.agence} />}
           </div>
-          
+
           <div className="mt-4 bg-gray-50 rounded-xl p-4">
             <div className="text-xs text-gray-500 mb-2">Contact COFIDEC</div>
             <div className="text-sm text-gray-600 space-y-1">

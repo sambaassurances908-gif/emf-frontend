@@ -1,8 +1,8 @@
 import { Link, useLocation } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  Receipt, 
-  History, 
+import {
+  LayoutDashboard,
+  Receipt,
+  History,
   FileBarChart,
   ChevronLeft,
   HelpCircle,
@@ -10,7 +10,6 @@ import {
   AlertTriangle,
   FileCheck,
   CheckSquare,
-  Shield,
   BarChart3,
   Wallet
 } from 'lucide-react';
@@ -37,15 +36,15 @@ type MenuSection = {
   items: MenuItem[];
 };
 
-const SidebarItem = ({ 
-  icon: Icon, 
-  label, 
-  active = false, 
+const SidebarItem = ({
+  icon: Icon,
+  label,
+  active = false,
   collapsed = false,
   to,
   description,
   badge
-}: { 
+}: {
   icon: React.ComponentType<{ className?: string; size?: number; strokeWidth?: number }>;
   label: string;
   active?: boolean;
@@ -58,8 +57,8 @@ const SidebarItem = ({
     to={to}
     className={cn(
       'flex items-center gap-4 px-4 py-3.5 rounded-xl cursor-pointer transition-all duration-200 group relative',
-      active 
-        ? 'bg-amber-500 text-white font-bold shadow-lg shadow-amber-500/20' 
+      active
+        ? 'bg-amber-500 text-white font-bold shadow-lg shadow-amber-500/20'
         : 'text-gray-600 hover:bg-amber-50 hover:text-amber-700',
       collapsed && 'justify-center px-3'
     )}
@@ -98,15 +97,15 @@ export const FpdgSidebar = ({ isOpen, onToggle }: FpdgSidebarProps) => {
       title: 'Tableau de bord',
       icon: LayoutDashboard,
       items: [
-        { 
-          icon: LayoutDashboard, 
-          label: 'Vue d\'ensemble', 
+        {
+          icon: LayoutDashboard,
+          label: 'Vue d\'ensemble',
           path: '/fpdg',
           description: 'Dashboard exécutif'
         },
-        { 
-          icon: BarChart3, 
-          label: 'Statistiques', 
+        {
+          icon: BarChart3,
+          label: 'Statistiques',
           path: '/fpdg/statistiques',
           description: 'Indicateurs clés'
         },
@@ -116,21 +115,21 @@ export const FpdgSidebar = ({ isOpen, onToggle }: FpdgSidebarProps) => {
       title: 'Sinistres',
       icon: AlertTriangle,
       items: [
-        { 
-          icon: AlertTriangle, 
-          label: 'Tous les sinistres', 
+        {
+          icon: AlertTriangle,
+          label: 'Tous les sinistres',
           path: '/fpdg/sinistres',
           description: 'Liste complète'
         },
-        { 
-          icon: FileCheck, 
-          label: 'À valider', 
+        {
+          icon: FileCheck,
+          label: 'À valider',
           path: '/fpdg/sinistres/validation',
           description: 'Quittances en attente'
         },
-        { 
-          icon: CheckSquare, 
-          label: 'À clôturer', 
+        {
+          icon: CheckSquare,
+          label: 'À clôturer',
           path: '/fpdg/sinistres/cloture',
           description: 'Sinistres à finaliser'
         },
@@ -140,21 +139,21 @@ export const FpdgSidebar = ({ isOpen, onToggle }: FpdgSidebarProps) => {
       title: 'Finance',
       icon: Wallet,
       items: [
-        { 
-          icon: Receipt, 
-          label: 'Quittances', 
+        {
+          icon: Receipt,
+          label: 'Quittances',
           path: '/fpdg/quittances',
           description: 'Validation & paiement'
         },
-        { 
-          icon: History, 
-          label: 'Historique', 
+        {
+          icon: History,
+          label: 'Historique',
           path: '/fpdg/historique',
           description: 'Paiements effectués'
         },
-        { 
-          icon: FileBarChart, 
-          label: 'Rapports', 
+        {
+          icon: FileBarChart,
+          label: 'Rapports',
           path: '/fpdg/rapports',
           description: 'Rapports financiers'
         },
@@ -200,7 +199,7 @@ export const FpdgSidebar = ({ isOpen, onToggle }: FpdgSidebarProps) => {
             <img src={logoSamba} alt="SAMB'A" className="h-7 w-auto" />
           </div>
         )}
-        
+
         <button
           type="button"
           onClick={onToggle}
@@ -250,9 +249,9 @@ export const FpdgSidebar = ({ isOpen, onToggle }: FpdgSidebarProps) => {
               <HelpCircle size={16} className="text-gray-500" />
               <h4 className="font-semibold text-gray-700 text-sm">Support</h4>
             </div>
-            <a 
-              href="https://wa.me/241060086262" 
-              target="_blank" 
+            <a
+              href="https://wa.me/241060086262"
+              target="_blank"
               rel="noopener noreferrer"
               className="w-full bg-amber-500 text-white text-xs font-bold py-2.5 rounded-xl shadow-lg shadow-amber-500/20 hover:bg-amber-600 transition-colors flex items-center justify-center gap-2"
             >

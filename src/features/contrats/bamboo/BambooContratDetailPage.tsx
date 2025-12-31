@@ -29,12 +29,12 @@ import {
 } from 'lucide-react'
 
 // Composant InfoCard style Finve
-const InfoCard = ({ 
-  title, 
-  icon: Icon, 
+const InfoCard = ({
+  title,
+  icon: Icon,
   children,
   className = ''
-}: { 
+}: {
   title: string
   icon: React.ComponentType<{ className?: string; size?: number }>
   children: React.ReactNode
@@ -64,9 +64,9 @@ const StatusBadge = ({ statut }: { statut: string }) => {
     termine: { bg: 'bg-gray-100', text: 'text-gray-600', label: 'TERMINÉ' },
     expire: { bg: 'bg-red-50', text: 'text-red-500', label: 'EXPIRÉ' },
   }
-  
+
   const config = statusConfig[statut] || statusConfig.actif
-  
+
   return (
     <span className={`px-4 py-2 rounded-full text-sm font-bold ${config.bg} ${config.text}`}>
       {config.label}
@@ -86,9 +86,8 @@ const InfoRow = ({ label, value, mono = false }: { label: string; value: React.R
 const GarantieBadge = ({ active, label }: { active: boolean; label: string }) => (
   <div className="flex items-center justify-between py-2.5 border-b border-gray-50 last:border-0">
     <span className="text-sm text-gray-700">{label}</span>
-    <span className={`flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full ${
-      active ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-400'
-    }`}>
+    <span className={`flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full ${active ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-400'
+      }`}>
       {active ? <CheckCircle size={12} /> : <XCircle size={12} />}
       {active ? 'Oui' : 'Non'}
     </span>
@@ -173,7 +172,7 @@ export const BambooContratDetailPage = () => {
       {/* Header */}
       <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-10">
         <div className="flex items-center gap-4">
-          <button 
+          <button
             onClick={() => navigate('/contrats/bamboo')}
             className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center text-gray-400 hover:bg-gray-50 hover:text-gray-600 transition-colors"
           >
@@ -193,11 +192,10 @@ export const BambooContratDetailPage = () => {
         <div className="flex items-center gap-3">
           <button
             onClick={() => setShowContratOfficiel(!showContratOfficiel)}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-colors ${
-              showContratOfficiel 
-                ? 'bg-gray-600 text-white hover:bg-gray-700' 
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-colors ${showContratOfficiel
+                ? 'bg-gray-600 text-white hover:bg-gray-700'
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
+              }`}
           >
             {showContratOfficiel ? <EyeOff size={16} /> : <Eye size={16} />}
             {showContratOfficiel ? 'Masquer' : 'Aperçu'}
@@ -243,17 +241,17 @@ export const BambooContratDetailPage = () => {
 
       {/* Grid Layout */}
       <div className="grid grid-cols-12 gap-6">
-        
+
         {/* Row 1: Montant Principal & Statut */}
         <div className="col-span-12 lg:col-span-4 bg-white p-6 rounded-3xl shadow-soft border border-gray-100/50 flex flex-col justify-between min-h-[280px]">
           <div className="flex justify-between items-start">
             <span className="font-bold text-gray-700">Montant Assuré</span>
             <MoreHorizontal size={20} className="text-gray-300" />
           </div>
-          
+
           <div>
             <div className="text-4xl font-extrabold text-gray-900 mb-4">
-              {formatCurrency(contrat.montant_pret_assure)}
+              {formatCurrency(contrat.montant_pret_assure ?? 0)}
             </div>
             <StatusBadge statut={contrat.statut || 'actif'} />
           </div>
@@ -269,7 +267,7 @@ export const BambooContratDetailPage = () => {
         <InfoCard title="Assuré Principal" icon={User} className="col-span-12 lg:col-span-4">
           <div className="space-y-1">
             <div className="text-xl font-bold text-gray-900 mb-4">{contrat.nom_prenom}</div>
-            
+
             <div className="bg-gray-50 rounded-xl p-3 mb-4">
               <div className="text-xs text-gray-500 mb-1">Catégorie</div>
               <div className="font-bold text-gray-900">
@@ -313,12 +311,12 @@ export const BambooContratDetailPage = () => {
             <GarantieBadge active={!!contrat.garantie_deces_iad} label="Décès / IAD (1%)" />
             <GarantieBadge active={!!contrat.garantie_perte_emploi} label="Perte d'emploi (1.5%)" />
           </div>
-          
+
           <div className="mt-4 pt-4 border-t border-gray-100">
             <div className="flex justify-between items-center">
               <span className="text-gray-500 text-sm">Cotisation TTC</span>
               <span className="text-xl font-bold text-samba-green">
-                {contrat.cotisation_totale_ttc 
+                {contrat.cotisation_totale_ttc
                   ? formatCurrency(Number(contrat.cotisation_totale_ttc))
                   : 'N/A'}
               </span>
@@ -338,7 +336,7 @@ export const BambooContratDetailPage = () => {
               <div className="font-bold text-gray-900">{formatDate(contrat.date_fin_echeance)}</div>
             </div>
           </div>
-          
+
           <div className="mt-4 pt-4 border-t border-gray-100">
             <InfoRow label="Durée totale" value={`${contrat.duree_pret_mois} mois`} />
           </div>
@@ -352,7 +350,7 @@ export const BambooContratDetailPage = () => {
             <InfoRow label="Sigle" value={contrat.emf?.sigle || 'BAMBOO'} />
             {contrat.agence && <InfoRow label="Agence" value={contrat.agence} />}
           </div>
-          
+
           <div className="mt-4 bg-gray-50 rounded-xl p-4">
             <div className="text-xs text-gray-500 mb-2">Limites BAMBOO EMF</div>
             <div className="flex justify-between text-sm">
@@ -371,7 +369,7 @@ export const BambooContratDetailPage = () => {
           <div className="text-xl font-bold text-gray-900 mb-4">
             {contrat.beneficiaire_prevoyance || 'Non renseigné'}
           </div>
-          
+
           <div className="bg-gray-50 rounded-xl p-4">
             <div className="text-xs text-gray-500 mb-2">Garanties prévoyance BAMBOO</div>
             <div className="flex justify-between text-sm">

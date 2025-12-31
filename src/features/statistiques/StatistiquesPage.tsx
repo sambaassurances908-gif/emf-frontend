@@ -4,7 +4,7 @@ import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { Select } from '@/components/ui/Select';
 import { FileText, DollarSign, AlertCircle, CheckCircle } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
-import { 
+import {
   LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   PieLabelRenderProps
@@ -220,24 +220,24 @@ export const StatistiquesPage = () => {
                 <YAxis />
                 <Tooltip />
                 <Legend />
-                <Line 
-                  type="monotone" 
-                  dataKey="nouveaux" 
-                  stroke="#3b82f6" 
+                <Line
+                  type="monotone"
+                  dataKey="nouveaux"
+                  stroke="#3b82f6"
                   strokeWidth={2}
                   name="Nouveaux"
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="actifs" 
-                  stroke="#10b981" 
+                <Line
+                  type="monotone"
+                  dataKey="actifs"
+                  stroke="#10b981"
                   strokeWidth={2}
                   name="Actifs"
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="resilies" 
-                  stroke="#ef4444" 
+                <Line
+                  type="monotone"
+                  dataKey="resilies"
+                  stroke="#ef4444"
                   strokeWidth={2}
                   name="Résiliés"
                 />
@@ -265,7 +265,7 @@ export const StatistiquesPage = () => {
                   dataKey="total"
                   nameKey="emf_sigle"
                 >
-                  {(stats?.par_emf || []).map((entry: EmfData, index: number) => (
+                  {(stats?.par_emf || []).map((_, index: number) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
@@ -339,7 +339,7 @@ export const StatistiquesPage = () => {
                 </p>
               </div>
               <div className="w-full bg-green-200 rounded-full h-2">
-                <div 
+                <div
                   className="bg-green-600 h-2 rounded-full"
                   style={{ width: `${stats?.taux_validation || 0}%` }}
                 />
@@ -384,11 +384,10 @@ export const StatistiquesPage = () => {
             <div className="space-y-3">
               {(stats?.top_emfs || []).map((emf: TopEmf, index: number) => (
                 <div key={emf.id} className="flex items-center gap-4">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-white ${
-                    index === 0 ? 'bg-yellow-500' :
-                    index === 1 ? 'bg-gray-400' :
-                    index === 2 ? 'bg-orange-600' : 'bg-blue-500'
-                  }`}>
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-white ${index === 0 ? 'bg-yellow-500' :
+                      index === 1 ? 'bg-gray-400' :
+                        index === 2 ? 'bg-orange-600' : 'bg-blue-500'
+                    }`}>
                     {index + 1}
                   </div>
                   <div className="flex-1">

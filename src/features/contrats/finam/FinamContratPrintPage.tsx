@@ -2,7 +2,7 @@
 import { useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useReactToPrint } from 'react-to-print'
-import { ArrowLeft, Printer, Download } from 'lucide-react'
+import { ArrowLeft, Printer } from 'lucide-react'
 import { useFinamContract } from '@/hooks/useFinamContracts'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { formatCurrency, formatDate } from '@/lib/utils'
@@ -111,7 +111,6 @@ export const FinamContratPrintPage = () => {
   }
 
   const isPersonnel = contrat.categorie === 'Personnel FINAM'
-  const taux = isPersonnel ? FINAM_CONSTANTS.PERSONNEL_TAUX : FINAM_CONSTANTS.RETRAITES_TAUX
 
   return (
     <div className="min-h-screen bg-gray-100 py-4">

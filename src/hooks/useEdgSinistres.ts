@@ -2,7 +2,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import axios from '@/lib/axios'
 import { sinistreService } from '@/services/sinistre.service'
-import { SinistreCreatePayload, EdgSinistre } from '@/types/sinistre.types'
+import { SinistreCreatePayload, SinistreStatut } from '@/types/sinistre.types'
 
 /**
  * Hook pour récupérer les contrats EDG actifs (pour le sélecteur du formulaire)
@@ -22,7 +22,7 @@ export const useEdgContratsForSinistre = (emfId: number) => {
 /**
  * Hook pour récupérer les sinistres EDG
  */
-export const useEdgSinistres = (params?: { page?: number; statut?: string }) => {
+export const useEdgSinistres = (params?: { page?: number; statut?: SinistreStatut }) => {
   return useQuery({
     queryKey: ['edg-sinistres', params],
     queryFn: async () => {

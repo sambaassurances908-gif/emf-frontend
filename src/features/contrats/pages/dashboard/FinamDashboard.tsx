@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { useSearchParams, useNavigate, useLocation } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import {
   Plus,
   FileText,
@@ -69,9 +69,8 @@ const StatCard = ({
           <span className={`text-2xl font-extrabold ${valueColor}`}>{value}</span>
           {trend && (
             <span
-              className={`text-xs font-bold px-2 py-1 rounded-full ${
-                trendPositive ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-500'
-              }`}
+              className={`text-xs font-bold px-2 py-1 rounded-full ${trendPositive ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-500'
+                }`}
             >
               {trendPositive ? '+' : '-'}
               {trend}%
@@ -122,7 +121,6 @@ const ActionCard = ({
 export const FinamDashboard = () => {
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
-  const location = useLocation()
   const { user, setUser } = useAuthStore()
 
   // FINAM a l'emf_id = 6
@@ -457,11 +455,10 @@ export const FinamDashboard = () => {
                         </div>
                       </td>
                       <td className="py-4 text-center border-b border-gray-50">
-                        <span className={`px-2 py-1 rounded-full text-xs font-bold ${
-                          contrat.categorie === 'Personnel FINAM' 
-                            ? 'bg-orange-50 text-orange-600' 
-                            : 'bg-blue-50 text-blue-600'
-                        }`}>
+                        <span className={`px-2 py-1 rounded-full text-xs font-bold ${contrat.categorie === 'Personnel FINAM'
+                          ? 'bg-orange-50 text-orange-600'
+                          : 'bg-blue-50 text-blue-600'
+                          }`}>
                           {contrat.categorie}
                         </span>
                       </td>

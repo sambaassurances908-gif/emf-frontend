@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { useSearchParams, useNavigate, useLocation } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import {
   Plus,
   FileText,
@@ -71,9 +71,8 @@ const StatCard = ({
           <span className={`text-2xl font-extrabold ${valueColor}`}>{value}</span>
           {trend && (
             <span
-              className={`text-xs font-bold px-2 py-1 rounded-full ${
-                trendPositive ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-500'
-              }`}
+              className={`text-xs font-bold px-2 py-1 rounded-full ${trendPositive ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-500'
+                }`}
             >
               {trendPositive ? '+' : '-'}
               {trend}%
@@ -124,7 +123,6 @@ const ActionCard = ({
 export const CofigaDashboard = () => {
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
-  const location = useLocation()
   const { user, setUser } = useAuthStore()
 
   // COFIGA a l'emf_id = 7

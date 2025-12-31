@@ -257,6 +257,16 @@ export interface Sinistre {
   delai_declaration_jours?: number
   delai_traitement_jours?: number
 
+  // Champs additionnels pour compatibilité UI
+  date_survenance?: string
+  date_reception_dossier?: string
+  cause_sinistre?: string
+  description?: string
+  montant_accorde?: number
+  mode_paiement?: string
+  reference_paiement?: string
+  email_assure?: string
+
   // Relations
   contrat?: {
     id: number
@@ -309,6 +319,11 @@ export interface SinistreDocument {
   description?: string
   uploaded_by?: number
   created_at: string
+
+  // Alias pour compatibilité UI
+  nom?: string
+  url?: string
+  uploaded_at?: string
 }
 
 /**

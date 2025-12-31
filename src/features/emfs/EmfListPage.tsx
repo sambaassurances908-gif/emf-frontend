@@ -37,7 +37,7 @@ export const EmfListPage = () => {
   const [statutFilter, setStatutFilter] = useState('');
   const [page, setPage] = useState(1);
 
-  const { data: rawData, isLoading } = useQuery({
+  const { data: rawData, isLoading } = useQuery<any>({
     queryKey: ['emfs', { search, typeFilter, statutFilter, page }],
     queryFn: async () => {
       return await emfService.getAll({
@@ -73,8 +73,8 @@ export const EmfListPage = () => {
   };
 
   const getTypeColor = (type: string) => {
-    return type === 'emf' 
-      ? 'bg-blue-100 text-blue-800' 
+    return type === 'emf'
+      ? 'bg-blue-100 text-blue-800'
       : 'bg-purple-100 text-purple-800';
   };
 

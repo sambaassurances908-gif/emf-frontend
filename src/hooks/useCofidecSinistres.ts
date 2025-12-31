@@ -2,7 +2,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import axios from '@/lib/axios'
 import { sinistreService } from '@/services/sinistre.service'
-import { SinistreCreatePayload, CofidecSinistre } from '@/types/sinistre.types'
+import { SinistreCreatePayload, SinistreStatut } from '@/types/sinistre.types'
 
 /**
  * Hook pour récupérer les contrats COFIDEC actifs (pour le sélecteur du formulaire)
@@ -22,7 +22,7 @@ export const useCofidecContratsForSinistre = (emfId: number) => {
 /**
  * Hook pour récupérer les sinistres COFIDEC
  */
-export const useCofidecSinistres = (params?: { page?: number; statut?: string }) => {
+export const useCofidecSinistres = (params?: { page?: number; statut?: SinistreStatut }) => {
   return useQuery({
     queryKey: ['cofidec-sinistres', params],
     queryFn: async () => {

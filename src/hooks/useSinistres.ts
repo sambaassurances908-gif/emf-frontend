@@ -1,13 +1,13 @@
 // src/hooks/useSinistres.ts
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { sinistreService } from '@/services/sinistre.service'
-import { SinistreCreatePayload, ContratType, SinistreType } from '@/types/sinistre.types'
+import { SinistreCreatePayload, ContratType, SinistreType, SinistreStatut } from '@/types/sinistre.types'
 
 /**
  * Hook pour récupérer la liste des sinistres avec filtres
  */
 export const useSinistres = (params?: {
-  statut?: string
+  statut?: SinistreStatut
   type_sinistre?: SinistreType
   contrat_type?: ContratType
   contrat_id?: number
