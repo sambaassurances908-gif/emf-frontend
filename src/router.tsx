@@ -21,6 +21,7 @@ import { SodecContratForm } from '@/features/contrats/sodec/SodecContratForm'
 import { BambooContractCreateOfficial } from '@/features/contrats/bamboo/BambooContractCreateOfficial'
 import { SodecContractCreateOfficial } from '@/features/contrats/sodec/SodecContractCreateOfficial'
 import { BcegContractCreateOfficial } from '@/features/contrats/bceg/BcegContractCreateOfficial'
+import { BcegMotoContractCreate } from '@/features/contrats/bceg/BcegMotoContractCreate'
 import { EdgContractCreateOfficial } from '@/features/contrats/edg/EdgContractCreateOfficial'
 
 import { SinistreListPage } from '@/features/sinistres/SinistreListPage'
@@ -228,6 +229,8 @@ export const router = createBrowserRouter([
               { path: 'sodec', element: <SodecContractCreateOfficial /> },
               { path: 'cofidec', element: <CofidecContractCreateOfficial /> },
               { path: 'bceg', element: <BcegContractCreateOfficial /> },
+              { path: 'bceg-moto', element: <BcegMotoContractCreate /> },
+              { path: 'bceg-moto/:id', element: <BcegMotoContractCreate /> },
               { path: 'edg', element: <EdgContractCreateOfficial /> },
               { path: 'finam', element: <FinamContractCreateOfficial /> },
               { path: 'cofiga', element: <CofigaContractCreateOfficial /> },

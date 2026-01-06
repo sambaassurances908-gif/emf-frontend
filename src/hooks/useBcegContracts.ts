@@ -5,38 +5,59 @@ import { BcegContrat, BcegContratFormData } from '@/types/bceg'
 
 
 
-// ✅ Hook pour la LISTE des contrats BCEG
+// ✅ Hook pour la LISTE des contrats BCEG (Standard + Moto)
 export const useBcegContracts = (emfId: number) => {
-  return useQuery<BcegContrat[]>({
-    queryKey: ['bceg-contracts', emfId],
+  return useQuery<(BcegContrat | any)[]>({
+    queryKey: ['bceg-contracts-all', emfId],
     queryFn: async () => {
-      console.log('🔍 BCEG HOOK - Récupération contrats BCEG:', { emfId })
+      console.log('🔍 BCEG HOOK - Récupération contrats (Standard + Moto):', { emfId })
 
-      const response = await api.get('/bceg/contrats', {
-        params: { emf_id: emfId, per_page: 50 }
-      })
+      const [resStandard, resMoto] = await Promise.allSettled([
+        api.get('/bceg/contrats', { params: { emf_id: emfId, per_page: 100 } }),
+        api.get('/bceg-moto/contrats', { params: { emf_id: emfId, per_page: 100 } })
+      ])
 
-      console.log('📦 BCEG HOOK - Réponse brute:', response.data)
+      let contratsStandard: any[] = []
+      let contratsMoto: any[] = []
 
-      // Gérer différentes structures de réponse API
-      let contrats: BcegContrat[] = []
-
-      if (Array.isArray(response.data)) {
-        // Si la réponse est directement un tableau
-        contrats = response.data
-      } else if (response.data?.data) {
-        // Si la réponse est { data: [...] } ou { data: { data: [...] } }
-        if (Array.isArray(response.data.data)) {
-          contrats = response.data.data
-        } else if (Array.isArray(response.data.data?.data)) {
-          // Structure paginée Laravel: { data: { data: [...], meta: {...} } }
-          contrats = response.data.data.data
-        }
+      // Process Standard
+      if (resStandard.status === 'fulfilled') {
+        const data = resStandard.value.data
+        if (Array.isArray(data)) contratsStandard = data
+        else if (Array.isArray(data?.data)) contratsStandard = data.data
+        else if (Array.isArray(data?.data?.data)) contratsStandard = data.data.data
       }
 
-      console.log('✅ BCEG HOOK - Contrats extraits:', contrats.length, contrats.slice(0, 2))
+      // Process Moto
+      if (resMoto.status === 'fulfilled') {
+        const data = resMoto.value.data
+        if (Array.isArray(data)) contratsMoto = data
+        else if (Array.isArray(data?.data)) contratsMoto = data.data
+        else if (Array.isArray(data?.data?.data)) contratsMoto = data.data.data
+      }
 
-      return contrats
+      // Add Source tag
+      const standardTagged = contratsStandard.map(c => ({ ...c, source: 'standard' }))
+      const motoTagged = contratsMoto.map(c => ({
+        ...c,
+        source: 'moto',
+        // Map fields to match standard interface if needed
+        numero_police: c.numero_police || c.police_numero, // backup
+        nom: c.nom,
+        prenom: c.prenom,
+        montant_pret: c.montant_pret,
+        statut: 'actif' // Default status for Moto if not present
+      }))
+
+      // Merge and Sort by created_at desc (or id desc if date missing)
+      const merged = [...standardTagged, ...motoTagged].sort((a, b) => {
+        const dateA = new Date(a.created_at || 0).getTime()
+        const dateB = new Date(b.created_at || 0).getTime()
+        return dateB - dateA
+      })
+
+      console.log(`✅ BCEG HOOK - Total: ${merged.length} (Std: ${contratsStandard.length}, Moto: ${contratsMoto.length})`)
+      return merged
     },
     staleTime: 5 * 60 * 1000,
     retry: 2,
@@ -122,12 +143,37 @@ export const useDeleteBcegContract = () => {
 // ✅ Hook pour les STATISTIQUES BCEG
 export const useBcegStats = (emfId?: number) => {
   return useQuery({
-    queryKey: ['bceg-stats', emfId],
+    queryKey: ['bceg-stats-combined', emfId],
     queryFn: async () => {
-      const response = await api.get('/bceg/contrats/statistiques/global', {
-        params: emfId ? { emf_id: emfId } : {}
-      })
-      return response.data?.data || response.data
+      // Parallel fetch: Standard Stats, Moto List (to count)
+      const [resStats, resMoto] = await Promise.allSettled([
+        api.get('/bceg/contrats/statistiques/global', { params: emfId ? { emf_id: emfId } : {} }),
+        api.get('/bceg-moto/contrats', { params: { emf_id: emfId, per_page: 1 } }) // Minimal fetch just for meta total if available
+      ])
+
+      let stats = { total: 0, actifs: 0, en_attente: 0, resilie: 0, cotisation_totale: 0, montant_total_assure: 0 }
+
+      // Process Standard Stats
+      if (resStats.status === 'fulfilled') {
+        const data = resStats.value.data?.data || resStats.value.data
+        if (data) stats = { ...data }
+      }
+
+      // Process Moto Stats (Estimate from list meta)
+      if (resMoto.status === 'fulfilled') {
+        const data = resMoto.value.data
+        let motoCount = 0
+        if (Array.isArray(data)) motoCount = data.length
+        else if (data?.total) motoCount = data.total // Laravel paginate meta
+        else if (data?.data?.length) motoCount = data.data.length
+
+        // Add Moto count to Total and Actifs (assuming active)
+        stats.total += motoCount
+        stats.actifs += motoCount
+        // Cannot easily merge revenue without more data, but count is key
+      }
+
+      return stats
     },
   })
 }

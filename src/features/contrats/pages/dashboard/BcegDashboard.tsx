@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import {
   Plus,
@@ -10,7 +10,9 @@ import {
   TrendingUp,
   MoreHorizontal,
   ChevronDown,
+  Bike,
 } from 'lucide-react'
+import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { useAuthStore } from '@/store/authStore'
 import { useBcegStats } from '@/hooks/useBcegStats'
@@ -61,9 +63,8 @@ const StatCard = ({
           <span className={`text-2xl font-extrabold ${valueColor}`}>{value}</span>
           {trend && (
             <span
-              className={`text-xs font-bold px-2 py-1 rounded-full ${
-                trendPositive ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-500'
-              }`}
+              className={`text-xs font-bold px-2 py-1 rounded-full ${trendPositive ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-500'
+                }`}
             >
               {trendPositive ? '+' : '-'}
               {trend}%
@@ -113,6 +114,7 @@ const ActionCard = ({
 
 export const BcegDashboard = () => {
   const navigate = useNavigate()
+  const [isNewContractModalOpen, setIsNewContractModalOpen] = useState(false)
   const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
   const { user, setUser } = useAuthStore()
@@ -223,7 +225,7 @@ export const BcegDashboard = () => {
             Déclarer Sinistre
           </Button>
           <Button
-            onClick={() => navigate('/contrats/nouveau/bceg')}
+            onClick={() => setIsNewContractModalOpen(true)}
             className="bg-samba-green hover:bg-green-700 text-white font-bold rounded-xl px-4 py-2 shadow-lg shadow-samba-green/20"
           >
             <Plus className="h-5 w-5 mr-2" />
@@ -363,7 +365,7 @@ export const BcegDashboard = () => {
             subtitle="Créer un contrat BCEG"
             icon={Plus}
             gradient="bg-gradient-to-br from-samba-green to-green-700"
-            onClick={() => navigate('/contrats/nouveau/bceg')}
+            onClick={() => setIsNewContractModalOpen(true)}
           />
         </div>
         <div className="col-span-12 lg:col-span-4">
@@ -469,7 +471,7 @@ export const BcegDashboard = () => {
               <p className="text-gray-600 font-medium">Aucun contrat pour le moment</p>
               <p className="text-sm text-gray-400 mt-2">Créez votre premier contrat</p>
               <Button
-                onClick={() => navigate('/contrats/nouveau/bceg')}
+                onClick={() => setIsNewContractModalOpen(true)}
                 className="mt-4 bg-samba-green hover:bg-green-700 text-white font-bold rounded-xl"
               >
                 <Plus className="h-5 w-5 mr-2" />
@@ -479,6 +481,47 @@ export const BcegDashboard = () => {
           )}
         </div>
       </div>
+
+      <Modal
+        isOpen={isNewContractModalOpen}
+        onClose={() => setIsNewContractModalOpen(false)}
+        title="Nouveau Contrat BCEG"
+        size="lg"
+      >
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div
+            onClick={() => {
+              setIsNewContractModalOpen(false)
+              navigate('/contrats/nouveau/bceg')
+            }}
+            className="border-2 border-gray-100 hover:border-samba-green hover:bg-green-50 rounded-2xl p-6 cursor-pointer transition-all flex flex-col items-center text-center group"
+          >
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+              <FileText className="h-8 w-8 text-samba-green" />
+            </div>
+            <h3 className="font-bold text-gray-900 text-lg mb-2">Contrat Classique</h3>
+            <p className="text-sm text-gray-500">
+              Prêt bancaire standard, couverture décès et invalidité.
+            </p>
+          </div>
+
+          <div
+            onClick={() => {
+              setIsNewContractModalOpen(false)
+              navigate('/contrats/nouveau/bceg-moto')
+            }}
+            className="border-2 border-gray-100 hover:border-[#F48232] hover:bg-orange-50 rounded-2xl p-6 cursor-pointer transition-all flex flex-col items-center text-center group"
+          >
+            <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+              <Bike className="h-8 w-8 text-[#F48232]" />
+            </div>
+            <h3 className="font-bold text-gray-900 text-lg mb-2">Contrat SAMB'A MOTO</h3>
+            <p className="text-sm text-gray-500">
+              Couverture spécifique pour l'acquisition de deux-roues.
+            </p>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }

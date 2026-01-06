@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { 
-  Search, FileText, Filter, Plus, Eye, Edit 
+import {
+  Search, FileText, Filter, Plus, Eye, Edit, Bike
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -123,9 +123,9 @@ export const BcegContractsList = () => {
               />
             </div>
             <div className="flex gap-2 flex-wrap">
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => refetch()}
                 className="h-11"
               >
@@ -183,10 +183,19 @@ export const BcegContractsList = () => {
                     <tr
                       key={contrat.id}
                       className="cursor-pointer hover:bg-emerald-50 transition-all duration-200"
-                      onClick={() => navigate(`/contrats/bceg/${contrat.id}`)}
+                      onClick={() => {
+                        if (contrat.source === 'moto') {
+                          navigate(`/contrats/bceg-moto/${contrat.id}`)
+                        } else {
+                          navigate(`/contrats/bceg/${contrat.id}`)
+                        }
+                      }}
                     >
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-emerald-600 font-semibold">
-                        #{contrat.id}
+                        <div className="flex items-center gap-2">
+                          {contrat.source === 'moto' && <Bike className="h-4 w-4 text-orange-500" />}
+                          #{contrat.id}
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap max-w-[220px] truncate font-medium text-gray-900">
                         {contrat.prenom} {contrat.nom}
@@ -211,7 +220,11 @@ export const BcegContractsList = () => {
                           size="sm"
                           onClick={(e) => {
                             e.stopPropagation()
-                            navigate(`/contrats/bceg/${contrat.id}`)
+                            if (contrat.source === 'moto') {
+                              navigate(`/contrats/bceg-moto/${contrat.id}`)
+                            } else {
+                              navigate(`/contrats/bceg/${contrat.id}`)
+                            }
                           }}
                           className="h-8 w-8 p-0 hover:bg-emerald-100"
                           title="Voir détails"
@@ -223,7 +236,11 @@ export const BcegContractsList = () => {
                           size="sm"
                           onClick={(e) => {
                             e.stopPropagation()
-                            navigate(`/contrats/bceg/${contrat.id}/edit`)
+                            if (contrat.source === 'moto') {
+                              navigate(`/contrats/bceg-moto/${contrat.id}`)
+                            } else {
+                              navigate(`/contrats/bceg/${contrat.id}/edit`)
+                            }
                           }}
                           className="h-8 w-8 p-0 hover:bg-blue-100"
                           title="Modifier"
