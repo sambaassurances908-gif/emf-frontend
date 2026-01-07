@@ -5,58 +5,67 @@ import { BcegContrat, BcegContratFormData } from '@/types/bceg'
 
 
 
-// ✅ Hook pour la LISTE des contrats BCEG (Standard + Moto)
+// ✅ Hook pour la LISTE des contrats BCEG (Standard + Moto + Taxi)
 export const useBcegContracts = (emfId: number) => {
   return useQuery<(BcegContrat | any)[]>({
     queryKey: ['bceg-contracts-all', emfId],
     queryFn: async () => {
-      console.log('🔍 BCEG HOOK - Récupération contrats (Standard + Moto):', { emfId })
+      console.log('🔍 BCEG HOOK - Récupération contrats (Standard + Moto + Taxi):', { emfId })
 
-      const [resStandard, resMoto] = await Promise.allSettled([
+      const [resStandard, resMoto, resTaxiPR, resTaxiPD] = await Promise.allSettled([
         api.get('/bceg/contrats', { params: { emf_id: emfId, per_page: 100 } }),
-        api.get('/bceg-moto/contrats', { params: { emf_id: emfId, per_page: 100 } })
+        api.get('/bceg-moto/contrats', { params: { emf_id: emfId, per_page: 100 } }),
+        api.get('/bceg-taxi-perte-recette/contrats', { params: { emf_id: emfId, per_page: 100 } }),
+        api.get('/bceg-taxi-prevoyance-deces/contrats', { params: { emf_id: emfId, per_page: 100 } })
       ])
 
-      let contratsStandard: any[] = []
-      let contratsMoto: any[] = []
-
-      // Process Standard
-      if (resStandard.status === 'fulfilled') {
-        const data = resStandard.value.data
-        if (Array.isArray(data)) contratsStandard = data
-        else if (Array.isArray(data?.data)) contratsStandard = data.data
-        else if (Array.isArray(data?.data?.data)) contratsStandard = data.data.data
+      // Helper to extract data
+      const extractData = (res: PromiseSettledResult<any>) => {
+        if (res.status !== 'fulfilled') return []
+        const data = res.value.data
+        if (Array.isArray(data)) return data
+        if (Array.isArray(data?.data)) return data.data
+        if (Array.isArray(data?.data?.data)) return data.data.data
+        return []
       }
 
-      // Process Moto
-      if (resMoto.status === 'fulfilled') {
-        const data = resMoto.value.data
-        if (Array.isArray(data)) contratsMoto = data
-        else if (Array.isArray(data?.data)) contratsMoto = data.data
-        else if (Array.isArray(data?.data?.data)) contratsMoto = data.data.data
-      }
+      const contratsStandard = extractData(resStandard)
+      const contratsMoto = extractData(resMoto)
+      const contratsTaxiPR = extractData(resTaxiPR)
+      const contratsTaxiPD = extractData(resTaxiPD)
 
-      // Add Source tag
+      // Add Source tag & Normalize
       const standardTagged = contratsStandard.map(c => ({ ...c, source: 'standard' }))
+
       const motoTagged = contratsMoto.map(c => ({
         ...c,
         source: 'moto',
-        // Map fields to match standard interface if needed
-        numero_police: c.numero_police || c.police_numero, // backup
-        nom: c.nom,
-        prenom: c.prenom,
-        montant_pret: c.montant_pret,
-        statut: 'actif' // Default status for Moto if not present
+        numero_police: c.numero_police || c.police_numero,
+        statut: c.statut || 'actif'
       }))
 
-      // Merge and Sort by created_at desc (or id desc if date missing)
-      const merged = [...standardTagged, ...motoTagged].sort((a, b) => {
+      const taxiPRTagged = contratsTaxiPR.map(c => ({
+        ...c,
+        source: 'taxi_perte_recette',
+        montant_pret: 0,
+        statut: c.statut || 'actif'
+      }))
+
+      const taxiPDTagged = contratsTaxiPD.map(c => ({
+        ...c,
+        source: 'taxi_prevoyance_deces',
+        montant_pret: 0,
+        statut: c.statut || 'actif'
+      }))
+
+      // Merge and Sort by created_at desc
+      const merged = [...standardTagged, ...motoTagged, ...taxiPRTagged, ...taxiPDTagged].sort((a, b) => {
         const dateA = new Date(a.created_at || 0).getTime()
         const dateB = new Date(b.created_at || 0).getTime()
         return dateB - dateA
       })
 
-      console.log(`✅ BCEG HOOK - Total: ${merged.length} (Std: ${contratsStandard.length}, Moto: ${contratsMoto.length})`)
+      console.log(`✅ BCEG HOOK - Total: ${merged.length} (Std: ${contratsStandard.length}, Moto: ${contratsMoto.length}, TaxiPR: ${contratsTaxiPR.length}, TaxiPD: ${contratsTaxiPD.length})`)
       return merged
     },
     staleTime: 5 * 60 * 1000,

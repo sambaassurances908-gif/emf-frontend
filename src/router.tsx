@@ -23,6 +23,15 @@ import { SodecContractCreateOfficial } from '@/features/contrats/sodec/SodecCont
 import { BcegContractCreateOfficial } from '@/features/contrats/bceg/BcegContractCreateOfficial'
 import { BcegMotoContractCreate } from '@/features/contrats/bceg/BcegMotoContractCreate'
 import { EdgContractCreateOfficial } from '@/features/contrats/edg/EdgContractCreateOfficial'
+import { BcegMotoContratDetailPage } from '@/features/contrats/bceg/BcegMotoContratDetailPage'
+import { BcegTaxiPerteRecetteCreate } from '@/features/contrats/bceg/BcegTaxiPerteRecetteCreate'
+import { BcegTaxiPerteRecetteDetailPage } from '@/features/contrats/bceg/BcegTaxiPerteRecetteDetailPage'
+import { BcegTaxiPrevoyanceDecesCreate } from '@/features/contrats/bceg/BcegTaxiPrevoyanceDecesCreate'
+import { BcegTaxiPrevoyanceDecesDetailPage } from '@/features/contrats/bceg/BcegTaxiPrevoyanceDecesDetailPage'
+import { EdgTaxiPerteRecetteCreate } from '@/features/contrats/edg/EdgTaxiPerteRecetteCreate'
+import { EdgTaxiPerteRecetteDetailPage } from '@/features/contrats/edg/EdgTaxiPerteRecetteDetailPage'
+import { EdgTaxiPrevoyanceDecesCreate } from '@/features/contrats/edg/EdgTaxiPrevoyanceDecesCreate'
+import { EdgTaxiPrevoyanceDecesDetailPage } from '@/features/contrats/edg/EdgTaxiPrevoyanceDecesDetailPage'
 
 import { SinistreListPage } from '@/features/sinistres/SinistreListPage'
 import { SinistreDetailPageV2 } from '@/features/sinistres/SinistreDetailPageV2'
@@ -46,6 +55,8 @@ import { EdgSinistresList } from '@/features/sinistres/edg/EdgSinistresList'
 import { SodecSinistresList } from '@/features/sinistres/sodec/SodecSinistresList'
 import { CofigaSinistresList } from '@/features/sinistres/cofiga/CofigaSinistresList'
 import { FinamSinistresList } from '@/features/sinistres/finam/FinamSinistresList'
+import { AgrProSinistresList, AgrProSinistreDeclarationForm } from '@/features/sinistres/agrpro'
+import { ArianeFinanceSinistresList, ArianeFinanceSinistreDeclarationForm } from '@/features/sinistres/arianefinance'
 
 // ✅ Pages détail de sinistre par EMF
 // Note: Utilisation de SinistreDetailPageV2 générique ou spécifique si nécessaire
@@ -70,6 +81,8 @@ import { EdgDashboard } from '@/features/contrats/pages/dashboard/EdgDashboard'
 import { SodecDashboard } from '@/features/contrats/pages/dashboard/SodecDashboard'
 import { FinamDashboard } from '@/features/contrats/pages/dashboard/FinamDashboard'
 import { CofigaDashboard } from '@/features/contrats/pages/dashboard/CofigaDashboard'
+import { AgrProDashboard } from '@/features/contrats/pages/dashboard/AgrProDashboard'
+import { ArianeFinanceDashboard } from '@/features/contrats/pages/dashboard/ArianeFinanceDashboard'
 
 // ✅ Pages BAMBOO
 import { BambooContractsList } from '@/features/contrats/bamboo/BambooContractsList'
@@ -94,6 +107,7 @@ import { BcegContratPrintPage } from '@/features/contrats/bceg/BcegContratPrintP
 // ✅ Pages EDG
 import { EdgContractsList } from '@/features/contrats/edg/EdgContractsList'
 import { EdgContratDetailPage } from '@/features/contrats/edg/EdgContratDetailPage'
+import { EdgContractTypeSelector } from '@/features/contrats/edg/EdgContractTypeSelector'
 
 // ✅ Pages FINAM
 import { FinamContractsList } from '@/features/contrats/finam/FinamContractsList'
@@ -106,6 +120,12 @@ import { CofigaContractsList } from '@/features/contrats/cofiga/CofigaContractsL
 import { CofigaContratDetailPage } from '@/features/contrats/cofiga/CofigaContratDetailPage'
 import { CofigaContractCreateOfficial } from '@/features/contrats/cofiga/CofigaContractCreateOfficial'
 import { CofigaContratPrintPage } from '@/features/contrats/cofiga/CofigaContratPrintPage'
+
+// ✅ Pages AGR PRO
+import { AgrProContractsList, AgrProContractCreate, AgrProContractDetailPage, AgrProContractPrintPage } from '@/features/contrats/agrpro'
+
+// ✅ Pages ARIANE FINANCE
+import { ArianeFinanceContractsList, ArianeFinanceContractCreate } from '@/features/contrats/arianefinance'
 
 // ✅ Pages Comptable
 import { ComptableDashboard, HistoriquePaiementsPage, RapportFinancierPage, QuittancesPage } from '@/features/comptable'
@@ -167,6 +187,8 @@ export const router = createBrowserRouter([
           { path: 'sodec', element: <SodecDashboard /> },
           { path: 'finam', element: <FinamDashboard /> },
           { path: 'cofiga', element: <CofigaDashboard /> },
+          { path: 'agrpro', element: <AgrProDashboard /> },
+          { path: 'arianefinance', element: <ArianeFinanceDashboard /> },
         ],
       },
 
@@ -195,6 +217,12 @@ export const router = createBrowserRouter([
           { path: 'edg', element: <EdgContractsList /> },
           { path: 'finam', element: <FinamContractsList /> },
           { path: 'cofiga', element: <CofigaContractsList /> },
+          { path: 'agrpro', element: <AgrProContractsList /> },
+          { path: 'arianefinance', element: <ArianeFinanceContractsList /> },
+
+          // ✅ Détails et impression AGR PRO
+          { path: 'agrpro/:id', element: <AgrProContractDetailPage /> },
+          { path: 'agrpro/:id/print', element: <AgrProContractPrintPage /> },
 
           // ✅ Détails dédiés par EMF
           { path: 'bamboo/:id', element: <BambooContratDetailPage /> },
@@ -209,6 +237,21 @@ export const router = createBrowserRouter([
           { path: 'finam/:id/print', element: <FinamContratPrintPage /> },
           { path: 'cofiga/:id', element: <CofigaContratDetailPage /> },
           { path: 'cofiga/:id/print', element: <CofigaContratPrintPage /> },
+          { path: 'bceg-moto/:id', element: <BcegMotoContratDetailPage /> },
+          { path: 'bceg-moto/:id/edit', element: <BcegMotoContractCreate /> },
+
+          { path: 'bceg-taxi-perte-recette/:id', element: <BcegTaxiPerteRecetteDetailPage /> },
+          { path: 'bceg-taxi-perte-recette/:id/edit', element: <BcegTaxiPerteRecetteCreate /> },
+
+          { path: 'bceg-taxi-prevoyance-deces/:id', element: <BcegTaxiPrevoyanceDecesDetailPage /> },
+          { path: 'bceg-taxi-prevoyance-deces/:id/edit', element: <BcegTaxiPrevoyanceDecesCreate /> },
+
+          { path: 'edg-taxi-perte-recette/:id', element: <EdgTaxiPerteRecetteDetailPage /> },
+          { path: 'edg-taxi-perte-recette/:id/edit', element: <EdgTaxiPerteRecetteCreate /> },
+
+          { path: 'edg-taxi-prevoyance-deces/:id', element: <EdgTaxiPrevoyanceDecesDetailPage /> },
+          { path: 'edg-taxi-prevoyance-deces/:id/edit', element: <EdgTaxiPrevoyanceDecesCreate /> },
+          { path: 'edg/:id/edit', element: <EdgContractCreateOfficial /> },
 
           // Détail générique d'un contrat (fallback)
           { path: ':id', element: <ContratDetailPage /> },
@@ -230,10 +273,16 @@ export const router = createBrowserRouter([
               { path: 'cofidec', element: <CofidecContractCreateOfficial /> },
               { path: 'bceg', element: <BcegContractCreateOfficial /> },
               { path: 'bceg-moto', element: <BcegMotoContractCreate /> },
-              { path: 'bceg-moto/:id', element: <BcegMotoContractCreate /> },
-              { path: 'edg', element: <EdgContractCreateOfficial /> },
+              { path: 'bceg-taxi-perte-recette', element: <BcegTaxiPerteRecetteCreate /> },
+              { path: 'bceg-taxi-prevoyance-deces', element: <BcegTaxiPrevoyanceDecesCreate /> },
+              { path: 'edg-taxi-perte-recette', element: <EdgTaxiPerteRecetteCreate /> },
+              { path: 'edg-taxi-prevoyance-deces', element: <EdgTaxiPrevoyanceDecesCreate /> },
+              { path: 'edg-standard', element: <EdgContractCreateOfficial /> },
+              { path: 'edg', element: <EdgContractTypeSelector /> },
               { path: 'finam', element: <FinamContractCreateOfficial /> },
               { path: 'cofiga', element: <CofigaContractCreateOfficial /> },
+              { path: 'agrpro', element: <AgrProContractCreate /> },
+              { path: 'arianefinance', element: <ArianeFinanceContractCreate /> },
             ],
           },
         ],
@@ -255,6 +304,8 @@ export const router = createBrowserRouter([
           { path: 'sodec', element: <SodecSinistresList /> },
           { path: 'cofiga', element: <CofigaSinistresList /> },
           { path: 'finam', element: <FinamSinistresList /> },
+          { path: 'agrpro', element: <AgrProSinistresList /> },
+          { path: 'arianefinance', element: <ArianeFinanceSinistresList /> },
 
           // Déclaration générique (fallback)
           { path: 'nouveau', element: <SinistreDeclarationForm /> },
@@ -267,6 +318,8 @@ export const router = createBrowserRouter([
           { path: 'nouveau/edg', element: <EdgSinistreDeclarationForm /> },
           { path: 'nouveau/cofiga', element: <CofigaSinistreDeclarationForm /> },
           { path: 'nouveau/finam', element: <FinamSinistreDeclarationForm /> },
+          { path: 'nouveau/agrpro', element: <AgrProSinistreDeclarationForm /> },
+          { path: 'nouveau/arianefinance', element: <ArianeFinanceSinistreDeclarationForm /> },
 
           // ✅ Page de traitement admin (route principale)
           { path: 'traitement/:id', element: <SinistreTraitementPage /> },
@@ -282,6 +335,8 @@ export const router = createBrowserRouter([
           { path: 'sodec/:id', element: <SinistreDetailPageV2 /> },
           { path: 'cofiga/:id', element: <SinistreDetailPageV2 /> },
           { path: 'finam/:id', element: <SinistreDetailPageV2 /> },
+          { path: 'agrpro/:id', element: <SinistreDetailPageV2 /> },
+          { path: 'arianefinance/:id', element: <SinistreDetailPageV2 /> },
 
           // Détail générique d'un sinistre (V2 avec quittances)
           { path: ':id', element: <SinistreDetailPageV2 /> },

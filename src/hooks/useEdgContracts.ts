@@ -10,40 +10,48 @@ interface EdgContractsParams {
 
 export const useEdgContracts = (filters: Partial<EdgContractsParams> = {}) => {
   return useQuery({
-    queryKey: ['edg-contracts', filters],
+    queryKey: ['edg-contracts-all', filters],
     queryFn: async () => {
-      console.log('🔍 HOOK EDG - Récupération contrats EDG:', { filters })
-      
-      const params = new URLSearchParams({
-        ...(filters.search && { search: filters.search }),
-        ...(filters.statut && { statut: filters.statut }),
-        per_page: '50'
+      console.log('🔍 EDG HOOK - Récupération contrats (Standard + Taxi):', { filters })
+
+      const [resStandard, resTaxiPR, resTaxiPD] = await Promise.allSettled([
+        api.get('/edg/contrats', { params: { ...filters, per_page: 50 } }),
+        api.get('/edg-taxi-perte-recette/contrats', { params: { ...filters, per_page: 50 } }),
+        api.get('/edg-taxi-prevoyance-deces/contrats', { params: { ...filters, per_page: 50 } })
+      ])
+
+      const extractData = (res: PromiseSettledResult<any>) => {
+        if (res.status !== 'fulfilled') return []
+        const data = res.value.data
+        if (Array.isArray(data)) return data
+        if (Array.isArray(data?.data)) return data.data
+        if (Array.isArray(data?.data?.data)) return data.data.data
+        return []
+      }
+
+      const contratsStandard = extractData(resStandard).map((c: any) => ({ ...c, source: 'standard' }))
+      const contratsTaxiPR = extractData(resTaxiPR).map((c: any) => ({
+        ...c,
+        source: 'taxi_perte_recette',
+        montant_pret_assure: 0,
+        nom_prenom: `${c.nom || ''} ${c.prenom || ''}`.trim(),
+        statut: c.statut || 'actif'
+      }))
+      const contratsTaxiPD = extractData(resTaxiPD).map((c: any) => ({
+        ...c,
+        source: 'taxi_prevoyance_deces',
+        montant_pret_assure: 0,
+        nom_prenom: `${c.nom || ''} ${c.prenom || ''}`.trim(),
+        statut: c.statut || 'actif'
+      }))
+
+      const merged = [...contratsStandard, ...contratsTaxiPR, ...contratsTaxiPD].sort((a, b) => {
+        const dateA = new Date(a.created_at || 0).getTime()
+        const dateB = new Date(b.created_at || 0).getTime()
+        return dateB - dateA
       })
 
-      const response = await api.get(`/edg/contrats?${params}`)
-      
-      console.log('📦 HOOK EDG - Réponse brute:', response.data)
-      
-      // Gérer différentes structures de réponse API
-      let contratsTableau: EdgContrat[] = []
-      
-      if (Array.isArray(response.data)) {
-        // Cas 1: Réponse directe tableau
-        contratsTableau = response.data
-      } else if (response.data?.data) {
-        if (Array.isArray(response.data.data)) {
-          // Cas 2: { data: [...] }
-          contratsTableau = response.data.data
-        } else if (Array.isArray(response.data.data?.data)) {
-          // Cas 3: Pagination Laravel { data: { data: [...] } }
-          contratsTableau = response.data.data.data
-        }
-      }
-      
-      console.log('✅ HOOK EDG - TABLEAU FINAL:', contratsTableau.length, 'contrats')
-      console.log('✅ HOOK EDG - Premier contrat:', contratsTableau[0]?.nom_prenom)
-      
-      return contratsTableau
+      return merged
     },
     staleTime: 5 * 60 * 1000,
     retry: 2,

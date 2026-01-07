@@ -4,24 +4,19 @@ import { Printer, Save, ArrowLeft, AlertCircle } from 'lucide-react'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { useCreateBcegMotoContract, useBcegMotoContract } from '@/hooks/useBcegMotoContracts'
 import { Button } from '@/components/ui/Button'
-import { useAuthStore } from '@/store/authStore'
+import logoSamba from '@/assets/logo-samba.png'
+
 
 // --- Internal Reusable Components ---
 
 const Logo: React.FC = () => {
     return (
-        <div className="flex flex-col items-center justify-center w-28">
-            <div className="relative w-16 h-16 mb-1">
-                <svg viewBox="0 0 100 100" className="w-full h-full">
-                    <path d="M50 90 Q10 50 50 10 Q90 50 50 90" fill="none" stroke="#F48232" strokeWidth="2" />
-                    <path d="M30 40 Q40 10 60 30" stroke="#8DC63F" strokeWidth="8" fill="none" strokeLinecap="round" />
-                    <path d="M40 50 Q50 20 70 40" stroke="#009444" strokeWidth="8" fill="none" strokeLinecap="round" />
-                    <path d="M25 60 Q45 80 75 55" stroke="#005C94" strokeWidth="8" fill="none" strokeLinecap="round" />
-                    <circle cx="65" cy="25" r="5" fill="#F48232" />
-                </svg>
-            </div>
-            <h1 className="font-bold text-xl leading-none text-black tracking-tight uppercase">SAMB'A</h1>
-            <span className="text-[0.6rem] font-semibold tracking-widest text-black">ASSURANCES</span>
+        <div className="flex flex-col items-center justify-center">
+            <img
+                src={logoSamba}
+                alt="SAMB'A Assurances"
+                className="h-[60px] w-auto"
+            />
         </div>
     );
 };
@@ -85,19 +80,27 @@ const TAUX_PRIME_UNIQUE = 0.50
 const MONTANT_MAX_COUVERTURE = 3500000
 const FORFAIT_GARANTIES_COMPLEMENTAIRES = 35000
 const TYPE_CONTRAT = "Contrat SAMB'A MOTO"
-const POLICE_NUMERO = '509/111.701/0125'
 
 export const BcegMotoContractCreate = () => {
     const navigate = useNavigate()
     const { id } = useParams()
-    const { user } = useAuthStore()
+
     const emfId = 3
+
+    // Fonction pour générer un numéro de police unique
+    const generatePolicyNumber = () => {
+        const now = new Date();
+        const dateStr = now.toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
+        const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+        return `MOTO-${dateStr}-${random}`;
+    }
 
     // Hook to fetch contract if ID is present
     const { data: contractData } = useBcegMotoContract(id ? Number(id) : undefined)
 
     const [formData, setFormData] = useState({
         emf_id: emfId,
+        numero_police: id ? '' : generatePolicyNumber(),
         // Prêt
         montant_pret: '',
         duree_pret: '', // mois
@@ -137,7 +140,8 @@ export const BcegMotoContractCreate = () => {
                 valeur_assuree: contractData.valeur_assuree?.toString() || '',
                 immatriculation: contractData.immatriculation || '',
                 taux_prime_unique: contractData.taux_prime_unique || TAUX_PRIME_UNIQUE,
-                cotisations_complementaires: contractData.cotisations_complementaires || FORFAIT_GARANTIES_COMPLEMENTAIRES
+                cotisations_complementaires: contractData.cotisations_complementaires || FORFAIT_GARANTIES_COMPLEMENTAIRES,
+                numero_police: contractData.numero_police || contractData.police_numero || ''
             })
         }
     }, [contractData])
@@ -206,7 +210,7 @@ export const BcegMotoContractCreate = () => {
         const payload = {
             ...formData,
             type_contrat: TYPE_CONTRAT,
-            numero_police: POLICE_NUMERO,
+            numero_police: formData.numero_police,
             montant_pret: parseFloat(formData.montant_pret),
             duree_pret: parseInt(formData.duree_pret),
             valeur_assuree: parseFloat(formData.valeur_assuree) || null,
@@ -216,7 +220,7 @@ export const BcegMotoContractCreate = () => {
         }
 
         createContract(payload, {
-            onSuccess: (data) => {
+            onSuccess: () => {
                 navigate(`/contrats/bceg`)
             },
             onError: (err: any) => {
@@ -297,6 +301,14 @@ export const BcegMotoContractCreate = () => {
                     <div className="flex border-b border-gray-300">
                         <SectionLabel bgColor="bg-orange-50/50">Couverture</SectionLabel>
                         <div className="flex-grow p-2 space-y-1.5">
+                            <div className="flex mb-1">
+                                <FormInput
+                                    label="N° Police :"
+                                    value={formData.numero_police}
+                                    readOnly
+                                    className="text-orange-600 font-bold"
+                                />
+                            </div>
                             <div className="flex gap-4">
                                 <div className="flex-1">
                                     <FormInput

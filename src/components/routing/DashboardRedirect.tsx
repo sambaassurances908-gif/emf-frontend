@@ -19,12 +19,12 @@ export const DashboardRedirect = () => {
   // ============================================
   // 1. REDIRECTION PAR RÔLE SPÉCIFIQUE
   // ============================================
-  
+
   // FPDG (Fondé de Pouvoir Délégué Général) → Dashboard FPDG
   if (user.role === 'fpdg') {
     return <Navigate to="/fpdg" replace />
   }
-  
+
   // Comptable → Dashboard comptable directement
   if (user.role === 'comptable') {
     return <Navigate to="/comptable" replace />
@@ -42,6 +42,8 @@ export const DashboardRedirect = () => {
         5: '/dashboard/sodec',
         6: '/dashboard/finam',
         7: '/dashboard/cofiga',
+        8: '/dashboard/agrpro',
+        9: '/dashboard/arianefinance',
       }
       if (emfDashboardMap[user.emf_id]) {
         return <Navigate to={emfDashboardMap[user.emf_id]} replace />
@@ -53,7 +55,7 @@ export const DashboardRedirect = () => {
   // ============================================
   // 2. REDIRECTION PAR EMF (système existant)
   // ============================================
-  
+
   const emfDashboardMap: Record<number, string> = {
     1: '/dashboard/bamboo',   // BAMBOO EMF
     2: '/dashboard/cofidec',  // COFIDEC
@@ -62,6 +64,8 @@ export const DashboardRedirect = () => {
     5: '/dashboard/sodec',    // SODEC
     6: '/dashboard/finam',    // FINAM
     7: '/dashboard/cofiga',   // COFIGA
+    8: '/dashboard/agrpro',   // AGR PRO
+    9: '/dashboard/arianefinance', // ARIANE FINANCE
   }
 
   // Si l'utilisateur a un emf_id valide (> 0), rediriger vers son dashboard spécifique

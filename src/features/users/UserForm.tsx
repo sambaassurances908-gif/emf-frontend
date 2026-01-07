@@ -233,6 +233,10 @@ export const UserForm = () => {
                   { value: '3', label: 'BCEG' },
                   { value: '4', label: 'EDG' },
                   { value: '5', label: 'SODEC' },
+                  { value: '6', label: 'FINAM' },
+                  { value: '7', label: 'COFIGA' },
+                  { value: '8', label: 'AGR PRO' },
+                  { value: '9', label: 'ARIANE FINANCE' },
                 ]}
                 error={errors.emf_id?.message}
                 {...register('emf_id')}

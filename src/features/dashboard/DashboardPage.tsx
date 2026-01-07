@@ -54,6 +54,10 @@ const EMF_COLORS: Record<string, string> = {
   BCEG: '#F59E0B',     // Orange
   EDG: '#8B5CF6',      // Violet
   SODEC: '#EC4899',    // Rose
+  FINAM: '#0EA5E9',    // Sky Blue
+  COFIGA: '#6366F1',   // Indigo
+  'AGR PRO': '#84CC16', // Lime
+  'ARIANE FINANCE': '#D946EF', // Fuchsia
 };
 const CHART_COLORS = ['#10B981', '#3B82F6', '#F59E0B', '#8B5CF6', '#EC4899', '#06B6D4', '#F43F5E'];
 const ACCENT_COLOR = '#10B981';
@@ -70,6 +74,10 @@ const EMF_SLUGS: Record<number, string> = {
   3: 'bceg',
   4: 'edg',
   5: 'sodec',
+  6: 'finam',
+  7: 'cofiga',
+  8: 'agrpro',
+  9: 'arianefinance',
 };
 
 const getEmfSlug = (emfId: number): string | null => {
@@ -188,6 +196,10 @@ export const DashboardPage = () => {
         3: '/dashboard/bceg',
         4: '/dashboard/edg',
         5: '/dashboard/sodec',
+        6: '/dashboard/finam',
+        7: '/dashboard/cofiga',
+        8: '/dashboard/agrpro',
+        9: '/dashboard/arianefinance',
       };
 
       const dashboardPath = emfDashboards[user.emf_id];

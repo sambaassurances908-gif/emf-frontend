@@ -42,18 +42,18 @@ export const useAuthStore = create<AuthState>()(
       // ← NOUVEAU : Fonction pour obtenir le chemin du dashboard selon le rôle et l'EMF
       getDashboardPath: () => {
         const user = get().user
-        
+
         if (!user) return '/login'
 
         // ============================================
         // 1. REDIRECTION PAR RÔLE SPÉCIFIQUE
         // ============================================
-        
+
         // FPDG (Fondé de Pouvoir Délégué Général) → Dashboard FPDG
         if (user.role === 'fpdg') {
           return '/fpdg'
         }
-        
+
         // Comptable → Dashboard comptable directement
         if (user.role === 'comptable') {
           return '/comptable'
@@ -62,7 +62,7 @@ export const useAuthStore = create<AuthState>()(
         // ============================================
         // 2. REDIRECTION PAR EMF (pour les autres rôles)
         // ============================================
-        
+
         // Mapping des EMF vers leurs dashboards
         const emfDashboardMap: Record<number, string> = {
           1: '/dashboard/bamboo',
@@ -72,6 +72,8 @@ export const useAuthStore = create<AuthState>()(
           5: '/dashboard/sodec',
           6: '/dashboard/finam',
           7: '/dashboard/cofiga',
+          8: '/dashboard/agrpro',
+          9: '/dashboard/arianefinance',
         }
 
         // Si l'utilisateur a un emf_id valide (> 0), retourner son dashboard spécifique
@@ -138,17 +140,17 @@ export const useAuthStore = create<AuthState>()(
         console.log('🔄 Initialisation du store auth...')
         const token = localStorage.getItem('token')
         const userStr = localStorage.getItem('user')
-        
+
         if (token && userStr) {
           try {
             const user = JSON.parse(userStr) as User
-            
+
             // Pour les admins, s'assurer que emf_id est null
             if (user.role === 'admin') {
               user.emf_id = null;
               user.emf = null;
             }
-            
+
             console.log('✅ User restauré:', user, '| emf_id:', user.emf_id)
             set({
               user,
@@ -170,22 +172,22 @@ export const useAuthStore = create<AuthState>()(
       login: async (credentials: LoginCredentials) => {
         try {
           console.log('🚀 Login en cours...')
-          
+
           // IMPORTANT: Réinitialiser COMPLÈTEMENT le store AVANT l'appel API
           set({
             user: null,
             token: null,
             isAuthenticated: false,
           })
-          
+
           // Nettoyer TOUT le localStorage
           localStorage.clear()
-          
+
           const response = await authService.login(credentials)
           const { token, user } = response
-          
+
           console.log('📥 Réponse backend complète:', JSON.stringify(user, null, 2))
-          
+
           if (!token || !user) {
             throw new Error('Réponse serveur invalide')
           }
@@ -193,12 +195,12 @@ export const useAuthStore = create<AuthState>()(
           // Déterminer le emf_id correct
           // Pour les admins SAMBA (role = 'admin'), on force emf_id à null
           let finalEmfId: number | null = null;
-          
+
           if (user.role !== 'admin') {
             // Pour les utilisateurs non-admin, prendre le emf_id du backend
             finalEmfId = user.emf_id ?? user.emf?.id ?? null;
           }
-          
+
           console.log('🔍 Role:', user.role, '| Backend emf_id:', user.emf_id, '| emf.id:', user.emf?.id, '| emf.sigle:', user.emf?.sigle, '| Final emf_id:', finalEmfId);
 
           // Construire l'objet user complet
@@ -229,7 +231,7 @@ export const useAuthStore = create<AuthState>()(
 
           console.log('✅ Login réussi !')
           toast.success(`Bienvenue ${userWithEmf.name} !`)
-          
+
           // NE PAS NAVIGUER ICI - Laisser le composant LoginPage gérer la navigation
         } catch (error: unknown) {
           console.error('❌ Erreur login:', error)
@@ -241,7 +243,7 @@ export const useAuthStore = create<AuthState>()(
 
       logout: () => {
         console.log('👋 Déconnexion...')
-        authService.logout().catch(() => {})
+        authService.logout().catch(() => { })
         localStorage.clear()
         set({
           user: null,

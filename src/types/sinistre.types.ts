@@ -171,6 +171,8 @@ export type ContratType =
   | 'ContratSodec'
   | 'ContratCofiga'
   | 'ContratFinam'
+  | 'ContratArianeFinance'
+  | 'ContratAgrPro'
 
 /**
  * Interface de base pour un sinistre

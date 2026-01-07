@@ -11,6 +11,8 @@ import {
   MoreHorizontal,
   ChevronDown,
   Bike,
+  Car,
+  HeartHandshake,
 } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
@@ -420,7 +422,13 @@ export const BcegDashboard = () => {
                     <tr
                       key={contrat.id ?? `contrat-${index}`}
                       className="hover:bg-gray-50 transition-colors cursor-pointer group"
-                      onClick={() => navigate(`/contrats/bceg/${contrat.id}`)}
+                      onClick={() => {
+                        if ((contrat as any).source === 'moto') {
+                          navigate(`/contrats/bceg-moto/${contrat.id}`)
+                        } else {
+                          navigate(`/contrats/bceg/${contrat.id}`)
+                        }
+                      }}
                     >
                       <td className="py-4 border-b border-gray-50">
                         <div className="flex items-center gap-3">
@@ -518,6 +526,38 @@ export const BcegDashboard = () => {
             <h3 className="font-bold text-gray-900 text-lg mb-2">Contrat SAMB'A MOTO</h3>
             <p className="text-sm text-gray-500">
               Couverture spécifique pour l'acquisition de deux-roues.
+            </p>
+          </div>
+
+          <div
+            onClick={() => {
+              setIsNewContractModalOpen(false)
+              navigate('/contrats/nouveau/bceg-taxi-perte-recette')
+            }}
+            className="border-2 border-gray-100 hover:border-[#F48232] hover:bg-orange-50 rounded-2xl p-6 cursor-pointer transition-all flex flex-col items-center text-center group"
+          >
+            <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+              <Car className="h-8 w-8 text-[#F48232]" />
+            </div>
+            <h3 className="font-bold text-gray-900 text-lg mb-2">TAXI - Perte Recettes</h3>
+            <p className="text-sm text-gray-500">
+              Indemnisation journalière en cas d'immobilisation du taxi.
+            </p>
+          </div>
+
+          <div
+            onClick={() => {
+              setIsNewContractModalOpen(false)
+              navigate('/contrats/nouveau/bceg-taxi-prevoyance-deces')
+            }}
+            className="border-2 border-gray-100 hover:border-[#F48232] hover:bg-orange-50 rounded-2xl p-6 cursor-pointer transition-all flex flex-col items-center text-center group"
+          >
+            <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+              <HeartHandshake className="h-8 w-8 text-[#F48232]" />
+            </div>
+            <h3 className="font-bold text-gray-900 text-lg mb-2">TAXI - Prévoyance Décès</h3>
+            <p className="text-sm text-gray-500">
+              Couverture frais funéraires et capital décès pour chauffeurs.
             </p>
           </div>
         </div>

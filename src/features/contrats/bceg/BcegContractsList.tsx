@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  Search, FileText, Filter, Plus, Eye, Edit, Bike
+  Search, FileText, Filter, Plus, Eye, Edit, Bike, Car, HeartHandshake
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -180,12 +180,17 @@ export const BcegContractsList = () => {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {filteredContrats.map((contrat: any) => (
+
                     <tr
                       key={contrat.id}
                       className="cursor-pointer hover:bg-emerald-50 transition-all duration-200"
                       onClick={() => {
                         if (contrat.source === 'moto') {
                           navigate(`/contrats/bceg-moto/${contrat.id}`)
+                        } else if (contrat.source === 'taxi_perte_recette') {
+                          navigate(`/contrats/bceg-taxi-perte-recette/${contrat.id}`)
+                        } else if (contrat.source === 'taxi_prevoyance_deces') {
+                          navigate(`/contrats/bceg-taxi-prevoyance-deces/${contrat.id}`)
                         } else {
                           navigate(`/contrats/bceg/${contrat.id}`)
                         }
@@ -194,6 +199,8 @@ export const BcegContractsList = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-emerald-600 font-semibold">
                         <div className="flex items-center gap-2">
                           {contrat.source === 'moto' && <Bike className="h-4 w-4 text-orange-500" />}
+                          {contrat.source === 'taxi_perte_recette' && <Car className="h-4 w-4 text-yellow-600" />}
+                          {contrat.source === 'taxi_prevoyance_deces' && <HeartHandshake className="h-4 w-4 text-purple-600" />}
                           #{contrat.id}
                         </div>
                       </td>
@@ -222,6 +229,10 @@ export const BcegContractsList = () => {
                             e.stopPropagation()
                             if (contrat.source === 'moto') {
                               navigate(`/contrats/bceg-moto/${contrat.id}`)
+                            } else if (contrat.source === 'taxi_perte_recette') {
+                              navigate(`/contrats/bceg-taxi-perte-recette/${contrat.id}`)
+                            } else if (contrat.source === 'taxi_prevoyance_deces') {
+                              navigate(`/contrats/bceg-taxi-prevoyance-deces/${contrat.id}`)
                             } else {
                               navigate(`/contrats/bceg/${contrat.id}`)
                             }
@@ -237,7 +248,11 @@ export const BcegContractsList = () => {
                           onClick={(e) => {
                             e.stopPropagation()
                             if (contrat.source === 'moto') {
-                              navigate(`/contrats/bceg-moto/${contrat.id}`)
+                              navigate(`/contrats/bceg-moto/${contrat.id}/edit`)
+                            } else if (contrat.source === 'taxi_perte_recette') {
+                              navigate(`/contrats/bceg-taxi-perte-recette/${contrat.id}/edit`)
+                            } else if (contrat.source === 'taxi_prevoyance_deces') {
+                              navigate(`/contrats/bceg-taxi-prevoyance-deces/${contrat.id}/edit`)
                             } else {
                               navigate(`/contrats/bceg/${contrat.id}/edit`)
                             }
@@ -256,6 +271,6 @@ export const BcegContractsList = () => {
           )}
         </CardContent>
       </Card>
-    </div>
+    </div >
   )
 }

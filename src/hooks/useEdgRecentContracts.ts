@@ -1,34 +1,58 @@
 // hooks/useEdgRecentContracts.ts
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
-import { EdgContrat } from '@/types/edg'
 
 export const useEdgRecentContracts = (emfId: number, limit = 5) => {
-  return useQuery<EdgContrat[]>({
-    queryKey: ['edg-recent-contracts', emfId, limit],
+  return useQuery<any[]>({
+    queryKey: ['edg-recent-contracts-all', emfId, limit],
     queryFn: async () => {
-      const res = await api.get(`/edg/contrats?emf_id=${emfId}&limit=${limit}&page=1`)
-      const payload = res.data
+      console.log('🔍 EDG DASHBOARD - Récupération contrats récents (Standard + Taxi):', { emfId, limit });
 
-      if (!payload.success) {
-        throw new Error(payload.message || 'Erreur API contrats EDG')
-      }
+      const [resStandard, resTaxiPR, resTaxiPD] = await Promise.allSettled([
+        api.get('/edg/contrats', { params: { emf_id: emfId, limit, page: 1 } }),
+        api.get('/edg-taxi-perte-recette/contrats', { params: { emf_id: emfId, limit, page: 1 } }),
+        api.get('/edg-taxi-prevoyance-deces/contrats', { params: { emf_id: emfId, limit, page: 1 } })
+      ]);
 
-      const raw = payload.data
+      const extractData = (res: PromiseSettledResult<any>) => {
+        if (res.status !== 'fulfilled') return [];
+        const data = res.value.data;
+        // Adjust extraction based on common API response patterns
+        if (Array.isArray(data)) return data;
+        if (Array.isArray(data?.data)) return data.data;
+        if (Array.isArray(data?.data?.data)) return data.data.data;
+        return [];
+      };
 
-      // Sécurisation : toujours renvoyer un tableau
-      if (Array.isArray(raw)) {
-        return raw as EdgContrat[]
-      }
+      const contratsStandard = extractData(resStandard).map((c: any) => ({ ...c, source: 'standard' }));
+      const contratsTaxiPR = extractData(resTaxiPR).map((c: any) => ({
+        ...c,
+        source: 'taxi_perte_recette',
+        montant_pret_assure: 0,
+        nom_prenom: `${c.nom || ''} ${c.prenom || ''}`.trim(),
+        statut: c.statut || 'actif'
+      }));
+      const contratsTaxiPD = extractData(resTaxiPD).map((c: any) => ({
+        ...c,
+        source: 'taxi_prevoyance_deces',
+        montant_pret_assure: 0,
+        nom_prenom: `${c.nom || ''} ${c.prenom || ''}`.trim(),
+        statut: c.statut || 'actif'
+      }));
 
-      if (raw == null) {
-        return []
-      }
+      const merged = [...contratsStandard, ...contratsTaxiPR, ...contratsTaxiPD]
+        .sort((a, b) => {
+          const dateA = new Date(a.created_at || 0).getTime();
+          const dateB = new Date(b.created_at || 0).getTime();
+          return dateB - dateA;
+        })
+        .slice(0, limit);
 
-      return [raw as EdgContrat]
+      return merged;
     },
     enabled: !!emfId,
-  })
-}
+    staleTime: 3 * 60 * 1000,
+  });
+};
 
 export default useEdgRecentContracts

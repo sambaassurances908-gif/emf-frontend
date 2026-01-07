@@ -29,6 +29,8 @@ const EMF_SLUGS: Record<number, string> = {
   5: 'sodec',
   6: 'finam',
   7: 'cofiga',
+  8: 'agrpro',
+  9: 'arianefinance',
 };
 
 const SidebarItem = ({
@@ -68,9 +70,11 @@ export const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
   const userEmfSlug = (userEmfId && userEmfId > 0) ? EMF_SLUGS[userEmfId] : null;
   const isEmfUser = !!userEmfSlug && !isAdmin();
 
-  // Déterminer si c'est un utilisateur COFIGA ou FINAM (EMF spéciaux avec leurs propres routes)
+  // Déterminer si c'est un utilisateur d'un EMF spécial avec leurs propres routes
   const isCofigaUser = userEmfId === 7 && !isAdmin();
   const isFinamUser = userEmfId === 6 && !isAdmin();
+  const isAgrProUser = userEmfId === 8 && !isAdmin();
+  const isArianeFinanceUser = userEmfId === 9 && !isAdmin();
 
   const getPath = (item: MenuItem): string => {
     // Pour les utilisateurs COFIGA, utiliser les routes COFIGA spécifiques
@@ -86,6 +90,20 @@ export const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
       if (item.label === 'Contrats') return '/contrats/finam';
       if (item.label === 'Sinistres') return '/sinistres/finam';
       if (item.label === 'Statistiques') return '/statistiques/finam';
+    }
+    // Pour les utilisateurs AGR PRO, utiliser les routes AGR PRO spécifiques
+    if (isAgrProUser) {
+      if (item.label === 'Dashboard') return '/dashboard/agrpro';
+      if (item.label === 'Contrats') return '/contrats/agrpro';
+      if (item.label === 'Sinistres') return '/sinistres/agrpro';
+      if (item.label === 'Statistiques') return '/statistiques/agrpro';
+    }
+    // Pour les utilisateurs ARIANE FINANCE, utiliser les routes ARIANE FINANCE spécifiques
+    if (isArianeFinanceUser) {
+      if (item.label === 'Dashboard') return '/dashboard/arianefinance';
+      if (item.label === 'Contrats') return '/contrats/arianefinance';
+      if (item.label === 'Sinistres') return '/sinistres/arianefinance';
+      if (item.label === 'Statistiques') return '/statistiques/arianefinance';
     }
     // Pour les autres EMFs, utiliser le pattern standard
     if (isEmfUser && item.emfPath) {
@@ -116,14 +134,17 @@ export const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
   });
 
   const isActive = (path: string, emfPath?: string) => {
-    // Pour COFIGA et FINAM, vérifier les routes spécifiques
-    if (isCofigaUser || isFinamUser) {
-      const emfName = isCofigaUser ? 'cofiga' : 'finam';
+    // Pour les EMF spéciaux, vérifier les routes spécifiques
+    if (isCofigaUser || isFinamUser || isAgrProUser || isArianeFinanceUser) {
+      const emfName = isCofigaUser ? 'cofiga' : isFinamUser ? 'finam' : isAgrProUser ? 'agrpro' : 'arianefinance';
       if (path === '/dashboard') {
         return location.pathname === `/dashboard/${emfName}` || location.pathname.startsWith(`/dashboard/${emfName}/`);
       }
       if (path === '/contrats') {
         return location.pathname === `/contrats/${emfName}` || location.pathname.startsWith(`/contrats/${emfName}/`);
+      }
+      if (path === '/sinistres') {
+        return location.pathname === `/sinistres/${emfName}` || location.pathname.startsWith(`/sinistres/${emfName}/`);
       }
       if (path === '/statistiques') {
         return location.pathname === `/statistiques/${emfName}` || location.pathname.startsWith(`/statistiques/${emfName}/`);
@@ -232,7 +253,7 @@ export const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-bold text-gray-900 truncate">{user.name}</p>
                 <p className="text-xs text-gray-500 truncate capitalize">
-                  {user.emf?.sigle || (user.emf_id === 1 ? 'BAMBOO' : user.emf_id === 2 ? 'COFIDEC' : user.emf_id === 3 ? 'BCEG' : user.emf_id === 4 ? 'EDG' : user.emf_id === 5 ? 'SODEC' : user.emf_id === 6 ? 'FINAM' : user.emf_id === 7 ? 'COFIGA' : user.role || 'Utilisateur')}
+                  {user.emf?.sigle || (user.emf_id === 1 ? 'BAMBOO' : user.emf_id === 2 ? 'COFIDEC' : user.emf_id === 3 ? 'BCEG' : user.emf_id === 4 ? 'EDG' : user.emf_id === 5 ? 'SODEC' : user.emf_id === 6 ? 'FINAM' : user.emf_id === 7 ? 'COFIGA' : user.emf_id === 8 ? 'AGR PRO' : user.emf_id === 9 ? 'ARIANE FINANCE' : user.role || 'Utilisateur')}
                 </p>
               </div>
             </div>

@@ -44,9 +44,9 @@ export const LoginPage = () => {
     if (!authLoading && isAuthenticated && user) {
       // Pour admin, emf_id doit être null
       const emfId = user.role === 'admin' ? null : (user.emf_id || null)
-      
+
       console.log('🔍 [LoginPage useEffect] User:', user.name, '| Role:', user.role, '| emf_id:', emfId)
-      
+
       // Nettoyer ou stocker emf_id dans localStorage
       if (emfId && emfId > 0) {
         localStorage.setItem('emf_id', emfId.toString())
@@ -59,10 +59,10 @@ export const LoginPage = () => {
       if (from && user.role !== 'admin') {
         targetPath = from
       }
-      
+
       console.log('🚀 [LoginPage useEffect] Redirection vers:', targetPath)
-      
-      navigate(targetPath, { 
+
+      navigate(targetPath, {
         replace: true,
         state: { emf_id: emfId }
       })
@@ -72,18 +72,18 @@ export const LoginPage = () => {
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true)
     setIsSubmitting(true) // Empêcher le useEffect de rediriger
-    
+
     try {
       await login(data)
-      
+
       // Récupérer immédiatement le user et rediriger
       const { user: currentUser, getDashboardPath: getPath } = useAuthStore.getState()
-      
+
       // Pour admin, emf_id doit être null
       const emfId = currentUser?.role === 'admin' ? null : (currentUser?.emf_id || null)
-      
+
       console.log('🔍 [onSubmit] User:', currentUser?.name, '| Role:', currentUser?.role, '| emf_id:', emfId)
-      
+
       // Nettoyer ou stocker emf_id dans localStorage
       if (emfId && emfId > 0) {
         localStorage.setItem('emf_id', emfId.toString())
@@ -93,9 +93,9 @@ export const LoginPage = () => {
 
       const dashboardPath = getPath()
       console.log('✅ [onSubmit] Login réussi, redirection vers:', dashboardPath)
-      
+
       // Naviguer immédiatement
-      navigate(dashboardPath, { 
+      navigate(dashboardPath, {
         replace: true,
         state: { emf_id: emfId }
       })
@@ -131,13 +131,13 @@ export const LoginPage = () => {
           <div className="absolute top-20 left-20 w-72 h-72 bg-white rounded-full blur-3xl"></div>
           <div className="absolute bottom-20 right-20 w-96 h-96 bg-white rounded-full blur-3xl"></div>
         </div>
-        
+
         {/* Content */}
         <div className="relative z-10 flex flex-col justify-between p-12 w-full">
           <div>
             <img src={logoSamba} alt="SAMB'A" className="h-20 w-auto" />
           </div>
-          
+
           <div className="space-y-6">
             <div>
               <h1 className="text-4xl font-bold text-white leading-tight">
@@ -145,12 +145,12 @@ export const LoginPage = () => {
               </h1>
               <p className="text-white/90 text-lg font-medium mt-1">SAMB'A-ASSURANCES</p>
             </div>
-            
+
             <div className="space-y-3">
               <p className="text-white text-xl font-semibold leading-relaxed">
                 Solution de Gestion des contrats  de Micro-Assurance  Décès-emprunteur pour les Banques et EMF
               </p>
-              
+
             </div>
 
             <div className="space-y-2 pt-4">
@@ -183,14 +183,17 @@ export const LoginPage = () => {
 
           <div className="flex items-center gap-3">
             <div className="flex -space-x-2">
-              {[1, 2, 3, 4].map((i) => (
+              {[1, 2, 3, 4, 5].map((i) => (
                 <div key={i} className="w-8 h-8 rounded-full bg-white/20 border-2 border-white/30 flex items-center justify-center text-white text-xs font-medium">
                   {String.fromCharCode(64 + i)}
                 </div>
               ))}
+              <div className="w-8 h-8 rounded-full bg-white/20 border-2 border-white/30 flex items-center justify-center text-white text-xs font-medium">
+                +4
+              </div>
             </div>
             <p className="text-white/70 text-sm">
-              <span className="text-white font-semibold">5+ partenaires</span> nous font confiance
+              <span className="text-white font-semibold">9 partenaires</span> nous font confiance
             </p>
           </div>
         </div>
@@ -230,9 +233,8 @@ export const LoginPage = () => {
                 <input
                   type="email"
                   placeholder="vous@exemple.com"
-                  className={`w-full bg-[#1a1a1a] border ${
-                    errors.email ? 'border-red-500' : 'border-[#2a2a2a]'
-                  } rounded-lg py-2.5 pl-10 pr-4 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all`}
+                  className={`w-full bg-[#1a1a1a] border ${errors.email ? 'border-red-500' : 'border-[#2a2a2a]'
+                    } rounded-lg py-2.5 pl-10 pr-4 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all`}
                   {...register('email')}
                   disabled={isLoading}
                 />
@@ -254,9 +256,8 @@ export const LoginPage = () => {
                 <input
                   type={showPassword ? 'text' : 'password'}
                   placeholder="••••••••"
-                  className={`w-full bg-[#1a1a1a] border ${
-                    errors.password ? 'border-red-500' : 'border-[#2a2a2a]'
-                  } rounded-lg py-2.5 pl-10 pr-10 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all`}
+                  className={`w-full bg-[#1a1a1a] border ${errors.password ? 'border-red-500' : 'border-[#2a2a2a]'
+                    } rounded-lg py-2.5 pl-10 pr-10 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all`}
                   {...register('password')}
                   disabled={isLoading}
                 />

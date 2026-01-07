@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { 
-  Search, FileText, Filter, Plus, Eye, Edit 
+import {
+  Search, FileText, Filter, Plus, Eye, Edit, Car, HeartHandshake, ShieldCheck
 } from 'lucide-react'
+import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Badge } from '@/components/ui/Badge'
@@ -48,6 +49,7 @@ const getTierLabel = (montant?: number) => {
 export const EdgContractsList = () => {
   const navigate = useNavigate()
   const [search, setSearch] = useState('')
+  const [isNewContractModalOpen, setIsNewContractModalOpen] = useState(false)
 
   const {
     data: allContrats = [],
@@ -105,7 +107,7 @@ export const EdgContractsList = () => {
           </p>
         </div>
         <Button
-          onClick={() => navigate('/contrats/nouveau/edg')}
+          onClick={() => setIsNewContractModalOpen(true)}
           className="bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 shadow-lg px-6"
         >
           <Plus className="h-5 w-5 mr-2" />
@@ -127,9 +129,9 @@ export const EdgContractsList = () => {
               />
             </div>
             <div className="flex gap-2 flex-wrap">
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => refetch()}
                 className="h-11"
               >
@@ -160,7 +162,7 @@ export const EdgContractsList = () => {
                 Créez votre premier contrat EDG pour commencer à gérer vos micro-assurances.
               </p>
               <Button
-                onClick={() => navigate('/contrats/nouveau/edg')}
+                onClick={() => setIsNewContractModalOpen(true)}
                 className="bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 shadow-lg px-8"
                 size="lg"
               >
@@ -184,14 +186,26 @@ export const EdgContractsList = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {contrats.map((contrat: EdgContrat) => (
+                  {contrats.map((contrat: any) => (
                     <tr
                       key={contrat.id}
                       className="cursor-pointer hover:bg-teal-50 transition-all duration-200"
-                      onClick={() => navigate(`/contrats/edg/${contrat.id}`)}
+                      onClick={() => {
+                        if (contrat.source === 'taxi_perte_recette') {
+                          navigate(`/contrats/edg-taxi-perte-recette/${contrat.id}`)
+                        } else if (contrat.source === 'taxi_prevoyance_deces') {
+                          navigate(`/contrats/edg-taxi-prevoyance-deces/${contrat.id}`)
+                        } else {
+                          navigate(`/contrats/edg/${contrat.id}`)
+                        }
+                      }}
                     >
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-teal-600 font-semibold">
-                        #{contrat.id}
+                        <div className="flex items-center gap-2">
+                          {contrat.source === 'taxi_perte_recette' && <Car className="h-4 w-4 text-orange-500" />}
+                          {contrat.source === 'taxi_prevoyance_deces' && <HeartHandshake className="h-4 w-4 text-purple-600" />}
+                          #{contrat.id}
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap max-w-[220px] truncate font-medium text-gray-900">
                         {contrat.nom_prenom}
@@ -221,7 +235,13 @@ export const EdgContractsList = () => {
                           size="sm"
                           onClick={(e) => {
                             e.stopPropagation()
-                            navigate(`/contrats/edg/${contrat.id}`)
+                            if (contrat.source === 'taxi_perte_recette') {
+                              navigate(`/contrats/edg-taxi-perte-recette/${contrat.id}`)
+                            } else if (contrat.source === 'taxi_prevoyance_deces') {
+                              navigate(`/contrats/edg-taxi-prevoyance-deces/${contrat.id}`)
+                            } else {
+                              navigate(`/contrats/edg/${contrat.id}`)
+                            }
                           }}
                           className="h-8 w-8 p-0 hover:bg-teal-100"
                           title="Voir détails"
@@ -233,7 +253,13 @@ export const EdgContractsList = () => {
                           size="sm"
                           onClick={(e) => {
                             e.stopPropagation()
-                            navigate(`/contrats/edg/${contrat.id}/edit`)
+                            if (contrat.source === 'taxi_perte_recette') {
+                              navigate(`/contrats/edg-taxi-perte-recette/${contrat.id}/edit`)
+                            } else if (contrat.source === 'taxi_prevoyance_deces') {
+                              navigate(`/contrats/edg-taxi-prevoyance-deces/${contrat.id}/edit`)
+                            } else {
+                              navigate(`/contrats/edg/${contrat.id}/edit`)
+                            }
                           }}
                           className="h-8 w-8 p-0 hover:bg-blue-100"
                           title="Modifier"
@@ -249,6 +275,63 @@ export const EdgContractsList = () => {
           )}
         </CardContent>
       </Card>
-    </div>
+
+      <Modal
+        isOpen={isNewContractModalOpen}
+        onClose={() => setIsNewContractModalOpen(false)}
+        title="Nouveau Contrat EDG"
+        size="lg"
+      >
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-2">
+          <div
+            onClick={() => {
+              setIsNewContractModalOpen(false)
+              navigate('/contrats/nouveau/edg-standard')
+            }}
+            className="border-2 border-gray-100 hover:border-teal-600 hover:bg-teal-50 rounded-2xl p-6 cursor-pointer transition-all flex flex-col items-center text-center group"
+          >
+            <div className="w-16 h-16 bg-teal-100 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+              <ShieldCheck className="h-8 w-8 text-teal-600" />
+            </div>
+            <h3 className="font-bold text-gray-900 text-lg mb-2">EDG Standard</h3>
+            <p className="text-xs text-gray-500">
+              Assurance emprunteur classique pour les crédits et micro-crédits.
+            </p>
+          </div>
+
+          <div
+            onClick={() => {
+              setIsNewContractModalOpen(false)
+              navigate('/contrats/nouveau/edg-taxi-perte-recette')
+            }}
+            className="border-2 border-gray-100 hover:border-orange-500 hover:bg-orange-50 rounded-2xl p-6 cursor-pointer transition-all flex flex-col items-center text-center group"
+          >
+            <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+              <Car className="h-8 w-8 text-orange-500" />
+            </div>
+            <h3 className="font-bold text-gray-900 text-lg mb-2">TAXI - Perte Recette</h3>
+            <p className="text-xs text-gray-500">
+              Garantie de revenus pour les chauffeurs en cas d'immobilisation.
+            </p>
+          </div>
+
+          <div
+            onClick={() => {
+              setIsNewContractModalOpen(false)
+              navigate('/contrats/nouveau/edg-taxi-prevoyance-deces')
+            }}
+            className="border-2 border-gray-100 hover:border-purple-600 hover:bg-purple-50 rounded-2xl p-6 cursor-pointer transition-all flex flex-col items-center text-center group"
+          >
+            <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+              <HeartHandshake className="h-8 w-8 text-purple-600" />
+            </div>
+            <h3 className="font-bold text-gray-900 text-lg mb-2">TAXI - Prévoyance Décès</h3>
+            <p className="text-xs text-gray-500">
+              Protection familiale et frais funéraires pour les transporteurs.
+            </p>
+          </div>
+        </div>
+      </Modal>
+    </div >
   )
 }

@@ -20,6 +20,10 @@ export const Header = () => {
     if (emfId === 3) return 'BCEG';
     if (emfId === 4) return 'EDG';
     if (emfId === 5) return 'SODEC';
+    if (emfId === 6) return 'FINAM';
+    if (emfId === 7) return 'COFIGA';
+    if (emfId === 8) return 'AGR PRO';
+    if (emfId === 9) return 'ARIANE FINANCE';
     return user?.role || 'Utilisateur';
   };
 
@@ -60,7 +64,7 @@ export const Header = () => {
       {/* Right Section */}
       <div className="flex items-center gap-3">
         {/* Search Button (Mobile) */}
-        <button 
+        <button
           type="button"
           className="md:hidden w-10 h-10 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors"
           aria-label="Rechercher"
@@ -70,7 +74,7 @@ export const Header = () => {
 
         {/* Notifications */}
         <div className="relative" ref={notifRef}>
-          <button 
+          <button
             type="button"
             onClick={() => setShowNotifications(!showNotifications)}
             className="relative w-10 h-10 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors"
@@ -135,7 +139,7 @@ export const Header = () => {
           </button>
 
           {showUserMenu && (
-            <div 
+            <div
               className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-card border border-gray-100 py-2 z-50 animate-fade-in"
               role="menu"
               aria-orientation="vertical"
@@ -159,7 +163,7 @@ export const Header = () => {
                   <User className="h-4 w-4 text-gray-400" />
                   Mon profil
                 </button>
-                
+
                 {isAdmin() && (
                   <button
                     type="button"
