@@ -1,4 +1,4 @@
-import { ReactNode, HTMLAttributes } from 'react';
+import { ReactNode, HTMLAttributes, TdHTMLAttributes, ThHTMLAttributes } from 'react';
 import { cn } from '@/lib/utils';
 
 interface TableProps {
@@ -7,6 +7,16 @@ interface TableProps {
 }
 
 interface TableRowProps extends HTMLAttributes<HTMLTableRowElement> {
+  children: ReactNode;
+  className?: string;
+}
+
+interface TableHeadProps extends ThHTMLAttributes<HTMLTableHeaderCellElement> {
+  children: ReactNode;
+  className?: string;
+}
+
+interface TableCellProps extends TdHTMLAttributes<HTMLTableDataCellElement> {
   children: ReactNode;
   className?: string;
 }
@@ -45,22 +55,23 @@ export const TableRow = ({ children, className, ...props }: TableRowProps) => {
   );
 };
 
-export const TableHead = ({ children, className }: TableProps) => {
+export const TableHead = ({ children, className, ...props }: TableHeadProps) => {
   return (
     <th
       className={cn(
         'px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider',
         className
       )}
+      {...props}
     >
       {children}
     </th>
   );
 };
 
-export const TableCell = ({ children, className }: TableProps) => {
+export const TableCell = ({ children, className, ...props }: TableCellProps) => {
   return (
-    <td className={cn('px-6 py-4 whitespace-nowrap text-sm text-gray-700', className)}>
+    <td className={cn('px-6 py-4 whitespace-nowrap text-sm text-gray-700', className)} {...props}>
       {children}
     </td>
   );

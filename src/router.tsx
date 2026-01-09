@@ -144,6 +144,10 @@ import {
 } from '@/features/fpdg'
 import { FpdgLayout } from '@/components/layout/FpdgLayout'
 
+// ✅ Pages Exercices
+import { ExerciceDashboard } from '@/features/exercices/ExerciceDashboard'
+import { ExerciceDetail } from '@/features/exercices/ExerciceDetail'
+
 /**
  * Configuration du routeur de l'application SAMBA Assurances
  */
@@ -198,6 +202,17 @@ export const router = createBrowserRouter([
       {
         path: 'profile',
         element: <ProfilePage />,
+      },
+
+      // ========================================
+      // EXERCICES
+      // ========================================
+      {
+        path: 'exercices',
+        children: [
+          { index: true, element: <ExerciceDashboard /> },
+          { path: ':id', element: <ExerciceDetail /> },
+        ]
       },
 
       // ========================================

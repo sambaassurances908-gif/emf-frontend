@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import {
   Home, FileText, AlertCircle, Users, Building2,
-  Settings, ChevronLeft, BarChart3, HelpCircle
+  Settings, ChevronLeft, BarChart3, HelpCircle, CalendarDays
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/authStore';
@@ -119,6 +119,7 @@ export const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
     { icon: Building2, label: 'EMFs/Banques', path: '/emfs', adminOnly: true },
     { icon: Users, label: 'Utilisateurs', path: '/users', adminOnly: true },
     { icon: BarChart3, label: 'Statistiques', path: '/statistiques', emfPath: '/statistiques/{emf}' },
+    { icon: CalendarDays, label: 'Exercices', path: '/exercices', adminOnly: true },
     { icon: Settings, label: 'Paramètres', path: '/settings', adminOnly: true },
     { icon: HelpCircle, label: 'Aide', path: '/help' },
   ];

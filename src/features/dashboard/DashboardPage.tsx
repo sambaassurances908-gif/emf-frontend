@@ -1,5 +1,6 @@
 // src/features/dashboard/DashboardPage.tsx
 import { useAuthStore } from '@/store/authStore';
+import { exerciceService } from '@/services/exercice.service';
 import { useNavigate } from 'react-router-dom';
 import { useEffect, useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -25,7 +26,9 @@ import {
   CheckCircle2,
   Hourglass,
   ArrowRight,
+  Upload,
 } from 'lucide-react';
+import { ImportContratModal } from '@/components/modals/ImportContratModal';
 import { formatCurrencyShort, formatDate } from '@/lib/utils';
 import api from '@/lib/api';
 import { DashboardStats, EmfStats, SinistreRecent } from '@/types/dashboard.types';
@@ -187,6 +190,23 @@ export const DashboardPage = () => {
   const [emfSortField, setEmfSortField] = useState<SortField>('cotisation_totale_ttc');
   const [emfSortOrder, setEmfSortOrder] = useState<SortOrder>('desc');
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>('month');
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+
+  // 1. Récupérer l'exercice courant
+  const { data: exerciceData } = useQuery({
+    queryKey: ['exercice-courant'],
+    queryFn: async () => {
+      try {
+        const response = await exerciceService.getCourant();
+        return (response as any).data || response;
+      } catch (e) {
+        console.error("Erreur récupération exercice courant", e);
+        return null;
+      }
+    }
+  });
+
+  const currentYear = exerciceData?.annee || new Date().getFullYear();
 
   useEffect(() => {
     if (user?.emf_id && user.emf_id > 0) {
@@ -209,18 +229,71 @@ export const DashboardPage = () => {
     }
   }, [user, navigate]);
 
-  const { data: stats, isLoading, isError, error } = useQuery<DashboardStats>({
-    queryKey: ['dashboard-stats'],
+  const { data: stats, isLoading, isError, error, refetch } = useQuery<DashboardStats>({
+    queryKey: ['dashboard-stats', currentYear],
     queryFn: async () => {
-      const response = await api.get<{ data: DashboardStats }>('/dashboard/statistiques');
+      const response = await api.get<{ data: DashboardStats }>('/dashboard/statistiques', {
+        params: { annee: currentYear }
+      });
       return response.data.data;
     },
-    enabled: !user?.emf_id || user.emf_id === 0,
+    enabled: (!user?.emf_id || user.emf_id === 0) && !!currentYear,
   });
 
-  // Construire par_emf à partir de details_par_type (source fiable)
+  // 1b. Récupérer le RAPPORT de l'exercice courant (Source de vérité)
+  const { data: rapport } = useQuery({
+    queryKey: ['exercice-rapport', currentYear],
+    queryFn: async () => {
+      if (!exerciceData?.id) return null;
+      try {
+        const data = await exerciceService.getRapport(exerciceData.id);
+        return (data as any).data || data; // Handle potential wrapper
+      } catch (e) {
+        console.error("Erreur rapport", e);
+        return null;
+      }
+    },
+    enabled: !!exerciceData?.id
+  });
+
+  // Construire par_emf à partir de details_par_type (source fiable du dashboard) OU repartition_contrats (source fiable du rapport)
   const emfDataFromDetails = useMemo(() => {
-    // Toujours utiliser details_par_type car c'est la source fiable
+    // PRIORITÉ 1: Utiliser le rapport s'il est disponible (Source de vérité absolue demandée par l'utilisateur)
+    if (rapport && rapport.repartition_contrats) {
+      const emfMapping: { key: string; id: number; sigle: string }[] = [
+        { key: 'bamboo', id: 1, sigle: 'BAMBOO' },
+        { key: 'cofidec', id: 2, sigle: 'COFIDEC' },
+        { key: 'bceg', id: 3, sigle: 'BCEG' },
+        { key: 'edg', id: 4, sigle: 'EDG' },
+        { key: 'sodec', id: 5, sigle: 'SODEC' },
+        { key: 'finam', id: 6, sigle: 'FINAM' },
+        { key: 'cofiga', id: 7, sigle: 'COFIGA' },
+        { key: 'agrpro', id: 8, sigle: 'AGR PRO' },
+        { key: 'arianefinance', id: 9, sigle: 'ARIANE FINANCE' },
+      ];
+
+      return emfMapping.map(emf => {
+        // Le rapport utilise souvent des clés normalisées ou majuscules/minuscules, on normalise
+        const key = emf.key;
+        // Chercher la valeur dans repartition_contrats (qui peut avoir des clés 'bamboo_emf', 'bamboo', 'Bamboo', etc)
+        const count = rapport.repartition_contrats[key] ||
+          rapport.repartition_contrats[key + '_emf'] ||
+          rapport.repartition_contrats[emf.sigle] || 0;
+
+        const statsDetails = (stats as any)?.details_par_type?.[key + '_emf'] || (stats as any)?.details_par_type?.[key];
+
+        return {
+          emf_id: emf.id,
+          emf: { sigle: emf.sigle },
+          total: count, // Priorité Rapport
+          montant_total: statsDetails?.montant_total || 0, // Fallback Stats
+          prime_collectee: statsDetails?.prime_collectee || 0, // Fallback Stats
+          cotisation_totale_ttc: statsDetails?.cotisation_totale_ttc || 0, // Fallback Stats
+        };
+      });
+    }
+
+    // PRIORITÉ 2: Fallback sur stats endpoint si rapport indisponible
     const detailsParType = (stats as any)?.details_par_type;
     if (!detailsParType) return [];
 
@@ -230,9 +303,12 @@ export const DashboardPage = () => {
       { key: 'bceg', id: 3, sigle: 'BCEG' },
       { key: 'edg', id: 4, sigle: 'EDG' },
       { key: 'sodec', id: 5, sigle: 'SODEC' },
+      { key: 'finam', id: 6, sigle: 'FINAM' },
+      { key: 'cofiga', id: 7, sigle: 'COFIGA' },
+      { key: 'agrpro', id: 8, sigle: 'AGR PRO' },
+      { key: 'arianefinance', id: 9, sigle: 'ARIANE FINANCE' },
     ];
 
-    // Inclure TOUS les EMF (même ceux avec 0 contrats pour visibilité)
     return emfMapping.map(emf => ({
       emf_id: emf.id,
       emf: { sigle: emf.sigle },
@@ -241,17 +317,34 @@ export const DashboardPage = () => {
       prime_collectee: parseFloat(detailsParType[emf.key]?.prime_collectee || detailsParType[emf.key]?.primes_collectees) || 0,
       cotisation_totale_ttc: parseFloat(detailsParType[emf.key]?.cotisation_totale_ttc) || 0,
     }));
-  }, [stats]);
+  }, [stats, rapport]);
 
-  // Calculs
+  // Fonction utilitaire pour éviter NaN
+  const safeNumber = (value: any, fallback = 0): number => {
+    const num = typeof value === 'string' ? parseFloat(value) : Number(value);
+    return isNaN(num) || !isFinite(num) ? fallback : num;
+  };
+
+  // Fusionner les données pour l'affichage (Rapport > Stats)
+  const displayContratsActifs = safeNumber(rapport?.production?.nombre_contrats ?? stats?.contrats_actifs);
+  const displayPrimesCollectees = safeNumber(rapport?.production?.total_primes_emises ?? stats?.prime_totale_collectee);
+  const displaySinistresCount = safeNumber(rapport?.sinistralite?.nombre_sinistres ?? stats?.sinistres_en_cours);
+
+  const totalDeclares = safeNumber(rapport?.sinistralite?.total_declares);
+  const totalPayes = safeNumber(rapport?.sinistralite?.total_payes);
+  const displayTauxReglement = totalDeclares > 0
+    ? safeNumber((totalPayes / totalDeclares) * 100)
+    : safeNumber(stats?.taux_reglement);
+
+  // Calculs - ajustés avec les données potentielles du rapport
+  const prevTotal = safeNumber(stats?.evolution_contrats?.[stats?.evolution_contrats?.length - 2]?.total, 1);
+  const currentTotal = safeNumber(stats?.evolution_contrats?.[stats?.evolution_contrats?.length - 1]?.total);
   const tauxCroissance = stats?.evolution_contrats && stats.evolution_contrats.length > 1
-    ? ((stats.evolution_contrats[stats.evolution_contrats.length - 1]?.total || 0) -
-      (stats.evolution_contrats[stats.evolution_contrats.length - 2]?.total || 0)) /
-    (stats.evolution_contrats[stats.evolution_contrats.length - 2]?.total || 1) * 100
+    ? safeNumber(((currentTotal - prevTotal) / prevTotal) * 100)
     : 0;
 
-  const tauxSinistralite = stats?.contrats_actifs
-    ? ((stats?.sinistres_en_cours || 0) / stats.contrats_actifs) * 100
+  const tauxSinistralite = displayContratsActifs > 0
+    ? safeNumber((displaySinistresCount / displayContratsActifs) * 100)
     : 0;
 
   // Données pour graphiques
@@ -316,7 +409,8 @@ export const DashboardPage = () => {
   })) || [];
 
   // Récupérer l'évolution des sinistres depuis la base de données
-  const { data: sinistresEvolutionRaw, isLoading: isLoadingSinistresEvolution } = useSinistresEvolution();
+  // Récupérer l'évolution des sinistres depuis la base de données
+  const { data: sinistresEvolutionRaw, isLoading: isLoadingSinistresEvolution } = useSinistresEvolution(currentYear);
 
   // Transformer les données pour les graphiques
   const sinistresEvolutionData = useMemo(() => {
@@ -421,11 +515,20 @@ export const DashboardPage = () => {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
           <p className="text-sm text-gray-400 mt-1">
-            Vue d'ensemble du portefeuille SAMB'A Assurances
+            Vue d'ensemble du portefeuille SAMB'A Assurances (Exercice {currentYear})
           </p>
         </div>
 
         <div className="flex items-center gap-4">
+          {/* Bouton Import CSV */}
+          <button
+            onClick={() => setIsImportModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-gray-900 text-white rounded-xl font-medium text-sm hover:bg-gray-800 transition-colors shadow-sm"
+          >
+            <Upload size={16} />
+            Importer CSV
+          </button>
+
           <Dropdown
             label="Période"
             value={periodFilter}
@@ -470,11 +573,11 @@ export const DashboardPage = () => {
           <div className="space-y-3">
             <div className="flex justify-between text-sm">
               <span className="text-gray-400">Contrats actifs:</span>
-              <span className="font-bold text-gray-900">{stats?.contrats_actifs || 0}</span>
+              <span className="font-bold text-gray-900">{displayContratsActifs}</span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-gray-400">Primes collectées:</span>
-              <span className="font-bold text-gray-900">{formatCurrencyShort(stats?.prime_totale_collectee || 0)}</span>
+              <span className="font-bold text-gray-900">{formatCurrencyShort(displayPrimesCollectees)}</span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-gray-400">EMF partenaires:</span>
@@ -502,8 +605,8 @@ export const DashboardPage = () => {
             </div>
           </div>
 
-          <div className="h-[220px]">
-            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+          <div className="h-[220px] min-h-[220px]">
+            <ResponsiveContainer width="100%" height={220}>
               <BarChart data={monthlyData} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                 <XAxis
@@ -540,7 +643,7 @@ export const DashboardPage = () => {
         <div className="col-span-12 md:col-span-6 lg:col-span-3">
           <StatCard
             title="Contrats Actifs"
-            amount={String(stats?.contrats_actifs || 0)}
+            amount={String(displayContratsActifs)}
             percent={Math.abs(tauxCroissance).toFixed(1)}
             isPositive={tauxCroissance >= 0}
             icon={FileText}
@@ -549,8 +652,8 @@ export const DashboardPage = () => {
         </div>
         <div className="col-span-12 md:col-span-6 lg:col-span-3">
           <StatCard
-            title="Sinistres en Cours"
-            amount={String(stats?.sinistres_en_cours || 0)}
+            title="Total Sinistres"
+            amount={String(displaySinistresCount)}
             percent="3.1"
             isPositive={false}
             icon={AlertCircle}
@@ -560,7 +663,7 @@ export const DashboardPage = () => {
         <div className="col-span-12 md:col-span-6 lg:col-span-3">
           <StatCard
             title="Taux Règlement"
-            amount={`${stats?.taux_reglement || 0}%`}
+            amount={`${displayTauxReglement.toFixed(1)}%`}
             percent="5.4"
             isPositive={true}
             icon={CheckCircle}
@@ -624,7 +727,7 @@ export const DashboardPage = () => {
               <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center mx-auto mb-3 shadow-sm group-hover:shadow transition-shadow">
                 <Wallet className="h-6 w-6 text-emerald-500" />
               </div>
-              <p className="text-2xl font-bold text-gray-900">{formatCurrencyShort(stats?.prime_totale_collectee || 0)}</p>
+              <p className="text-2xl font-bold text-gray-900">{formatCurrencyShort(displayPrimesCollectees)}</p>
               <p className="text-xs text-gray-500 mt-1 font-medium">Primes Collectées</p>
             </div>
 
@@ -635,8 +738,8 @@ export const DashboardPage = () => {
               <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center mx-auto mb-3 shadow-sm group-hover:shadow transition-shadow">
                 <AlertCircle className="h-6 w-6 text-blue-500" />
               </div>
-              <p className="text-2xl font-bold text-gray-900">{stats?.sinistres_en_cours || 0}</p>
-              <p className="text-xs text-gray-500 mt-1 font-medium">Sinistres en Cours</p>
+              <p className="text-2xl font-bold text-gray-900">{displaySinistresCount}</p>
+              <p className="text-xs text-gray-500 mt-1 font-medium">Total Sinistres</p>
             </div>
 
             <div
@@ -646,7 +749,7 @@ export const DashboardPage = () => {
               <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center mx-auto mb-3 shadow-sm group-hover:shadow transition-shadow">
                 <CheckCircle className="h-6 w-6 text-purple-500" />
               </div>
-              <p className="text-2xl font-bold text-gray-900">{stats?.taux_reglement || 0}%</p>
+              <p className="text-2xl font-bold text-gray-900">{displayTauxReglement.toFixed(1)}%</p>
               <p className="text-xs text-gray-500 mt-1 font-medium">Taux Règlement</p>
             </div>
           </div>
@@ -658,7 +761,7 @@ export const DashboardPage = () => {
             <div>
               <h3 className="font-bold text-gray-700">Évolution des Sinistres</h3>
               <p className="text-xs text-gray-400 mt-1">
-                Tendance sur l'année {new Date().getFullYear()} (données réelles)
+                Tendance sur l'année {currentYear} (données réelles)
               </p>
             </div>
             <div className="flex items-center gap-4">
@@ -688,7 +791,7 @@ export const DashboardPage = () => {
             <div>
               <p className="text-xs text-gray-400 font-medium mb-3">Courbe de tendance</p>
               <div className="h-[280px]">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height={280}>
                   <LineChart data={sinistresEvolutionData} margin={{ top: 10, right: 20, left: -10, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
                     <XAxis
@@ -736,7 +839,7 @@ export const DashboardPage = () => {
             <div>
               <p className="text-xs text-gray-400 font-medium mb-3">Volume cumulé</p>
               <div className="h-[280px]">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height={280}>
                   <AreaChart data={sinistresEvolutionData} margin={{ top: 10, right: 20, left: -10, bottom: 5 }}>
                     <defs>
                       <linearGradient id="colorDeclares" x1="0" y1="0" x2="0" y2="1">
@@ -787,28 +890,29 @@ export const DashboardPage = () => {
           <div className="grid grid-cols-4 gap-4 mt-6 pt-6 border-t border-gray-100">
             <div className="text-center">
               <p className="text-2xl font-bold text-gray-900">
-                {sinistresEvolutionData.reduce((acc, item) => acc + item.declares, 0)}
+                {safeNumber(sinistresEvolutionData.reduce((acc, item) => acc + safeNumber(item.declares), 0))}
               </p>
               <p className="text-xs text-gray-500 mt-1">Total déclarés</p>
             </div>
             <div className="text-center">
               <p className="text-2xl font-bold text-emerald-600">
-                {sinistresEvolutionData.reduce((acc, item) => acc + item.regles, 0)}
+                {safeNumber(sinistresEvolutionData.reduce((acc, item) => acc + safeNumber(item.regles), 0))}
               </p>
               <p className="text-xs text-gray-500 mt-1">Total réglés</p>
             </div>
             <div className="text-center">
               <p className="text-2xl font-bold text-red-500">
-                {sinistresEvolutionData.reduce((acc, item) => acc + item.rejetes, 0)}
+                {safeNumber(sinistresEvolutionData.reduce((acc, item) => acc + safeNumber(item.rejetes), 0))}
               </p>
               <p className="text-xs text-gray-500 mt-1">Total rejetés</p>
             </div>
             <div className="text-center">
               <p className="text-2xl font-bold text-blue-600">
-                {sinistresEvolutionData.length > 0
-                  ? Math.round(sinistresEvolutionData.reduce((acc, item) => acc + item.regles, 0) /
-                    sinistresEvolutionData.reduce((acc, item) => acc + item.declares, 0) * 100) || 0
-                  : 0}%
+                {(() => {
+                  const totalDec = sinistresEvolutionData.reduce((acc, item) => acc + safeNumber(item.declares), 0);
+                  const totalReg = sinistresEvolutionData.reduce((acc, item) => acc + safeNumber(item.regles), 0);
+                  return totalDec > 0 ? safeNumber(Math.round((totalReg / totalDec) * 100)) : 0;
+                })()}%
               </p>
               <p className="text-xs text-gray-500 mt-1">Taux de règlement</p>
             </div>
@@ -836,9 +940,9 @@ export const DashboardPage = () => {
           <div className="space-y-4">
             {sortedEmfData.length > 0 ? (
               sortedEmfData.map((emf: any, index: number) => {
-                const totalCotisations = emfDataFromDetails.reduce((acc: number, e: any) => acc + (e.cotisation_totale_ttc || 0), 0);
+                const totalCotisations = emfDataFromDetails.reduce((acc: number, e: any) => acc + safeNumber(e.cotisation_totale_ttc), 0);
                 const percentage = totalCotisations > 0
-                  ? ((emf.cotisation_totale_ttc || 0) / totalCotisations * 100)
+                  ? safeNumber((safeNumber(emf.cotisation_totale_ttc) / totalCotisations * 100))
                   : 0;
                 const emfSlug = getEmfSlug(emf.emf_id);
                 const sigle = emf.emf?.sigle?.toUpperCase() || 'INCONNU';
@@ -900,8 +1004,8 @@ export const DashboardPage = () => {
             {agencesData.agences.length > 0 ? (
               agencesData.agences.slice(0, 5).map((agence: any, index: number) => {
                 const pourcentage = agencesData.total > 0
-                  ? ((agence.nombre / agencesData.total) * 100).toFixed(0)
-                  : 0;
+                  ? safeNumber((agence.nombre / agencesData.total) * 100).toFixed(0)
+                  : '0';
                 return (
                   <div
                     key={index}
@@ -912,10 +1016,10 @@ export const DashboardPage = () => {
                       <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center group-hover:bg-gray-200 transition-colors">
                         <Building2 size={14} className="text-gray-500" />
                       </div>
-                      <span className="text-sm font-medium text-gray-700">{agence.agence}</span>
+                      <span className="text-sm font-medium text-gray-700">{agence.agence || 'Non définie'}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold text-gray-900">{agence.nombre}</span>
+                      <span className="text-sm font-bold text-gray-900">{safeNumber(agence.nombre)}</span>
                       <span className="text-xs text-gray-400">({pourcentage}%)</span>
                       <ArrowRight size={14} className="text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
@@ -932,7 +1036,7 @@ export const DashboardPage = () => {
             {agencesData.agences.length > 0 && (
               <div className="mt-4 pt-4 border-t border-gray-100 flex justify-between items-center">
                 <span className="text-sm text-gray-500">Total</span>
-                <span className="text-lg font-bold text-gray-900">{agencesData.total}</span>
+                <span className="text-lg font-bold text-gray-900">{safeNumber(agencesData.total)}</span>
               </div>
             )}
           </div>
@@ -947,7 +1051,7 @@ export const DashboardPage = () => {
 
           {emfPieData.length > 0 ? (
             <div className="h-[280px]">
-              <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+              <ResponsiveContainer width="100%" height={280}>
                 <RechartsPieChart>
                   <Pie
                     data={emfPieData}
@@ -989,18 +1093,18 @@ export const DashboardPage = () => {
           <div className="space-y-6">
             {/* Hommes */}
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center">
-                <User size={24} className="text-gray-600" />
+              <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                <User size={24} className="text-blue-600" />
               </div>
               <div className="flex-1">
                 <div className="flex justify-between items-center mb-2">
                   <span className="font-semibold text-gray-700">Hommes</span>
-                  <span className="text-lg font-bold text-gray-900">{genreStats.hommes}</span>
+                  <span className="text-lg font-bold text-gray-900">{safeNumber(genreStats.hommes)}</span>
                 </div>
                 <div className="w-full bg-gray-100 rounded-full h-2">
                   <div
-                    className="bg-gray-600 h-2 rounded-full"
-                    style={{ width: `${totalGenre > 0 ? (genreStats.hommes / totalGenre) * 100 : 0}%` }}
+                    className="bg-blue-500 h-2 rounded-full transition-all duration-500"
+                    style={{ width: `${totalGenre > 0 ? safeNumber((genreStats.hommes / totalGenre) * 100) : 0}%` }}
                   />
                 </div>
               </div>
@@ -1008,27 +1112,48 @@ export const DashboardPage = () => {
 
             {/* Femmes */}
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center">
-                <User size={24} className="text-gray-400" />
+              <div className="w-12 h-12 bg-pink-100 rounded-xl flex items-center justify-center">
+                <User size={24} className="text-pink-500" />
               </div>
               <div className="flex-1">
                 <div className="flex justify-between items-center mb-2">
                   <span className="font-semibold text-gray-700">Femmes</span>
-                  <span className="text-lg font-bold text-gray-900">{genreStats.femmes}</span>
+                  <span className="text-lg font-bold text-gray-900">{safeNumber(genreStats.femmes)}</span>
                 </div>
                 <div className="w-full bg-gray-100 rounded-full h-2">
                   <div
-                    className="bg-gray-400 h-2 rounded-full"
-                    style={{ width: `${totalGenre > 0 ? (genreStats.femmes / totalGenre) * 100 : 0}%` }}
+                    className="bg-pink-400 h-2 rounded-full transition-all duration-500"
+                    style={{ width: `${totalGenre > 0 ? safeNumber((genreStats.femmes / totalGenre) * 100) : 0}%` }}
                   />
                 </div>
               </div>
             </div>
 
+            {/* Non déterminé */}
+            {safeNumber(genreStats.non_determine) > 0 && (
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center">
+                  <User size={24} className="text-gray-400" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="font-semibold text-gray-700">Non déterminé</span>
+                    <span className="text-lg font-bold text-gray-900">{safeNumber(genreStats.non_determine)}</span>
+                  </div>
+                  <div className="w-full bg-gray-100 rounded-full h-2">
+                    <div
+                      className="bg-gray-400 h-2 rounded-full transition-all duration-500"
+                      style={{ width: `${totalGenre > 0 ? safeNumber((genreStats.non_determine / totalGenre) * 100) : 0}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Total */}
             <div className="pt-4 border-t border-gray-100 flex justify-between items-center">
               <span className="text-gray-500 font-medium">Total Assurés</span>
-              <span className="text-2xl font-bold text-gray-900">{totalGenre}</span>
+              <span className="text-2xl font-bold text-gray-900">{safeNumber(totalGenre)}</span>
             </div>
           </div>
         </div>
@@ -1043,13 +1168,13 @@ export const DashboardPage = () => {
           <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2">
             {stats?.par_categorie_socio_pro && stats.par_categorie_socio_pro.length > 0 ? (
               (() => {
-                const totalCategories = stats.par_categorie_socio_pro.reduce((acc, cat) => acc + cat.nombre, 0);
-                const sortedCategories = [...stats.par_categorie_socio_pro].sort((a, b) => b.nombre - a.nombre);
+                const totalCategories = stats.par_categorie_socio_pro.reduce((acc, cat) => acc + safeNumber(cat.nombre), 0);
+                const sortedCategories = [...stats.par_categorie_socio_pro].sort((a, b) => safeNumber(b.nombre) - safeNumber(a.nombre));
 
                 return sortedCategories.map((categorie, index) => {
                   const percentage = totalCategories > 0
-                    ? ((categorie.nombre / totalCategories) * 100).toFixed(1)
-                    : 0;
+                    ? safeNumber((safeNumber(categorie.nombre) / totalCategories) * 100).toFixed(1)
+                    : '0';
 
                   return (
                     <div
@@ -1069,7 +1194,7 @@ export const DashboardPage = () => {
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold text-gray-900">{categorie.nombre}</span>
+                        <span className="text-sm font-bold text-gray-900">{safeNumber(categorie.nombre)}</span>
                         <span className="text-xs text-gray-400">({percentage}%)</span>
                         <ArrowRight size={14} className="text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity" />
                       </div>
@@ -1088,7 +1213,7 @@ export const DashboardPage = () => {
               <div className="mt-4 pt-4 border-t border-gray-100 flex justify-between items-center">
                 <span className="text-sm text-gray-500">Total</span>
                 <span className="text-lg font-bold text-gray-900">
-                  {stats.par_categorie_socio_pro.reduce((acc, cat) => acc + cat.nombre, 0)}
+                  {stats.par_categorie_socio_pro.reduce((acc, cat) => acc + safeNumber(cat.nombre), 0)}
                 </span>
               </div>
             )}
@@ -1151,10 +1276,10 @@ export const DashboardPage = () => {
               <tbody className="text-sm font-medium text-gray-700">
                 {sortedEmfData.length > 0 ? (
                   sortedEmfData.map((emf: EmfStats, index: number) => {
-                    const percentage = stats?.contrats_actifs
-                      ? ((emf.total / stats.contrats_actifs) * 100)
+                    const percentage = displayContratsActifs > 0
+                      ? safeNumber((emf.total / displayContratsActifs) * 100)
                       : 0;
-                    const moyenne = emf.total > 0 ? emf.montant_total / emf.total : 0;
+                    const moyenne = emf.total > 0 ? safeNumber(emf.montant_total / emf.total) : 0;
                     const emfSlug = getEmfSlug(emf.emf_id);
 
                     return (
@@ -1230,8 +1355,8 @@ export const DashboardPage = () => {
               <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center mx-auto mb-2 shadow-sm">
                 <CheckCircle2 className="h-4 w-4 text-green-600" />
               </div>
-              <p className="text-lg font-bold text-gray-900">{stats?.taux_reglement || 0}%</p>
-              <p className="text-[10px] text-gray-500 font-medium">Réglés</p>
+              <p className="text-lg font-bold text-gray-900">{displayTauxReglement.toFixed(1)}%</p>
+              <p className="text-[10px] text-gray-500 font-medium">Taux Réglés</p>
             </div>
             <div
               className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-3 text-center cursor-pointer hover:from-blue-100 hover:to-indigo-100 transition-all"
@@ -1316,6 +1441,19 @@ export const DashboardPage = () => {
           )}
         </div>
       </div>
+
+      {/* Modale d'import CSV */}
+      <ImportContratModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        exerciceId={exerciceData?.id}
+        onSuccess={(result) => {
+          // Rafraîchir les données après l'import
+          if (result.success) {
+            refetch();
+          }
+        }}
+      />
     </div>
   );
 };
