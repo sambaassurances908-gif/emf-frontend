@@ -1,13 +1,20 @@
-// src/features/contrats/bamboo/BambooContractCreateOfficial.tsx
+// src/features/contrats/arianefinance/ArianeFinanceContractCreateOfficial.tsx
 import React, { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Save, CheckCircle, AlertCircle, Mail, Phone, MapPin, Printer } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { useAuthStore } from '@/store/authStore'
-import { useCreateBambooContract } from '@/hooks/useBambooContracts'
+import { useCreateArianeFinanceContract } from '@/hooks/useArianeFinanceContracts'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { formatCurrency } from '@/lib/utils'
 import logoSamba from '@/assets/logo-samba.png'
+
+// --- Constantes ARIANE FINANCE ---
+const ARIANE_FINANCE_EMF_ID = 9
+const TAUX_DECES_IAD = 1.05 // 1.05%
+const MONTANT_MAX_PRET = 4000000 // 4 000 000 FCFA
+const PROTECTION_FORFAITAIRE = 250000 // 250 000 FCFA
+const PRIME_PROTECTION = 5000 // 5 000 FCFA
 
 // --- Form Input Component ---
 interface FormInputProps {
@@ -114,41 +121,49 @@ const Footer: React.FC = () => {
   )
 }
 
-export const BambooContractCreateOfficial = () => {
+// --- Catégories disponibles ---
+const categories = [
+  { key: 'commercants' as const, label: 'Commerçants' },
+  { key: 'salaries_public' as const, label: 'Salariés du public' },
+  { key: 'salaries_prive' as const, label: 'Salariés du privé' },
+  { key: 'retraites' as const, label: 'Retraités' },
+]
+
+export const ArianeFinanceContractCreateOfficial = () => {
   const navigate = useNavigate()
   const { user } = useAuthStore()
 
-  // ═══════════════════════════════════════════════════════════════════
-  // 🔒 VÉRIFICATION EMF - BAMBOO = emf_id 1
-  // ═══════════════════════════════════════════════════════════════════
+  // Vérification EMF
   const userEmfId = user?.emf_id
   const userEmfSigle = user?.emf?.sigle?.toUpperCase() || ''
-  const isBambooUser = userEmfId === 1 || userEmfSigle.includes('BAMBOO') || user?.role === 'admin'
-  const emfName = userEmfSigle || (userEmfId === 1 ? 'BAMBOO' : userEmfId === 2 ? 'COFIDEC' : userEmfId === 3 ? 'BCEG' : userEmfId === 4 ? 'EDG' : userEmfId === 5 ? 'SODEC' : 'inconnu')
-
-  // IMPORTANT: Toujours utiliser emf_id = 1 pour BAMBOO
-  const emfId = 1
+  const isArianeFinanceUser = userEmfId === ARIANE_FINANCE_EMF_ID || userEmfSigle.includes('ARIANE') || user?.role === 'admin'
+  const emfName = userEmfSigle || 'inconnu'
 
   const [formData, setFormData] = useState({
-    emf_id: emfId,
-    nom_prenom: '',
-    adresse_assure: '',
-    ville_assure: '',
-    telephone_assure: '',
-    email_assure: '',
-    numero_police: '',
-    categorie: '' as 'commercants' | 'salaries_public' | 'salaries_prive' | 'retraites' | 'autre' | '',
-    autre_categorie_precision: '',
+    emf_id: ARIANE_FINANCE_EMF_ID,
+    // Couverture
     montant_pret_assure: '',
-    duree_pret_mois: '',
+    duree_pret: '',
     date_effet: '',
     date_fin_echeance: '',
-    beneficiaire_prevoyance: '',
-    garantie_prevoyance_deces_iad: true,
+    // Assuré
+    nom: '',
+    prenom: '',
+    adresse: '',
+    ville: '',
+    telephone: '',
+    email: '',
+    // Catégorie
+    categorie: '' as 'commercants' | 'salaries_public' | 'salaries_prive' | 'retraites' | 'autre' | '',
+    autre_categorie_precision: '',
+    // Bénéficiaire protection forfaitaire
+    beneficiaire_nom: '',
+    beneficiaire_prenom: '',
+    beneficiaire_telephone: '',
+    // Garanties
+    garantie_protection_forfaitaire: true,
     garantie_deces_iad: true,
-    garantie_perte_emploi: false,
-    type_contrat_travail: '' as 'cdi' | 'cdd_plus_9_mois' | 'cdd_moins_9_mois' | 'non_applicable' | '',
-    agence: '',
+    // Signature
     lieu_signature: 'Libreville',
     date_signature: new Date().toISOString().split('T')[0]
   })
@@ -156,130 +171,66 @@ export const BambooContractCreateOfficial = () => {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [submitError, setSubmitError] = useState('')
 
-  // Validation des règles métier strictes - calcul direct
+  const { mutate: createContract, isPending, isSuccess } = useCreateArianeFinanceContract()
+
+  // Validation des règles métier
   const formErrors = useMemo(() => {
     const montant = parseInt(formData.montant_pret_assure) || 0
-    const duree = parseInt(formData.duree_pret_mois) || 0
-    const errs: { montant_pret_assure?: string, duree_pret_mois?: string } = {}
-
-    // Condition 2: Max 50.000.000 FCFA / 48 mois
-    if (montant > 50000000) errs.montant_pret_assure = "Max 50 000 000 FCFA"
-    if (duree > 48) errs.duree_pret_mois = "Max 48 mois"
-
+    const errs: { montant_pret_assure?: string } = {}
+    if (montant > MONTANT_MAX_PRET) errs.montant_pret_assure = `Max ${formatCurrency(MONTANT_MAX_PRET)}`
     return errs
-  }, [formData.montant_pret_assure, formData.duree_pret_mois])
+  }, [formData.montant_pret_assure])
 
-  // ═══════════════════════════════════════════════════════════════════
-  // 🔒 VALIDATION PROGRESSIVE - Activation des sections par étapes
-  // ═══════════════════════════════════════════════════════════════════
-
-  // Section 1: Couverture Prêt (toujours active)
-  const isSection1Complete = Boolean(
-    formData.montant_pret_assure &&
-    formData.duree_pret_mois &&
-    formData.date_effet &&
-    !formErrors.montant_pret_assure &&
-    !formErrors.duree_pret_mois
-  )
-
-  // Section 2: Assuré (active si Section 1 complète)
-  const isSection2Enabled = isSection1Complete
-  const isSection2Complete = Boolean(
-    formData.nom_prenom.trim() &&
-    formData.adresse_assure.trim() &&
-    formData.ville_assure.trim() &&
-    formData.telephone_assure.trim() &&
-    formData.categorie &&
-    formData.type_contrat_travail
-  )
-
-  // Section 3+ (active si Section 2 complète)
-  const isSection3Enabled = isSection2Complete
-  const isSection4Enabled = isSection2Complete
-  const isSection5Enabled = isSection2Complete
-
-  // Bouton de création: actif si tous les champs obligatoires sont remplis
-  const isFormComplete = isSection1Complete && isSection2Complete
-
-  const { mutate: createContract, isPending, isSuccess } = useCreateBambooContract()
-
-  // Calculer la date de fin automatiquement avec useMemo
+  // Calcul date fin automatique
   const calculatedDateFinEcheance = useMemo(() => {
-    if (formData.date_effet && formData.duree_pret_mois) {
+    if (formData.date_effet && formData.duree_pret) {
       const dateEffet = new Date(formData.date_effet)
-      const duree = parseInt(formData.duree_pret_mois) || 0
+      const duree = parseInt(formData.duree_pret) || 0
       if (!isNaN(dateEffet.getTime()) && duree > 0) {
         dateEffet.setMonth(dateEffet.getMonth() + duree)
         return dateEffet.toISOString().split('T')[0]
       }
     }
     return ''
-  }, [formData.date_effet, formData.duree_pret_mois])
+  }, [formData.date_effet, formData.duree_pret])
 
-  // Fonction pour gérer le changement de catégorie
-  const handleCategorieChange = (newCategorie: typeof formData.categorie) => {
-    const updates: Partial<typeof formData> = { categorie: newCategorie }
-    // Auto-selection Perte d'emploi pour Commerçants et Salariés du privé
-    if (['commercants', 'salaries_prive'].includes(newCategorie)) {
-      updates.garantie_perte_emploi = true
-    }
-    // Désactiver Perte d'emploi pour Salariés du public et Retraités
-    if (['salaries_public', 'retraites'].includes(newCategorie)) {
-      updates.garantie_perte_emploi = false
-    }
-    setFormData(prev => ({ ...prev, ...updates }))
-  }
-
-  // Vérifier si la garantie Perte d'emploi est disponible pour la catégorie sélectionnée
-  const isPerteEmploiAvailable = ['commercants', 'salaries_prive', ''].includes(formData.categorie)
-
-  // Calcul cotisation BAMBOO
-  // Prévoyance: 10 000 FCFA (prime unique)
-  // Décès/IAD: 1,00% du montant du prêt
-  // Perte d'emploi: 1,50% du montant du prêt (optionnel)
+  // Calcul prime totale
   const montant = parseInt(formData.montant_pret_assure) || 0
-  const duree = parseInt(formData.duree_pret_mois) || 0
-  const cotisationPrevoyance = formData.garantie_prevoyance_deces_iad ? 10000 : 0
-  const tauxDeces = 0.01 // 1,00%
-  const tauxPerteEmploi = formData.garantie_perte_emploi ? 0.015 : 0 // 1,50%
-  const cotisationDeces = montant * tauxDeces
-  const cotisationPerteEmploi = montant * tauxPerteEmploi
-  const cotisationTotale = cotisationPrevoyance + cotisationDeces + cotisationPerteEmploi
+  const primeDecesIAD = Math.round(montant * (TAUX_DECES_IAD / 100))
+  const primeTotale = (formData.garantie_protection_forfaitaire ? PRIME_PROTECTION : 0) + primeDecesIAD
 
-  // Validation des règles métier BAMBOO
-  const montantMaxPret = 50000000 // 50.000.000 FCFA
-  const dureeMaxPret = 48 // 48 mois
-  const montantMaxPerteEmploi = 50000000 // 50.000.000 FCFA
+  // Validation progressive
+  const isSection1Complete = Boolean(
+    formData.montant_pret_assure &&
+    formData.duree_pret &&
+    formData.date_effet &&
+    !formErrors.montant_pret_assure
+  )
 
+  const isSection2Enabled = isSection1Complete
+  const isSection2Complete = Boolean(
+    formData.nom.trim() &&
+    formData.prenom.trim() &&
+    formData.telephone.trim() &&
+    formData.categorie
+  )
+
+  const isSection3Enabled = isSection2Complete
+  const isSection4Enabled = isSection2Complete
+  const isSection5Enabled = isSection2Complete
+
+  const isFormComplete = isSection1Complete && isSection2Complete
+
+  // Validation règles métier
   const validateBusinessRules = () => {
     const warnings: string[] = []
-
-    // Montant max prêt
-    if (montant > montantMaxPret) {
-      warnings.push(`Montant prêt (${formatCurrency(montant)}) dépasse le max: ${formatCurrency(montantMaxPret)}`)
+    if (montant > MONTANT_MAX_PRET) {
+      warnings.push(`Montant prêt (${formatCurrency(montant)}) dépasse le max: ${formatCurrency(MONTANT_MAX_PRET)}`)
     }
-
-    // Durée max
-    if (duree > dureeMaxPret) {
-      warnings.push(`Durée (${duree} mois) dépasse le max: ${dureeMaxPret} mois`)
-    }
-
-    // Perte d'emploi: montant max
-    if (formData.garantie_perte_emploi && montant > montantMaxPerteEmploi) {
-      warnings.push(`Perte d'emploi: montant (${formatCurrency(montant)}) dépasse max: ${formatCurrency(montantMaxPerteEmploi)}`)
-    }
-
     return warnings
   }
 
   const businessWarnings = validateBusinessRules()
-
-  const categories = [
-    { key: 'commercants' as const, label: 'Commerçants' },
-    { key: 'salaries_public' as const, label: 'Salariés du public' },
-    { key: 'salaries_prive' as const, label: 'Salariés du privé' },
-    { key: 'retraites' as const, label: 'Retraités' },
-  ]
 
   const getCategorieLabel = () => {
     const cat = categories.find(c => c.key === formData.categorie)
@@ -292,10 +243,8 @@ export const BambooContractCreateOfficial = () => {
 
   const categorieLabel = getCategorieLabel()
 
-  // ═══════════════════════════════════════════════════════════════════
-  // 🔒 VÉRIFICATION D'ACCÈS - Après tous les hooks (Rules of Hooks)
-  // ═══════════════════════════════════════════════════════════════════
-  if (!isBambooUser) {
+  // Vérification accès
+  if (!isArianeFinanceUser) {
     return (
       <div className="min-h-screen bg-gray-100 py-8 px-4">
         <div className="max-w-[210mm] mx-auto">
@@ -305,12 +254,9 @@ export const BambooContractCreateOfficial = () => {
             <p className="text-red-600 mb-4">
               Vous êtes connecté avec un compte <strong>{emfName}</strong>.
               <br />
-              Ce formulaire est réservé aux utilisateurs BAMBOO.
+              Ce formulaire est réservé aux utilisateurs ARIANE FINANCE.
             </p>
-            <Button
-              onClick={() => navigate(-1)}
-              className="bg-red-600 hover:bg-red-700 text-white"
-            >
+            <Button onClick={() => navigate(-1)} className="bg-red-600 hover:bg-red-700 text-white">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Retour
             </Button>
@@ -325,129 +271,81 @@ export const BambooContractCreateOfficial = () => {
     setErrors({})
     setSubmitError('')
 
-    try {
-      console.log('═══════════════════════════════════════════════════════════════')
-      console.log('📋 BAMBOO - Validation des champs obligatoires...')
+    const newErrors: Record<string, string> = {}
 
-      const newErrors: Record<string, string> = {}
+    if (!formData.nom.trim()) newErrors.nom = 'Obligatoire'
+    if (!formData.prenom.trim()) newErrors.prenom = 'Obligatoire'
+    if (!formData.telephone.trim()) newErrors.telephone = 'Obligatoire'
+    if (!formData.montant_pret_assure) newErrors.montant_pret_assure = 'Obligatoire'
+    if (!formData.duree_pret) newErrors.duree_pret = 'Obligatoire'
+    if (!formData.date_effet) newErrors.date_effet = 'Obligatoire'
+    if (!formData.categorie) newErrors.categorie = 'Sélectionnez une catégorie'
 
-      if (!formData.nom_prenom.trim()) {
-        newErrors.nom_prenom = 'Le nom et prénom sont obligatoires'
-      }
-      if (!formData.adresse_assure.trim()) {
-        newErrors.adresse_assure = 'L\'adresse est obligatoire'
-      }
-      if (!formData.ville_assure.trim()) {
-        newErrors.ville_assure = 'La ville est obligatoire'
-      }
-      if (!formData.telephone_assure.trim()) {
-        newErrors.telephone_assure = 'Le téléphone est obligatoire'
-      }
-      if (!formData.montant_pret_assure) {
-        newErrors.montant_pret_assure = 'Le montant du prêt est obligatoire'
-      }
-      if (!formData.duree_pret_mois) {
-        newErrors.duree_pret_mois = 'La durée du prêt est obligatoire'
-      }
-      if (!formData.date_effet) {
-        newErrors.date_effet = 'La date d\'effet est obligatoire'
-      }
-      if (!formData.categorie) {
-        newErrors.categorie = 'Veuillez sélectionner une catégorie'
-      }
-      if (!formData.type_contrat_travail) {
-        newErrors.type_contrat_travail = 'Veuillez sélectionner un type de contrat de travail'
-      }
-
-      if (Object.keys(newErrors).length > 0) {
-        console.error('❌ VALIDATION ÉCHOUÉE - Champs manquants:', Object.keys(newErrors))
-        setErrors(newErrors)
-        setSubmitError(`⚠️ ${Object.keys(newErrors).length} champ(s) obligatoire(s) manquant(s)`)
-        return
-      }
-
-      console.log('✅ Tous les champs obligatoires sont remplis')
-
-      if (businessWarnings.length > 0) {
-        console.warn('⚠️ Avertissements règles métier:', businessWarnings)
-        const confirmContinue = window.confirm(
-          `⚠️ Attention: Le contrat ne respecte pas certaines conditions:\n\n${businessWarnings.join('\n')}\n\nContinuer quand même ?`
-        )
-        if (!confirmContinue) {
-          return
-        }
-      }
-
-      const payload = {
-        emf_id: Number(formData.emf_id),
-        nom_prenom: formData.nom_prenom.trim(),
-        adresse_assure: formData.adresse_assure.trim(),
-        ville_assure: formData.ville_assure.trim(),
-        telephone_assure: formData.telephone_assure.trim(),
-        email_assure: formData.email_assure?.trim() || undefined,
-        numero_police: formData.numero_police?.trim() || undefined,
-        categorie: formData.categorie as 'commercants' | 'salaries_public' | 'salaries_prive' | 'retraites' | 'autre',
-        autre_categorie_precision: formData.autre_categorie_precision?.trim() || undefined,
-        montant_pret_assure: parseInt(formData.montant_pret_assure),
-        duree_pret_mois: parseInt(formData.duree_pret_mois),
-        date_effet: formData.date_effet,
-        beneficiaire_prevoyance: formData.beneficiaire_prevoyance?.trim() || undefined,
-        garantie_prevoyance: formData.garantie_prevoyance_deces_iad ? 1 : 0,
-        garantie_prevoyance_deces_iad: formData.garantie_prevoyance_deces_iad ? 1 : 0,
-        garantie_deces_iad: formData.garantie_deces_iad ? 1 : 0,
-        garantie_perte_emploi: formData.garantie_perte_emploi ? 1 : 0,
-        type_contrat_travail: formData.type_contrat_travail,
-        agence: formData.agence?.trim() || undefined,
-        statut: 'actif',
-      }
-
-      console.log('📤 Payload BAMBOO:', JSON.stringify(payload, null, 2))
-
-      createContract(payload, {
-        onSuccess: (data) => {
-          const contractId = 'id' in data ? data.id : (data as { data?: { id?: number } }).data?.id
-          console.log('✅ Contrat BAMBOO créé avec succès! ID:', contractId)
-          navigate(`/contrats/bamboo/${contractId}`, {
-            state: { success: 'Contrat créé avec succès !' }
-          })
-        },
-        onError: (error: { response?: { status?: number; data?: { errors?: Record<string, string | string[]>; message?: string }; message?: string }; message?: string }) => {
-          console.error('❌ Erreur création BAMBOO:', error.response?.data?.message || error.message)
-          console.error('❌ Détails erreur:', JSON.stringify(error.response?.data, null, 2))
-          if (error.response?.status === 422) {
-            const validationErrors = error.response.data?.errors || {}
-            console.error('❌ Erreurs de validation backend:', validationErrors)
-            const newErrors: Record<string, string> = {}
-            Object.entries(validationErrors).forEach(([key, messages]) => {
-              newErrors[key] = Array.isArray(messages) ? messages[0] : messages as string
-            })
-            setErrors(newErrors)
-            const errorMessages = Object.entries(validationErrors)
-              .map(([field, msgs]) => `• ${field}: ${Array.isArray(msgs) ? msgs[0] : msgs}`)
-              .join('\n')
-            setSubmitError(`❌ Erreurs de validation:\n${errorMessages || error.response?.data?.message || 'Erreur inconnue'}`)
-          } else {
-            setSubmitError(`❌ Erreur: ${error.response?.data?.message || error.message}`)
-          }
-        }
-      })
-
-    } catch (error) {
-      console.error('💥 ERREUR INATTENDUE:', error)
-      const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue'
-      setSubmitError(`💥 Erreur inattendue: ${errorMessage}`)
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors)
+      setSubmitError(`⚠️ ${Object.keys(newErrors).length} champ(s) obligatoire(s) manquant(s)`)
+      return
     }
+
+    if (businessWarnings.length > 0) {
+      const confirmContinue = window.confirm(
+        `⚠️ Attention:\n\n${businessWarnings.join('\n')}\n\nContinuer quand même ?`
+      )
+      if (!confirmContinue) return
+    }
+
+    const payload = {
+      emf_id: ARIANE_FINANCE_EMF_ID,
+      montant_pret_assure: parseInt(formData.montant_pret_assure),
+      duree_pret: parseInt(formData.duree_pret),
+      date_effet: formData.date_effet,
+      date_fin_echeance: calculatedDateFinEcheance || undefined,
+      nom: formData.nom.trim(),
+      prenom: formData.prenom.trim(),
+      adresse: formData.adresse?.trim() || undefined,
+      ville: formData.ville?.trim() || undefined,
+      telephone: formData.telephone.trim(),
+      email: formData.email?.trim() || undefined,
+      categorie: formData.categorie,
+      beneficiaire_nom: formData.beneficiaire_nom?.trim() || undefined,
+      beneficiaire_prenom: formData.beneficiaire_prenom?.trim() || undefined,
+      beneficiaire_telephone: formData.beneficiaire_telephone?.trim() || undefined,
+      taux_deces_iad: TAUX_DECES_IAD,
+      statut: 'actif',
+    }
+
+    createContract(payload, {
+      onSuccess: (data) => {
+        const contractId = 'id' in data ? data.id : (data as { data?: { id?: number } }).data?.id
+        navigate(`/contrats/ariane-finance/${contractId}`, {
+          state: { success: 'Contrat créé avec succès !' }
+        })
+      },
+      onError: (error: { response?: { status?: number; data?: { errors?: Record<string, string | string[]>; message?: string } }; message?: string }) => {
+        if (error.response?.status === 422) {
+          const validationErrors = error.response.data?.errors || {}
+          const newErrors: Record<string, string> = {}
+          Object.entries(validationErrors).forEach(([key, messages]) => {
+            newErrors[key] = Array.isArray(messages) ? messages[0] : messages as string
+          })
+          setErrors(newErrors)
+          setSubmitError(`❌ Erreurs de validation`)
+        } else {
+          setSubmitError(`❌ Erreur: ${error.response?.data?.message || error.message}`)
+        }
+      }
+    })
   }
 
   return (
     <div className="min-h-screen bg-gray-100 py-4 px-4">
       {/* Toolbar */}
       <div className="max-w-[210mm] mx-auto mb-4 flex items-center justify-between bg-white rounded-lg shadow p-3">
-        <Button variant="ghost" onClick={() => navigate('/contrats/bamboo')} className="hover:bg-gray-100">
+        <Button variant="ghost" onClick={() => navigate('/contrats/ariane-finance')} className="hover:bg-gray-100">
           <ArrowLeft className="h-5 w-5 mr-1" />
           Retour à la liste
         </Button>
-        <h1 className="text-lg font-bold text-[#F48232]">Nouveau Contrat BAMBOO-EMF</h1>
+        <h1 className="text-lg font-bold text-[#F48232]">Nouveau Contrat ARIANE FINANCE</h1>
         <div className="flex gap-2">
           <Button
             variant="outline"
@@ -496,7 +394,7 @@ export const BambooContractCreateOfficial = () => {
         </span>
       </div>
 
-      {/* 🔒 Indicateur de progression */}
+      {/* Indicateur de progression */}
       <div className="max-w-[210mm] mx-auto mb-4 bg-white rounded-lg shadow p-4">
         <div className="flex items-center justify-between text-sm">
           <span className="font-medium text-gray-700">Progression du formulaire :</span>
@@ -522,7 +420,7 @@ export const BambooContractCreateOfficial = () => {
         )}
         {isSection1Complete && !isSection2Complete && (
           <p className="text-xs text-orange-600 mt-2">
-            ⚠️ Remplissez les informations de l'assuré (Nom, Adresse, Ville, Téléphone, Catégorie) pour activer le bouton de création.
+            ⚠️ Remplissez les informations de l'assuré (Nom, Prénom, Téléphone, Catégorie) pour activer le bouton de création.
           </p>
         )}
       </div>
@@ -537,11 +435,11 @@ export const BambooContractCreateOfficial = () => {
               <img src={logoSamba} alt="SAMB'A Assurances" className="h-[85px] w-auto" />
             </div>
             <h1 className="text-[#F48232] text-base font-bold uppercase text-center leading-none mt-1">
-              Contrat Prévoyance & Crédits BAMBOO-EMF
+              Contrat Décès Emprunteur : ARIANE FINANCE
             </h1>
             <p className="text-[8px] text-gray-500">Contrat régi par les dispositions du Code des assurances CIMA</p>
             <div className="text-[9px] font-bold text-gray-700 leading-tight">
-              Visas DNA N°005/24 et N°008/24 - Convention N° : 511/111.701/0325
+              Convention N° : 504.111/0724
             </div>
             <h2 className="text-[#F48232] text-sm font-bold uppercase mt-1">
               Conditions Particulières
@@ -574,13 +472,13 @@ export const BambooContractCreateOfficial = () => {
                   error={errors.montant_pret_assure || formErrors.montant_pret_assure}
                 />
                 <FormInput
-                  label="Durée du prêt :"
-                  value={formData.duree_pret_mois}
-                  onChange={(v) => setFormData({ ...formData, duree_pret_mois: v })}
+                  label="Durée du prêt (mois) :"
+                  value={formData.duree_pret}
+                  onChange={(v) => setFormData({ ...formData, duree_pret: v })}
                   type="number"
                   placeholder="Ex: 12"
                   required
-                  error={errors.duree_pret_mois || formErrors.duree_pret_mois}
+                  error={errors.duree_pret}
                 />
                 <FormInput
                   label="Date d'effet :"
@@ -605,33 +503,40 @@ export const BambooContractCreateOfficial = () => {
                 {!isSection2Enabled && <span className="text-[10px] text-orange-600 mt-1">🔒 Remplir Prêt</span>}
               </div>
               <div className="flex-grow p-1.5 space-y-1">
-                <FormInput
-                  label="Nom & Prénom :"
-                  value={formData.nom_prenom}
-                  onChange={(v) => setFormData({ ...formData, nom_prenom: v })}
-                  placeholder="Ex: Jean NGUEMA"
-                  required
-                  error={errors.nom_prenom}
-                  disabled={!isSection2Enabled}
-                />
+                <div className="flex gap-2">
+                  <FormInput
+                    label="Nom :"
+                    value={formData.nom}
+                    onChange={(v) => setFormData({ ...formData, nom: v })}
+                    placeholder="Ex: NGUEMA"
+                    required
+                    error={errors.nom}
+                    disabled={!isSection2Enabled}
+                  />
+                  <FormInput
+                    label="Prénom :"
+                    value={formData.prenom}
+                    onChange={(v) => setFormData({ ...formData, prenom: v })}
+                    placeholder="Ex: Jean"
+                    required
+                    error={errors.prenom}
+                    disabled={!isSection2Enabled}
+                  />
+                </div>
                 <div className="flex gap-2">
                   <FormInput
                     label="Adresse :"
-                    value={formData.adresse_assure}
-                    onChange={(v) => setFormData({ ...formData, adresse_assure: v })}
+                    value={formData.adresse}
+                    onChange={(v) => setFormData({ ...formData, adresse: v })}
                     placeholder="Ex: Quartier Louis"
-                    required
-                    error={errors.adresse_assure}
                     className="flex-grow-[2]"
                     disabled={!isSection2Enabled}
                   />
                   <FormInput
                     label="Ville :"
-                    value={formData.ville_assure}
-                    onChange={(v) => setFormData({ ...formData, ville_assure: v })}
+                    value={formData.ville}
+                    onChange={(v) => setFormData({ ...formData, ville: v })}
                     placeholder="Ex: Libreville"
-                    required
-                    error={errors.ville_assure}
                     className="flex-grow-[1]"
                     disabled={!isSection2Enabled}
                   />
@@ -639,24 +544,25 @@ export const BambooContractCreateOfficial = () => {
                 <div className="flex gap-2">
                   <FormInput
                     label="Téléphone :"
-                    value={formData.telephone_assure}
-                    onChange={(v) => setFormData({ ...formData, telephone_assure: v })}
+                    value={formData.telephone}
+                    onChange={(v) => setFormData({ ...formData, telephone: v })}
                     placeholder="Ex: 06 12 34 56"
                     required
-                    error={errors.telephone_assure}
+                    error={errors.telephone}
                     className="flex-grow-[1]"
                     disabled={!isSection2Enabled}
                   />
                   <FormInput
-                    label="Email:"
-                    value={formData.email_assure}
-                    onChange={(v) => setFormData({ ...formData, email_assure: v })}
+                    label="Email :"
+                    value={formData.email}
+                    onChange={(v) => setFormData({ ...formData, email: v })}
                     placeholder="Ex: email@example.com"
                     type="email"
                     className="flex-grow-[2]"
                     disabled={!isSection2Enabled}
                   />
                 </div>
+                {/* Catégorie */}
                 <div className="flex flex-wrap items-center mt-1 gap-x-4 gap-y-1">
                   <span className="mr-1 text-xs">Catégorie{errors.categorie && <span className="text-red-500">*</span>} :</span>
                   {categories.map(cat => (
@@ -664,14 +570,14 @@ export const BambooContractCreateOfficial = () => {
                       key={cat.key}
                       label={cat.label}
                       checked={formData.categorie === cat.key}
-                      onChange={() => handleCategorieChange(cat.key)}
+                      onChange={() => setFormData({ ...formData, categorie: cat.key })}
                       disabled={!isSection2Enabled}
                     />
                   ))}
                   <Checkbox
                     label="Autre"
                     checked={formData.categorie === 'autre'}
-                    onChange={() => handleCategorieChange('autre')}
+                    onChange={() => setFormData({ ...formData, categorie: 'autre' })}
                     disabled={!isSection2Enabled}
                   />
                   <div className="flex items-center">
@@ -682,7 +588,6 @@ export const BambooContractCreateOfficial = () => {
                       onChange={(e) => setFormData({ ...formData, autre_categorie_precision: e.target.value })}
                       className="border-b border-gray-400 w-24 text-xs font-semibold bg-transparent focus:outline-none focus:border-[#F48232]"
                       disabled={!isSection2Enabled || formData.categorie !== 'autre'}
-                      aria-label="Préciser autre catégorie"
                       placeholder="Préciser..."
                     />
                   </div>
@@ -693,87 +598,76 @@ export const BambooContractCreateOfficial = () => {
                     → Catégorie sélectionnée : {categorieLabel}
                   </div>
                 )}
-                {/* Type de contrat de travail */}
-                <div className="flex flex-wrap items-center mt-1 gap-x-4 gap-y-1">
-                  <span className="mr-1 text-xs">Type de contrat de travail{errors.type_contrat_travail && <span className="text-red-500">*</span>} :</span>
-                  <Checkbox
-                    label="CDI"
-                    checked={formData.type_contrat_travail === 'cdi'}
-                    onChange={() => setFormData({ ...formData, type_contrat_travail: 'cdi' })}
-                    disabled={!isSection2Enabled}
-                  />
-                  <Checkbox
-                    label="CDD > 9 mois"
-                    checked={formData.type_contrat_travail === 'cdd_plus_9_mois'}
-                    onChange={() => setFormData({ ...formData, type_contrat_travail: 'cdd_plus_9_mois' })}
-                    disabled={!isSection2Enabled}
-                  />
-                  <Checkbox
-                    label="CDD < 9 mois"
-                    checked={formData.type_contrat_travail === 'cdd_moins_9_mois'}
-                    onChange={() => setFormData({ ...formData, type_contrat_travail: 'cdd_moins_9_mois' })}
-                    disabled={!isSection2Enabled}
-                  />
-                  <Checkbox
-                    label="Non applicable"
-                    checked={formData.type_contrat_travail === 'non_applicable'}
-                    onChange={() => setFormData({ ...formData, type_contrat_travail: 'non_applicable' })}
-                    disabled={!isSection2Enabled}
-                  />
+              </div>
+            </div>
+
+            {/* Section: Bénéficiaire du prêt (ARIANE FINANCE) */}
+            <div className={`flex border-b border-[#F48232] ${!isSection3Enabled ? 'opacity-50 pointer-events-none' : ''}`}>
+              <div className="w-28 flex-shrink-0 p-1.5 bg-orange-50 italic border-r border-[#F48232] flex flex-col justify-center text-xs">
+                Bénéficiaire du prêt
+                {!isSection3Enabled && <span className="text-[10px] text-orange-600 mt-1">🔒 Remplir Assuré</span>}
+              </div>
+              <div className="flex-grow p-1.5 space-y-1">
+                <div className="flex items-end">
+                  <span className="mr-1 whitespace-nowrap text-xs text-gray-800">Raison sociale :</span>
+                  <span className="font-bold text-xs">ARIANE FINANCE</span>
                 </div>
-                {/* Bénéficiaire Prévoyance */}
-                <div className="mt-2 pt-2 border-t border-dashed border-gray-300">
-                  <FormInput
-                    label="Bénéficiaire de la garantie Prévoyance :"
-                    value={formData.beneficiaire_prevoyance}
-                    onChange={(v) => setFormData({ ...formData, beneficiaire_prevoyance: v })}
-                    placeholder="Ex: Marie NGUEMA (épouse)"
-                    disabled={!isSection2Enabled}
-                  />
+                <div className="flex gap-4">
+                  <div className="flex items-end flex-grow">
+                    <span className="mr-1 whitespace-nowrap text-xs">RCCM :</span>
+                    <span className="flex-grow border-b border-gray-300"></span>
+                  </div>
+                  <div className="flex items-end flex-grow">
+                    <span className="mr-1 whitespace-nowrap text-xs">Adresse :</span>
+                    <span className="flex-grow border-b border-gray-300"></span>
+                  </div>
+                </div>
+                <div className="flex gap-4">
+                  <div className="flex items-end flex-grow">
+                    <span className="mr-1 text-xs">Ville :</span>
+                    <span className="flex-grow border-b border-gray-300"></span>
+                  </div>
+                  <div className="flex items-end flex-grow">
+                    <span className="mr-1 text-xs">Téléphone :</span>
+                    <span className="flex-grow border-b border-gray-300"></span>
+                  </div>
+                  <div className="flex items-end flex-grow">
+                    <span className="mr-1 text-xs">Email :</span>
+                    <span className="flex-grow border-b border-gray-300"></span>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Section: Souscripteur / EMF */}
+            {/* Section: Bénéficiaire Protection Forfaitaire */}
             <div className={`flex border-b border-[#F48232] ${!isSection3Enabled ? 'opacity-50 pointer-events-none' : ''}`}>
-              <div className="w-28 flex-shrink-0 p-1.5 bg-orange-50 italic border-r border-[#F48232] flex flex-col justify-center text-xs">
-                Souscripteur / EMF
-                {!isSection3Enabled && <span className="text-[10px] text-orange-600 mt-1">🔒 Remplir Assuré</span>}
+              <div className="w-28 flex-shrink-0 p-1.5 bg-orange-50 italic border-r border-[#F48232] flex flex-col justify-center text-xs leading-tight">
+                Bénéficiaire Protection Forfaitaire
+                {!isSection3Enabled && <span className="text-[10px] text-orange-600 mt-1">🔒</span>}
               </div>
               <div className="flex-grow p-1.5 space-y-1">
-                {/* Ligne 1: Raison sociale + Agence */}
-                <div className="flex gap-4">
-                  <div className="flex items-end">
-                    <span className="mr-1 whitespace-nowrap text-[11px] text-gray-800">Raison sociale :</span>
-                    <span className="border-b-2 border-gray-400 px-2 py-0.5 font-bold text-[11px] min-w-[120px]">BAMBOO-EMF</span>
-                  </div>
+                <div className="flex gap-2">
                   <FormInput
-                    label="Agence :"
-                    value={formData.agence}
-                    onChange={(v) => setFormData({ ...formData, agence: v })}
-                    placeholder="Ex: Agence Centre"
+                    label="Nom :"
+                    value={formData.beneficiaire_nom}
+                    onChange={(v) => setFormData({ ...formData, beneficiaire_nom: v })}
+                    placeholder="Nom du bénéficiaire"
                     disabled={!isSection3Enabled}
                   />
-                </div>
-                {/* Ligne 2: Adresse */}
-                <div className="flex items-end">
-                  <span className="mr-1 whitespace-nowrap text-[11px] text-gray-800">Adresse :</span>
-                  <span className="flex-grow border-b-2 border-gray-400 px-2 py-0.5 font-bold text-[11px]">B.P. 16.100, Boulevard Triomphal</span>
-                </div>
-                {/* Ligne 3: Ville + Téléphone + Email */}
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="flex items-end">
-                    <span className="mr-1 whitespace-nowrap text-[11px] text-gray-800">Ville :</span>
-                    <span className="flex-grow border-b-2 border-gray-400 px-1 py-0.5 font-bold text-[11px]">Libreville – Gabon</span>
-                  </div>
-                  <div className="flex items-end">
-                    <span className="mr-1 whitespace-nowrap text-[11px] text-gray-800">Téléphone :</span>
-                    <span className="flex-grow border-b-2 border-gray-400 px-1 py-0.5 font-bold text-[11px]">60 41 21 21 / 77 41 21 21</span>
-                  </div>
-                  <div className="flex items-end">
-                    <span className="mr-1 whitespace-nowrap text-[11px] text-gray-800">Email :</span>
-                    <span className="flex-grow border-b-2 border-gray-400 px-1 py-0.5 font-bold text-[11px]">service.client@bamboo-emf.com</span>
-                  </div>
+                  <FormInput
+                    label="Prénom :"
+                    value={formData.beneficiaire_prenom}
+                    onChange={(v) => setFormData({ ...formData, beneficiaire_prenom: v })}
+                    placeholder="Prénom du bénéficiaire"
+                    disabled={!isSection3Enabled}
+                  />
+                  <FormInput
+                    label="Téléphone :"
+                    value={formData.beneficiaire_telephone}
+                    onChange={(v) => setFormData({ ...formData, beneficiaire_telephone: v })}
+                    placeholder="Téléphone"
+                    disabled={!isSection3Enabled}
+                  />
                 </div>
               </div>
             </div>
@@ -796,29 +690,28 @@ export const BambooContractCreateOfficial = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {/* Prévoyance Décès - IAD */}
-                    <tr className={`border-b border-[#F48232] ${formData.garantie_prevoyance_deces_iad ? 'bg-orange-50' : ''}`}>
-                      <td className="p-1 text-left pl-2 font-medium bg-gray-100">Prévoyance Décès - IAD</td>
+                    {/* Protection forfaitaire Prévoyance */}
+                    <tr className={`border-b border-[#F48232] ${formData.garantie_protection_forfaitaire ? 'bg-orange-50' : ''}`}>
+                      <td className="p-1 text-left pl-2 font-medium bg-gray-100">Protection forfaitaire Prévoyance¹ Décès - IAD²</td>
                       <td className="border-l border-r border-[#F48232] p-1 text-[#F48232]">Toute catégorie</td>
                       <td className="border-r border-[#F48232] p-1">
                         <div className="flex justify-center">
                           <label className="cursor-pointer">
                             <input
                               type="checkbox"
-                              checked={formData.garantie_prevoyance_deces_iad}
-                              onChange={(e) => setFormData({ ...formData, garantie_prevoyance_deces_iad: e.target.checked })}
+                              checked={formData.garantie_protection_forfaitaire}
+                              onChange={(e) => setFormData({ ...formData, garantie_protection_forfaitaire: e.target.checked })}
                               className="sr-only"
-                              aria-label="Garantie Prévoyance Décès IAD"
                             />
-                            <div className={`w-6 h-4 border border-black ${formData.garantie_prevoyance_deces_iad ? 'bg-black' : 'bg-white hover:bg-gray-100'}`}></div>
+                            <div className={`w-6 h-4 border border-black ${formData.garantie_protection_forfaitaire ? 'bg-black' : 'bg-white hover:bg-gray-100'}`}></div>
                           </label>
                         </div>
                       </td>
                       <td className="border-r border-[#F48232] p-1 bg-gray-200 text-gray-500">N/A</td>
-                      <td className="p-1 text-[#F48232] font-bold">10 000 FCFA</td>
+                      <td className="p-1 text-[#F48232] font-bold">{formatCurrency(PRIME_PROTECTION).replace(' FCFA', '')} FCFA</td>
                     </tr>
                     {/* Décès – IAD */}
-                    <tr className={`border-b border-[#F48232] ${formData.garantie_deces_iad ? 'bg-orange-50' : ''}`}>
+                    <tr className={`${formData.garantie_deces_iad ? 'bg-orange-50' : ''}`}>
                       <td className="p-1 text-left pl-2 font-medium bg-gray-100">Décès – Invalidité Absolue et Définitive (IAD)</td>
                       <td className="border-l border-r border-[#F48232] p-1 text-[#F48232]">Toute catégorie</td>
                       <td className="border-r border-[#F48232] p-1">
@@ -829,40 +722,12 @@ export const BambooContractCreateOfficial = () => {
                               checked={formData.garantie_deces_iad}
                               onChange={(e) => setFormData({ ...formData, garantie_deces_iad: e.target.checked })}
                               className="sr-only"
-                              aria-label="Garantie Décès IAD"
                             />
                             <div className={`w-6 h-4 border border-black ${formData.garantie_deces_iad ? 'bg-black' : 'bg-white hover:bg-gray-100'}`}></div>
                           </label>
                         </div>
                       </td>
-                      <td className="border-r border-[#F48232] p-1 text-[#F48232] font-bold">1,00%</td>
-                      <td className="p-1 bg-gray-200 text-gray-500">N/A</td>
-                    </tr>
-                    {/* Perte d'emploi */}
-                    <tr className={`${formData.garantie_perte_emploi ? 'bg-orange-50' : ''} ${!isPerteEmploiAvailable ? 'opacity-50' : ''}`}>
-                      <td className="p-1 text-left pl-2 font-medium bg-gray-100">
-                        Perte d'emploi ou d'activités (garantie optionnelle)
-                        {!isPerteEmploiAvailable && formData.categorie && (
-                          <span className="block text-[8px] text-red-500 font-normal">Non disponible pour cette catégorie</span>
-                        )}
-                      </td>
-                      <td className="border-l border-r border-[#F48232] p-1 text-[#F48232] leading-tight">Salariés du Privé<br />& Commerçants</td>
-                      <td className="border-r border-[#F48232] p-1">
-                        <div className="flex justify-center">
-                          <label className={isPerteEmploiAvailable ? 'cursor-pointer' : 'cursor-not-allowed'}>
-                            <input
-                              type="checkbox"
-                              checked={formData.garantie_perte_emploi}
-                              onChange={(e) => isPerteEmploiAvailable && setFormData({ ...formData, garantie_perte_emploi: e.target.checked })}
-                              disabled={!isPerteEmploiAvailable}
-                              className="sr-only"
-                              aria-label="Garantie Perte d'emploi"
-                            />
-                            <div className={`w-6 h-4 border border-black ${formData.garantie_perte_emploi ? 'bg-black' : isPerteEmploiAvailable ? 'bg-white hover:bg-gray-100' : 'bg-gray-300'}`}></div>
-                          </label>
-                        </div>
-                      </td>
-                      <td className="border-r border-[#F48232] p-1 text-[#F48232] font-bold">1,50%</td>
+                      <td className="border-r border-[#F48232] p-1 text-[#F48232] font-bold">{TAUX_DECES_IAD}%</td>
                       <td className="p-1 bg-gray-200 text-gray-500">N/A</td>
                     </tr>
                   </tbody>
@@ -880,9 +745,9 @@ export const BambooContractCreateOfficial = () => {
                 <div className="font-bold flex items-end">
                   <span className="text-xs">Cotisation totale :</span>
                   <span className="flex-grow mx-2 border-b-2 border-black text-center font-extrabold text-[#F48232] text-base">
-                    {cotisationTotale > 0 ? formatCurrency(cotisationTotale) : '___________'}
+                    {primeTotale > 0 ? formatCurrency(primeTotale) : '___________'}
                   </span>
-                  <span className="text-[10px]">FCFA TTC (Montant prêt x taux) + 10.000 FCFA</span>
+                  <span className="text-[10px]">FCFA TTC</span>
                 </div>
               </div>
             </div>
@@ -890,9 +755,8 @@ export const BambooContractCreateOfficial = () => {
 
           {/* Footnotes */}
           <div className="mt-2 space-y-0.5 text-[9px] text-black font-bold">
-            <p>(1) La Prévoyance est d'un montant maximal de 250.000 FCFA et pour une durée égale à la durée du prêt accordé à l'Assuré.</p>
-            <p>(2) Le montant maximal du prêt couvert est de FCFA 50.000.000 pour une durée de 48 mois.</p>
-            <p>(3) La durée maximale d'indemnisation pour la garantie Perte d'emploi ou d'Activités est de 06 mois pour un montant maximal de couverture de FCFA 50.000.000.</p>
+            <p>(1) La protection forfaitaire est d'un montant de {formatCurrency(PROTECTION_FORFAITAIRE)} en cas de décès ou d'invalidité absolue et définitive.</p>
+            <p>(2) Le montant maximal du prêt couvert est de {formatCurrency(MONTANT_MAX_PRET)}.</p>
           </div>
 
           {/* Signatures */}
@@ -903,7 +767,6 @@ export const BambooContractCreateOfficial = () => {
                 value={formData.lieu_signature}
                 onChange={(e) => setFormData({ ...formData, lieu_signature: e.target.value })}
                 className="border-b border-black px-2 mx-1 font-semibold bg-transparent focus:outline-none focus:border-[#F48232] w-24"
-                aria-label="Lieu de signature"
                 placeholder="Libreville"
               />,
               le <input
@@ -911,7 +774,6 @@ export const BambooContractCreateOfficial = () => {
                 value={formData.date_signature}
                 onChange={(e) => setFormData({ ...formData, date_signature: e.target.value })}
                 className="border-b border-black px-2 mx-1 font-semibold bg-transparent focus:outline-none focus:border-[#F48232]"
-                aria-label="Date de signature"
               />
             </div>
 
@@ -925,17 +787,17 @@ export const BambooContractCreateOfficial = () => {
 
               <div className="w-[35%] flex flex-col items-center justify-end pb-2 font-bold text-[9px] space-y-0.5">
                 <div className="flex gap-4">
-                  <span>Feuillet 1 : Assuré</span>
-                  <span>Feuillet 2 : BAMBOO-EMF</span>
+                  <span>Feuillet 1 : SAMB'A ASSURANCES</span>
+                  <span>Feuillet 2 : ARIANE FINANCE</span>
                 </div>
                 <div className="flex gap-4">
-                  <span>Feuillet 3 : SAMB'A</span>
+                  <span>Feuillet 3 : Assuré</span>
                   <span>Feuillet 4 : Souche</span>
                 </div>
               </div>
 
               <div className="w-[30%]">
-                <div className="mb-1 font-bold text-xs text-right">BAMBOO-EMF P/C de l'Assureur</div>
+                <div className="mb-1 font-bold text-xs text-right">L'Assureur</div>
                 <div className="border border-black h-16 p-0.5 text-gray-300 font-bold text-center flex items-center justify-center text-[9px] bg-white shadow-sm">
                   Signature et cachet
                 </div>
@@ -951,7 +813,7 @@ export const BambooContractCreateOfficial = () => {
           <Button
             type="button"
             variant="outline"
-            onClick={() => navigate('/contrats/bamboo')}
+            onClick={() => navigate('/contrats/ariane-finance')}
             className="flex-1"
             disabled={isPending}
           >
@@ -980,7 +842,7 @@ export const BambooContractCreateOfficial = () => {
             ) : (
               <>
                 <Save className="h-5 w-5 mr-2" />
-                Créer le Contrat BAMBOO
+                Créer le Contrat ARIANE FINANCE
               </>
             )}
           </Button>
@@ -990,4 +852,4 @@ export const BambooContractCreateOfficial = () => {
   )
 }
 
-export default BambooContractCreateOfficial
+export default ArianeFinanceContractCreateOfficial

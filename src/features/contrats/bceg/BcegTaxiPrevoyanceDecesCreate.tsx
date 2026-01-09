@@ -217,6 +217,24 @@ export const BcegTaxiPrevoyanceDecesCreate: React.FC = () => {
                                 </div>
                             </div>
                             <div className="flex gap-8">
+                                <div className="flex items-center gap-2 text-[11px] flex-1">
+                                    <span className="w-32 font-medium">Statut :</span>
+                                    <input
+                                        className="w-full max-w-sm outline-none border border-gray-400 rounded py-1 px-3 font-medium bg-white text-sm focus:border-orange-500 transition-colors"
+                                        value={formData.statut}
+                                        onChange={(e) => setFormData({ ...formData, statut: e.target.value })}
+                                    />
+                                </div>
+                                <div className="flex items-center gap-2 text-[11px] flex-1">
+                                    <span className="w-32 font-medium">Catégorie :</span>
+                                    <input
+                                        className="w-full max-w-sm outline-none border border-gray-400 rounded py-1 px-3 font-medium bg-white text-sm focus:border-orange-500 transition-colors"
+                                        value={formData.categorie}
+                                        onChange={(e) => setFormData({ ...formData, categorie: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+                            <div className="flex gap-8">
                                 <div className="flex items-center gap-2 text-[11px]">
                                     <span className="w-32 font-medium">Date d'effet :</span>
                                     <DateInput value={formData.date_effet} onChange={(val) => setFormData({ ...formData, date_effet: val })} />

@@ -228,7 +228,7 @@ export const ArianeFinanceDashboard = () => {
 
                 <div className="flex items-center gap-3">
                     <Button
-                        onClick={() => navigate('/sinistres/nouveau/arianefinance')}
+                        onClick={() => navigate('/sinistres/nouveau/ariane-finance')}
                         variant="outline"
                         className="border-2 border-rose-200 text-rose-600 hover:bg-rose-50 font-bold rounded-xl px-4 py-2"
                     >
@@ -236,7 +236,7 @@ export const ArianeFinanceDashboard = () => {
                         Déclarer Sinistre
                     </Button>
                     <Button
-                        onClick={() => navigate('/contrats/nouveau/arianefinance')}
+                        onClick={() => navigate('/contrats/nouveau/ariane-finance')}
                         className="bg-fuchsia-600 hover:bg-fuchsia-700 text-white font-bold rounded-xl px-4 py-2 shadow-lg shadow-fuchsia-600/20"
                     >
                         <Plus className="h-5 w-5 mr-2" />
@@ -326,7 +326,7 @@ export const ArianeFinanceDashboard = () => {
                     <div className="flex justify-between items-center mb-6">
                         <h3 className="font-bold text-gray-700">Répartition par Catégorie</h3>
                         <div className="flex items-center gap-3">
-                            <button className="flex items-center gap-1 text-xs font-bold text-gray-500 bg-gray-50 px-3 py-1.5 rounded-lg hover:bg-gray-100">
+                            <button type="button" className="flex items-center gap-1 text-xs font-bold text-gray-500 bg-gray-50 px-3 py-1.5 rounded-lg hover:bg-gray-100">
                                 Tous <ChevronDown size={14} />
                             </button>
                             <MoreHorizontal size={20} className="text-gray-300" />
@@ -385,7 +385,7 @@ export const ArianeFinanceDashboard = () => {
                         subtitle={`${totalContrats} contrats`}
                         icon={FileText}
                         gradient="bg-gradient-to-br from-fuchsia-500 to-fuchsia-400"
-                        onClick={() => navigate('/contrats/arianefinance')}
+                        onClick={() => navigate('/contrats/ariane-finance')}
                     />
                 </div>
                 <div className="col-span-12 lg:col-span-4">
@@ -394,7 +394,7 @@ export const ArianeFinanceDashboard = () => {
                         subtitle="Nouvelle déclaration"
                         icon={AlertCircle}
                         gradient="bg-gradient-to-br from-rose-500 to-rose-600"
-                        onClick={() => navigate('/sinistres/nouveau/arianefinance')}
+                        onClick={() => navigate('/sinistres/nouveau/ariane-finance')}
                     />
                 </div>
 
@@ -404,7 +404,7 @@ export const ArianeFinanceDashboard = () => {
                         <h3 className="font-bold text-gray-700">Contrats Récents</h3>
                         <div className="flex items-center gap-3">
                             <button
-                                onClick={() => navigate('/contrats/arianefinance')}
+                                onClick={() => navigate('/contrats/ariane-finance')}
                                 className="flex items-center gap-1 text-xs font-bold text-samba-blue bg-samba-blue/10 px-3 py-1.5 rounded-lg hover:bg-samba-blue/20"
                             >
                                 Voir tout
@@ -431,7 +431,7 @@ export const ArianeFinanceDashboard = () => {
                                         <tr
                                             key={contrat.id}
                                             className="hover:bg-gray-50 transition-colors cursor-pointer group"
-                                            onClick={() => navigate(`/contrats/arianefinance/${contrat.id}`)}
+                                            onClick={() => navigate(`/contrats/ariane-finance/${contrat.id}`)}
                                         >
                                             <td className="py-4 border-b border-gray-50">
                                                 <div className="flex items-center gap-3">

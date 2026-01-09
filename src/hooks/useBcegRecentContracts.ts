@@ -1,7 +1,6 @@
 // hooks/useBcegRecentContracts.ts
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
-import { BcegContrat } from '@/types/bceg'
 
 // ✅ Export nommé du hook
 export const useBcegRecentContracts = (emfId: number, limit = 5) => {

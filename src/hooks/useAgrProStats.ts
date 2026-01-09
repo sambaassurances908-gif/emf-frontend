@@ -9,11 +9,15 @@ export const useAgrProStats = (emfId: number) => {
             const res = await api.get(`/agr-pro/contrats/statistiques/global?emf_id=${emfId}`)
             const payload = res.data
 
+            console.log('🌿 AGR PRO Stats API Response:', payload)
+
             if (!payload.success) {
                 throw new Error(payload.message || 'Erreur API statistiques AGR PRO')
             }
 
             const d = payload.data
+
+            console.log('🌿 AGR PRO Stats Data:', d)
 
             const stats: AgrProDashboardStats = {
                 total: d.total || 0,
@@ -34,6 +38,8 @@ export const useAgrProStats = (emfId: number) => {
                     autre: 0
                 }
             }
+
+            console.log('🌿 AGR PRO Stats Mapped:', stats)
 
             return stats
         },

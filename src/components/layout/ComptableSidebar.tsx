@@ -213,6 +213,7 @@ export const ComptableSidebar = ({ isOpen, onToggle }: ComptableSidebarProps) =>
                 </div>
               </div>
               <button
+                type="button"
                 onClick={handleLogout}
                 className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                 title="Déconnexion"
@@ -226,6 +227,7 @@ export const ComptableSidebar = ({ isOpen, onToggle }: ComptableSidebarProps) =>
                 {user.name?.charAt(0)}
               </div>
               <button
+                type="button"
                 onClick={handleLogout}
                 className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                 title="Déconnexion"

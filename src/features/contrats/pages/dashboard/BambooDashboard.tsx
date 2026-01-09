@@ -327,7 +327,7 @@ export const BambooDashboard = () => {
           <div className="flex justify-between items-center mb-6">
             <h3 className="font-bold text-gray-700">Répartition par Catégorie</h3>
             <div className="flex items-center gap-3">
-              <button className="flex items-center gap-1 text-xs font-bold text-gray-500 bg-gray-50 px-3 py-1.5 rounded-lg hover:bg-gray-100">
+              <button type="button" className="flex items-center gap-1 text-xs font-bold text-gray-500 bg-gray-50 px-3 py-1.5 rounded-lg hover:bg-gray-100">
                 Tous <ChevronDown size={14} />
               </button>
               <MoreHorizontal size={20} className="text-gray-300" />
@@ -405,6 +405,7 @@ export const BambooDashboard = () => {
             <h3 className="font-bold text-gray-700">Contrats Récents</h3>
             <div className="flex items-center gap-3">
               <button
+                type="button"
                 onClick={() => navigate('/contrats/bamboo')}
                 className="flex items-center gap-1 text-xs font-bold text-samba-blue bg-samba-blue/10 px-3 py-1.5 rounded-lg hover:bg-samba-blue/20"
               >

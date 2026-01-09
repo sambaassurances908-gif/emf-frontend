@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react'
-import { UseFormReturn } from 'react-hook-form'
+import { UseFormReturn, FieldValues } from 'react-hook-form'
 import { Mail, Phone, MapPin } from 'lucide-react'
 import logoSamba from '@/assets/logo-samba.png'
 
@@ -13,13 +13,41 @@ export const Logo: React.FC = () => {
     )
 }
 
+// --- Checkbox Component ---
+interface CheckboxProps {
+    label: string
+    checked?: boolean
+    onChange?: (checked: boolean) => void
+    disabled?: boolean
+}
+
+const Checkbox: React.FC<CheckboxProps> = ({ label, checked = false, onChange, disabled = false }) => (
+    <div
+        className={`flex items-center mr-3 ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
+        onClick={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            if (!disabled) onChange?.(!checked)
+        }}
+    >
+        <div className={`w-4 h-4 border-2 border-black mr-1 flex items-center justify-center transition-colors ${checked ? 'bg-white' : disabled ? 'bg-gray-200' : 'bg-white hover:bg-orange-50'}`}>
+            {checked && (
+                <svg className="w-3 h-3 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M5 13l4 4L19 7" />
+                </svg>
+            )}
+        </div>
+        <span className="text-[10px] text-gray-800">{label}</span>
+    </div>
+)
+
 const SectionLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
     <div className="w-40 flex-shrink-0 p-2 italic border-r border-[#F48232] flex items-center text-[10px] font-medium text-gray-700 bg-white leading-tight">
         {children}
     </div>
 )
 
-const PipeInput: React.FC<{ width?: string; register?: any; name?: string; readOnly?: boolean; value?: string | number; error?: string; placeholder?: string }> = ({ width = "w-40", register, name, readOnly, value, error, placeholder }) => (
+const PipeInput: React.FC<{ width?: string; register?: UseFormReturn<FieldValues>['register']; name?: string; readOnly?: boolean; value?: string | number; error?: string; placeholder?: string }> = ({ width = "w-40", register, name, readOnly, value, error, placeholder }) => (
     <div className="flex flex-col">
         <input
             className={`${width} outline-none border ${error ? 'border-red-500' : 'border-gray-300'} py-1 px-2 text-[10px] bg-transparent rounded`}
@@ -27,6 +55,7 @@ const PipeInput: React.FC<{ width?: string; register?: any; name?: string; readO
             readOnly={readOnly}
             defaultValue={value}
             placeholder={placeholder}
+            aria-label={placeholder || name || 'Input field'}
         />
         {error && <span className="text-[9px] text-red-600 font-bold mt-0.5">{error}</span>}
     </div>
@@ -47,6 +76,7 @@ const DatePipeInput: React.FC<{ value?: string; onChange?: (val: string) => void
                 className={`w-32 outline-none border ${error ? 'border-red-500' : 'border-gray-300'} py-1 px-2 text-[10px] bg-transparent rounded`}
                 value={value}
                 onChange={(e) => onChange && onChange(e.target.value)}
+                aria-label="Date selection"
             />
             {error && <span className="text-[9px] text-red-600 font-bold mt-0.5">{error}</span>}
         </div>
@@ -63,12 +93,14 @@ const ToggleSwitch: React.FC<{ active?: boolean; onClick?: () => void; readOnly?
 )
 
 interface AgrProContractFormLayoutProps {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     form: UseFormReturn<any>
     readOnly?: boolean
-    defaultValues?: any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    defaultValues?: Record<string, any>
 }
 
-export const AgrProContractFormLayout: React.FC<AgrProContractFormLayoutProps> = ({ form, readOnly, defaultValues }) => {
+export const AgrProContractFormLayout = ({ form, readOnly, defaultValues }: AgrProContractFormLayoutProps) => {
     const { register, watch, setValue, formState: { errors } } = form
 
     // Always active (implicitly true)
@@ -82,8 +114,9 @@ export const AgrProContractFormLayout: React.FC<AgrProContractFormLayoutProps> =
         }
     }, [setValue, readOnly])
 
-    const dateEffet = watch('date_effet')
-    const dureePret = watch('duree_pret')
+    const dateEffet = watch('date_effet') as string | undefined
+    const dureePret = watch('duree_pret') as number | undefined
+    const dateFinEcheance = watch('date_fin_echeance') as string | undefined
 
     // Auto-calculate Expiration Date
     useEffect(() => {
@@ -101,7 +134,8 @@ export const AgrProContractFormLayout: React.FC<AgrProContractFormLayoutProps> =
         }
     }, [dateEffet, dureePret, setValue, readOnly])
 
-    const montantPret = watch('montant_pret_assure') || 0
+    const montantPret = (watch('montant_pret_assure') as number) || 0
+    const categorie = watch('categorie') as string | undefined
     const primeUnique = 5000
     const primeVariable = Math.round(Number(montantPret) * 0.03)
     const primeTotale = primeUnique + primeVariable
@@ -170,7 +204,7 @@ export const AgrProContractFormLayout: React.FC<AgrProContractFormLayoutProps> =
                         <div className="flex items-center gap-2 text-[10px]">
                             <span className="w-32 font-medium">Date d'effet :</span>
                             <DatePipeInput
-                                value={watch('date_effet') || defaultValues?.date_effet}
+                                value={dateEffet || defaultValues?.date_effet as string}
                                 onChange={(val) => !readOnly && setValue('date_effet', val, { shouldValidate: true })}
                                 readOnly={readOnly}
                                 error={errors.date_effet?.message as string}
@@ -179,7 +213,7 @@ export const AgrProContractFormLayout: React.FC<AgrProContractFormLayoutProps> =
                         <div className="flex items-center gap-2 text-[10px]">
                             <span className="w-32 font-medium">Date de fin d'échéance :</span>
                             <DatePipeInput
-                                value={watch('date_fin_echeance') || defaultValues?.date_fin_echeance}
+                                value={dateFinEcheance || defaultValues?.date_fin_echeance as string}
                                 readOnly={true} // Calculated
                                 error={errors.date_fin_echeance?.message as string}
                             />
@@ -222,6 +256,57 @@ export const AgrProContractFormLayout: React.FC<AgrProContractFormLayoutProps> =
                             <div className="flex flex-col flex-grow">
                                 <input className="w-full border-b border-gray-400 outline-none px-1 h-4 bg-transparent" {...register('email')} readOnly={readOnly} defaultValue={defaultValues?.email} />
                                 {errors.email && <span className="text-[9px] text-red-600 font-bold">{errors.email.message as string}</span>}
+                            </div>
+                        </div>
+                        
+                        {/* Catégories */}
+                        <div className="mt-2 pt-2 border-t border-gray-200">
+                            <div className="flex items-start gap-2 text-[10px]">
+                                <span className="w-24 font-medium mt-0.5">Catégorie :</span>
+                                <div className="flex-grow">
+                                    <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+                                        <Checkbox
+                                            label="Commerçants"
+                                            checked={categorie === 'commercants'}
+                                            onChange={() => !readOnly && setValue('categorie', 'commercants')}
+                                            disabled={readOnly}
+                                        />
+                                        <Checkbox
+                                            label="Salariés du public"
+                                            checked={categorie === 'salaries_public'}
+                                            onChange={() => !readOnly && setValue('categorie', 'salaries_public')}
+                                            disabled={readOnly}
+                                        />
+                                        <Checkbox
+                                            label="Salariés du privé"
+                                            checked={categorie === 'salaries_prive'}
+                                            onChange={() => !readOnly && setValue('categorie', 'salaries_prive')}
+                                            disabled={readOnly}
+                                        />
+                                        <Checkbox
+                                            label="Retraités"
+                                            checked={categorie === 'retraites'}
+                                            onChange={() => !readOnly && setValue('categorie', 'retraites')}
+                                            disabled={readOnly}
+                                        />
+                                        <Checkbox
+                                            label="Autre"
+                                            checked={categorie === 'autre'}
+                                            onChange={() => !readOnly && setValue('categorie', 'autre')}
+                                            disabled={readOnly}
+                                        />
+                                        <div className="flex items-center">
+                                            <span className="text-[9px] text-gray-600 mr-1">à préciser :</span>
+                                            <input
+                                                type="text"
+                                                {...register('autre_categorie_precision')}
+                                                className="border-b border-gray-400 w-28 text-[9px] px-1 bg-transparent outline-none focus:border-[#F48232]"
+                                                disabled={readOnly || categorie !== 'autre'}
+                                                placeholder="Préciser..."
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>

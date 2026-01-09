@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
@@ -126,8 +126,10 @@ export const AgrProContractDetailPage = () => {
             <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-10">
                 <div className="flex items-center gap-4">
                     <button
+                        type="button"
                         onClick={() => navigate('/contrats/agrpro')}
                         className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center text-gray-400 hover:bg-gray-50 hover:text-gray-600 transition-colors"
+                        title="Retour à la liste des contrats"
                     >
                         <ArrowLeft size={18} />
                     </button>
@@ -144,6 +146,7 @@ export const AgrProContractDetailPage = () => {
 
                 <div className="flex items-center gap-3">
                     <button
+                        type="button"
                         onClick={() => setShowContratOfficiel(!showContratOfficiel)}
                         className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-colors ${showContratOfficiel
                             ? 'bg-gray-600 text-white hover:bg-gray-700'
@@ -154,6 +157,7 @@ export const AgrProContractDetailPage = () => {
                         {showContratOfficiel ? 'Masquer' : 'Aperçu'}
                     </button>
                     <button
+                        type="button"
                         onClick={handlePrint}
                         className="flex items-center gap-2 px-4 py-2.5 bg-gray-100 text-gray-600 hover:bg-gray-200 rounded-xl font-bold text-sm transition-colors"
                     >
@@ -161,6 +165,7 @@ export const AgrProContractDetailPage = () => {
                         Imprimer
                     </button>
                     <button
+                        type="button"
                         onClick={() => navigate(`/sinistres/nouveau/agrpro?contrat_id=${contrat.id}&contrat_type=ContratAgrPro`)}
                         className="flex items-center gap-2 px-4 py-2.5 bg-rose-500 text-white hover:bg-rose-600 rounded-xl font-bold text-sm shadow-lg shadow-rose-500/20 transition-colors"
                     >
@@ -179,6 +184,7 @@ export const AgrProContractDetailPage = () => {
                             Prévisualisation du contrat officiel
                         </h2>
                         <button
+                            type="button"
                             onClick={handlePrint}
                             className="flex items-center gap-2 px-4 py-2 bg-[#F48232] text-white hover:bg-orange-700 rounded-xl font-bold text-sm transition-colors"
                         >

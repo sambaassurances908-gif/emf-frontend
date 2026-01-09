@@ -96,16 +96,10 @@ export const EdgTaxiPerteRecetteCreate = () => {
     const { id } = useParams()
     const emfId = 4 // EDG
 
-    const generatePolicyNumber = () => {
-        const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-        const random = Math.floor(100 + Math.random() * 900);
-        return `EDG-PR-${dateStr}-${random}`;
-    }
-
     const { data: contractData } = useEdgTaxiPerteRecetteContract(id ? Number(id) : undefined)
     const [formData, setFormData] = useState<EdgTaxiPerteRecetteFormData>({
         emf_id: emfId,
-        numero_police: id ? '' : generatePolicyNumber(),
+        numero_police: '',
         date_effet: new Date().toISOString().split('T')[0],
         date_echeance: '',
         nom: '',
@@ -121,6 +115,8 @@ export const EdgTaxiPerteRecetteCreate = () => {
         contact_nom: '',
         contact_telephone: '',
         periodicite: 'annuel',
+        statut: 'En attente',
+        categorie: 'Standard'
     })
 
     // Pseudo-state for Souscripteur (mirrors Assuré if needed, but now manual by default)
@@ -196,13 +192,32 @@ export const EdgTaxiPerteRecetteCreate = () => {
                 </div>
 
                 {/* Top Info Fields */}
-                <div className="space-y-4 mb-6 mt-4">
-                    <div className="flex items-center gap-2 text-[11px]">
-                        <span className="font-bold">Numéro de police :</span>
-                        <SimpleInput width="w-48" value={formData.numero_police} readOnly />
+                <div className="flex flex-col gap-3 mb-6 mt-4 text-[11px]">
+                    {/* Ligne 1 : Numéro de police + Catégorie avec checkboxes */}
+                    <div className="flex items-center gap-8">
+                        <div className="flex items-center gap-2">
+                            <span className="font-bold whitespace-nowrap">Numéro de police :</span>
+                            <span className="text-gray-400 italic text-[10px]">Généré automatiquement</span>
+                        </div>
+                        <div className="flex items-center gap-4">
+                            <span className="font-bold whitespace-nowrap">Catégorie :</span>
+                            <div className="flex items-center gap-2 cursor-pointer" onClick={() => setFormData({ ...formData, categorie: 'Standard' })}>
+                                <div className={`w-4 h-4 border border-black flex items-center justify-center ${formData.categorie === 'Standard' ? 'bg-black' : 'bg-white'}`}>
+                                    {formData.categorie === 'Standard' && <Check size={12} className="text-white" />}
+                                </div>
+                                <span>Standard</span>
+                            </div>
+                            <div className="flex items-center gap-2 cursor-pointer" onClick={() => setFormData({ ...formData, categorie: 'Premium' })}>
+                                <div className={`w-4 h-4 border border-black flex items-center justify-center ${formData.categorie === 'Premium' ? 'bg-black' : 'bg-white'}`}>
+                                    {formData.categorie === 'Premium' && <Check size={12} className="text-white" />}
+                                </div>
+                                <span>Premium</span>
+                            </div>
+                        </div>
                     </div>
 
-                    <div className="flex justify-between">
+                    {/* Ligne 2 : Date d'effet + Date d'échéance */}
+                    <div className="flex items-center gap-8">
                         <SimpleDateInput label="Date d'effet" value={formData.date_effet} onChange={(v) => setFormData({ ...formData, date_effet: v })} />
                         <SimpleDateInput label="Date d'échéance" value={formData.date_echeance} onChange={(v) => setFormData({ ...formData, date_echeance: v })} />
                     </div>

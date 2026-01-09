@@ -14,8 +14,6 @@ import {
     Edit3,
     Trash2,
     Printer,
-    Building2,
-    Clock,
     Eye,
     EyeOff,
     AlertTriangle,

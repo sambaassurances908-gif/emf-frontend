@@ -130,6 +130,8 @@ export const EdgTaxiPrevoyanceDecesCreate: React.FC = () => {
         telephone: '',
         email: '',
         periodicite: 'semestre',
+        statut: 'En attente',
+        categorie: 'Standard',
         assures_associes: Array(5).fill(null).map(() => ({
             lien: '', nom: '', prenom: '', date_naissance: '', lieu_naissance: '', contact: ''
         }))
@@ -208,6 +210,24 @@ export const EdgTaxiPrevoyanceDecesCreate: React.FC = () => {
                                         value={formData.numero_police}
                                         onChange={(e) => setFormData({ ...formData, numero_police: e.target.value })}
                                         placeholder="Généré automatiquement si maintenu vide"
+                                    />
+                                </div>
+                            </div>
+                            <div className="flex gap-8">
+                                <div className="flex items-center gap-2 text-[11px] flex-1">
+                                    <span className="w-32 font-medium">Statut :</span>
+                                    <input
+                                        className="w-full max-w-sm outline-none border border-gray-400 rounded py-1 px-3 font-medium bg-white text-sm focus:border-orange-500 transition-colors"
+                                        value={formData.statut}
+                                        onChange={(e) => setFormData({ ...formData, statut: e.target.value })}
+                                    />
+                                </div>
+                                <div className="flex items-center gap-2 text-[11px] flex-1">
+                                    <span className="w-32 font-medium">Catégorie :</span>
+                                    <input
+                                        className="w-full max-w-sm outline-none border border-gray-400 rounded py-1 px-3 font-medium bg-white text-sm focus:border-orange-500 transition-colors"
+                                        value={formData.categorie}
+                                        onChange={(e) => setFormData({ ...formData, categorie: e.target.value })}
                                     />
                                 </div>
                             </div>

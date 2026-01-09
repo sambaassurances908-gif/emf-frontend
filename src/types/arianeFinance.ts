@@ -62,7 +62,8 @@ export interface ArianeFinanceContrat {
     prime_totale?: number
 
     // Statut
-    statut: 'actif' | 'en_attente' | 'resilie' | 'termine' | 'sinistre'
+    statut: string
+    categorie?: string | null
     observations?: string | null
 
     // Relations
@@ -95,6 +96,8 @@ export interface ArianeFinanceContratCreatePayload {
     beneficiaire_prenom?: string
     beneficiaire_telephone?: string
     taux_deces_iad?: number
+    statut?: string
+    categorie?: string
 }
 
 export interface ApiResponse<T> {

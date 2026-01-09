@@ -48,6 +48,7 @@ export const ArchiveBadge = ({
 
       {fichierArchive && onDownload && (
         <button
+          type="button"
           onClick={onDownload}
           className="p-1 rounded-md bg-purple-50 hover:bg-purple-100 text-purple-600 transition-colors"
           title="Télécharger l'archive"

@@ -10,6 +10,10 @@ import {
     TrendingUp,
     MoreHorizontal,
     CalendarClock,
+    Users,
+    Briefcase,
+    Building2,
+    GraduationCap,
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/Button'
@@ -353,8 +357,69 @@ export const AgrProDashboard = () => {
                     </div>
                 </div>
 
+                {/* Répartition par catégorie */}
+                <div className="col-span-12 lg:col-span-6 bg-white p-6 rounded-3xl shadow-soft border border-gray-100/50">
+                    <div className="flex justify-between items-center mb-6">
+                        <h3 className="font-bold text-gray-700">Répartition par Catégorie</h3>
+                        <MoreHorizontal size={20} className="text-gray-300" />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-2xl">
+                            <div className="h-12 w-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                                <Briefcase className="h-6 w-6 text-blue-600" />
+                            </div>
+                            <div>
+                                <p className="text-2xl font-bold text-blue-600">
+                                    {stats?.par_categorie?.commercants ?? 0}
+                                </p>
+                                <p className="text-sm text-gray-600">Commerçants</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-3 p-4 bg-emerald-50 rounded-2xl">
+                            <div className="h-12 w-12 bg-emerald-100 rounded-xl flex items-center justify-center">
+                                <Building2 className="h-6 w-6 text-emerald-600" />
+                            </div>
+                            <div>
+                                <p className="text-2xl font-bold text-emerald-600">
+                                    {stats?.par_categorie?.salaries_public ?? 0}
+                                </p>
+                                <p className="text-sm text-gray-600">Salariés du public</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-3 p-4 bg-purple-50 rounded-2xl">
+                            <div className="h-12 w-12 bg-purple-100 rounded-xl flex items-center justify-center">
+                                <Users className="h-6 w-6 text-purple-600" />
+                            </div>
+                            <div>
+                                <p className="text-2xl font-bold text-purple-600">
+                                    {stats?.par_categorie?.salaries_prive ?? 0}
+                                </p>
+                                <p className="text-sm text-gray-600">Salariés du privé</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-3 p-4 bg-amber-50 rounded-2xl">
+                            <div className="h-12 w-12 bg-amber-100 rounded-xl flex items-center justify-center">
+                                <GraduationCap className="h-6 w-6 text-amber-600" />
+                            </div>
+                            <div>
+                                <p className="text-2xl font-bold text-amber-600">
+                                    {stats?.par_categorie?.retraites ?? 0}
+                                </p>
+                                <p className="text-sm text-gray-600">Retraités</p>
+                            </div>
+                        </div>
+                    </div>
+                    {(stats?.par_categorie?.autre ?? 0) > 0 && (
+                        <div className="mt-4 p-3 bg-gray-50 rounded-xl text-center">
+                            <span className="text-sm text-gray-600">Autres catégories : </span>
+                            <span className="font-bold text-gray-800">{stats?.par_categorie?.autre}</span>
+                        </div>
+                    )}
+                </div>
+
                 {/* Répartition par ville */}
-                <div className="col-span-12 bg-white p-6 rounded-3xl shadow-soft border border-gray-100/50">
+                <div className="col-span-12 lg:col-span-6 bg-white p-6 rounded-3xl shadow-soft border border-gray-100/50">
                     <div className="flex justify-between items-center mb-6">
                         <h3 className="font-bold text-gray-700">Répartition par Ville</h3>
                         <div className="flex items-center gap-3">
@@ -365,7 +430,7 @@ export const AgrProDashboard = () => {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                         {Object.entries(stats?.par_ville || {}).length > 0 ? (
                             Object.entries(stats?.par_ville || {})
                                 .sort(([, a], [, b]) => (b as number) - (a as number))

@@ -149,20 +149,12 @@ export const BcegTaxiPerteRecetteCreate = () => {
     const { id } = useParams()
     const emfId = 3
 
-    // Fonction pour générer un numéro de police unique
-    const generatePolicyNumber = () => {
-        const now = new Date();
-        const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
-        const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-        return `TAXI-PR-${dateStr}-${random}`;
-    }
-
     // Hook to fetch contract if ID is present
     const { data: contractData } = useBcegTaxiPerteRecetteContract(id ? Number(id) : undefined)
 
     const [formData, setFormData] = useState({
         emf_id: emfId,
-        numero_police: id ? '' : generatePolicyNumber(),
+        numero_police: '',
         date_effet: new Date().toISOString().split('T')[0],
         date_echeance: '',
 
@@ -196,6 +188,8 @@ export const BcegTaxiPerteRecetteCreate = () => {
 
         // Paramètres
         periodicite: 'annuel' as 'annuel' | 'semestre',
+        statut: 'En attente',
+        categorie: 'Standard'
     })
 
     // Populate form if Edit Mode
@@ -234,6 +228,8 @@ export const BcegTaxiPerteRecetteCreate = () => {
                 contact_nom: contractData.contact_nom || '',
                 contact_telephone: contractData.contact_telephone || '',
                 periodicite: contractData.periodicite || 'annuel',
+                statut: contractData.statut || 'En attente',
+                categorie: contractData.categorie || 'Standard'
             })
         }
     }, [contractData])
@@ -353,17 +349,32 @@ export const BcegTaxiPerteRecetteCreate = () => {
                 </div>
 
                 {/* Top Info Fields */}
-                <div className="space-y-4 mb-6">
-                    <div className="flex items-center gap-2 text-[11px]">
-                        <span className="font-bold">Numéro de police :</span>
-                        <input
-                            className="w-48 outline-none border border-black rounded px-2 py-0.5 font-bold text-orange-600 bg-transparent font-mono"
-                            value={formData.numero_police}
-                            readOnly
-                        />
+                <div className="flex flex-col gap-3 mb-6 text-[11px]">
+                    {/* Ligne 1 : Numéro de police + Catégorie avec checkboxes */}
+                    <div className="flex items-center gap-8">
+                        <div className="flex items-center gap-2">
+                            <span className="font-bold whitespace-nowrap">Numéro de police :</span>
+                            <span className="text-gray-400 italic text-[10px]">Généré automatiquement</span>
+                        </div>
+                        <div className="flex items-center gap-4">
+                            <span className="font-bold whitespace-nowrap">Catégorie :</span>
+                            <div className="flex items-center gap-2 cursor-pointer" onClick={() => setFormData({ ...formData, categorie: 'Standard' })}>
+                                <div className={`w-4 h-4 border border-black flex items-center justify-center ${formData.categorie === 'Standard' ? 'bg-black' : 'bg-white'}`}>
+                                    {formData.categorie === 'Standard' && <Check size={12} className="text-white" />}
+                                </div>
+                                <span>Standard</span>
+                            </div>
+                            <div className="flex items-center gap-2 cursor-pointer" onClick={() => setFormData({ ...formData, categorie: 'Premium' })}>
+                                <div className={`w-4 h-4 border border-black flex items-center justify-center ${formData.categorie === 'Premium' ? 'bg-black' : 'bg-white'}`}>
+                                    {formData.categorie === 'Premium' && <Check size={12} className="text-white" />}
+                                </div>
+                                <span>Premium</span>
+                            </div>
+                        </div>
                     </div>
 
-                    <div className="flex justify-between relative">
+                    {/* Ligne 2 : Date d'effet + Date d'échéance */}
+                    <div className="flex items-center gap-8">
                         <DateInput
                             label="Date d'effet"
                             value={formData.date_effet}

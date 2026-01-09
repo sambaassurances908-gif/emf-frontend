@@ -121,6 +121,8 @@ export const BcegMotoContractCreate = () => {
         // Calculated (display only or for submission)
         taux_prime_unique: TAUX_PRIME_UNIQUE,
         cotisations_complementaires: FORFAIT_GARANTIES_COMPLEMENTAIRES,
+        statut: 'En attente',
+        categorie: 'Standard'
     })
 
     // Populate form if Edit/View Mode
@@ -141,7 +143,9 @@ export const BcegMotoContractCreate = () => {
                 immatriculation: contractData.immatriculation || '',
                 taux_prime_unique: contractData.taux_prime_unique || TAUX_PRIME_UNIQUE,
                 cotisations_complementaires: contractData.cotisations_complementaires || FORFAIT_GARANTIES_COMPLEMENTAIRES,
-                numero_police: contractData.numero_police || contractData.police_numero || ''
+                numero_police: contractData.numero_police || contractData.police_numero || '',
+                statut: contractData.statut || 'En attente',
+                categorie: contractData.categorie || 'Standard'
             })
         }
     }, [contractData])

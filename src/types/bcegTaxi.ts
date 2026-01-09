@@ -45,6 +45,8 @@ export interface BcegTaxiPerteRecetteContrat {
     // Paramètres
     periodicite: 'annuel' | 'semestre'
     cotisation?: number
+    statut?: string
+    categorie?: string
 
     created_at?: string
     updated_at?: string
@@ -69,6 +71,8 @@ export interface BcegTaxiPerteRecetteFormData {
     contact_nom?: string
     contact_telephone?: string
     periodicite: 'annuel' | 'semestre'
+    statut?: string
+    categorie?: string
 }
 
 // Constantes métier (miroir du backend)
@@ -104,6 +108,8 @@ export interface BcegTaxiPrevoyanceDecesContrat {
     periodicite: 'annuel' | 'semestre'
     prime_semestrielle?: number
     prime_annuelle?: number
+    statut?: string
+    categorie?: string
 
     assures_associes?: Array<{
         lien: string
@@ -131,6 +137,8 @@ export interface BcegTaxiPrevoyanceDecesFormData {
     telephone?: string
     email?: string
     periodicite: 'annuel' | 'semestre'
+    statut?: string
+    categorie?: string
     assures_associes: Array<{
         lien: string
         nom: string

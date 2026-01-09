@@ -87,13 +87,32 @@ export const EdgTaxiPerteRecettePrint: React.FC<EdgTaxiPerteRecettePrintProps> =
             </div>
 
             {/* Top Info Fields */}
-            <div className="space-y-4 mb-6 mt-4">
-                <div className="flex items-center gap-2 text-[11px]">
-                    <span className="font-bold">Numéro de police :</span>
-                    <PipeDisplay width="w-48" value={contrat.numero_police} />
+            <div className="flex flex-col gap-3 mb-6 mt-4 text-[11px]">
+                {/* Ligne 1 : Numéro de police + Catégorie avec checkboxes */}
+                <div className="flex items-center gap-8">
+                    <div className="flex items-center gap-2">
+                        <span className="font-bold whitespace-nowrap">Numéro de police :</span>
+                        <span className="font-bold text-[#F48232]">{contrat.numero_police || '—'}</span>
+                    </div>
+                    <div className="flex items-center gap-4">
+                        <span className="font-bold whitespace-nowrap">Catégorie :</span>
+                        <div className="flex items-center gap-2">
+                            <div className={`w-4 h-4 border border-black flex items-center justify-center ${contrat.categorie === 'Standard' ? 'bg-black' : 'bg-white'}`}>
+                                {contrat.categorie === 'Standard' && <Check size={12} className="text-white" />}
+                            </div>
+                            <span>Standard</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div className={`w-4 h-4 border border-black flex items-center justify-center ${contrat.categorie === 'Premium' ? 'bg-black' : 'bg-white'}`}>
+                                {contrat.categorie === 'Premium' && <Check size={12} className="text-white" />}
+                            </div>
+                            <span>Premium</span>
+                        </div>
+                    </div>
                 </div>
 
-                <div className="flex justify-between">
+                {/* Ligne 2 : Date d'effet + Date d'échéance */}
+                <div className="flex items-center gap-8">
                     <DatePipeDisplay label="Date d'effet" value={contrat.date_effet} />
                     <DatePipeDisplay label="Date d'échéance" value={contrat.date_echeance} />
                 </div>

@@ -63,6 +63,7 @@ export const AlerteDelaiCard = ({ alerte, onAction }: AlerteDelaiCardProps) => {
             </div>
             {onAction && (
               <button
+                type="button"
                 onClick={() => onAction(alerte.quittance_id)}
                 className="text-xs font-medium text-emerald-600 hover:text-emerald-700"
               >

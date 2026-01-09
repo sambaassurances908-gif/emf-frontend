@@ -108,7 +108,7 @@ export const ArianeFinanceSinistresList = () => {
                     </p>
                 </div>
                 <Button
-                    onClick={() => navigate('/sinistres/nouveau/arianefinance')}
+                    onClick={() => navigate('/sinistres/nouveau/ariane-finance')}
                     className="bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 shadow-lg px-6"
                 >
                     <Plus className="h-5 w-5 mr-2" />
@@ -161,7 +161,7 @@ export const ArianeFinanceSinistresList = () => {
                                 Aucun sinistre n'a été déclaré pour le moment.
                             </p>
                             <Button
-                                onClick={() => navigate('/sinistres/nouveau/arianefinance')}
+                                onClick={() => navigate('/sinistres/nouveau/ariane-finance')}
                                 className="bg-gradient-to-r from-violet-600 to-purple-600"
                             >
                                 <Plus className="h-5 w-5 mr-2" />
@@ -187,7 +187,7 @@ export const ArianeFinanceSinistresList = () => {
                                         <tr
                                             key={sinistre.id}
                                             className="cursor-pointer hover:bg-violet-50 transition-all duration-200"
-                                            onClick={() => navigate(`/sinistres/arianefinance/${sinistre.id}`)}
+                                            onClick={() => navigate(`/sinistres/ariane-finance/${sinistre.id}`)}
                                         >
                                             <td className="px-6 py-4 whitespace-nowrap font-mono text-violet-600 font-semibold">
                                                 {sinistre.numero_sinistre || `SIN-${sinistre.id}`}
@@ -217,7 +217,7 @@ export const ArianeFinanceSinistresList = () => {
                                                     size="sm"
                                                     onClick={(e) => {
                                                         e.stopPropagation()
-                                                        navigate(`/sinistres/arianefinance/${sinistre.id}`)
+                                                        navigate(`/sinistres/ariane-finance/${sinistre.id}`)
                                                     }}
                                                     className="h-8 w-8 p-0 hover:bg-violet-100"
                                                 >

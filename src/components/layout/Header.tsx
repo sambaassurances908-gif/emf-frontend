@@ -107,7 +107,7 @@ export const Header = () => {
                 ))}
               </div>
               <div className="px-4 py-3 border-t border-gray-100">
-                <button className="w-full text-center text-sm font-semibold text-emerald-500 hover:text-emerald-600 transition-colors">
+                <button type="button" className="w-full text-center text-sm font-semibold text-emerald-500 hover:text-emerald-600 transition-colors">
                   Voir toutes les notifications
                 </button>
               </div>

@@ -26,6 +26,10 @@ export interface BcegMotoContrat {
     immatriculation: string
 
     // Paramètres prime
+    // Optional fields
+    statut?: string // e.g. 'En attente', 'Actif'
+    categorie?: string // e.g. 'Standard'
+
     taux_prime_unique: number
     prime_deces_invalidite: number
     cotisations_complementaires: number
@@ -61,6 +65,8 @@ export interface BcegMotoContratFormData {
     taux_prime_unique?: number
     cotisations_complementaires?: number
     devise?: string
+    statut?: string
+    categorie?: string
 }
 
 export interface BcegMotoCalculResult {

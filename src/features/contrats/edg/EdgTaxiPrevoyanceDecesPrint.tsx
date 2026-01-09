@@ -113,6 +113,20 @@ export const EdgTaxiPrevoyanceDecesPrint: React.FC<{ contrat: EdgTaxiPrevoyanceD
                         </div>
                         <div className="flex gap-8 items-center text-[11px]">
                             <div className="flex items-center gap-2">
+                                <span className="font-medium">Statut :</span>
+                                <div className="border border-gray-400 rounded py-1 px-3 font-bold bg-white text-sm">
+                                    {contrat.statut || 'En attente'}
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="font-medium">Catégorie :</span>
+                                <div className="border border-gray-400 rounded py-1 px-3 font-bold bg-white text-sm">
+                                    {contrat.categorie || 'Standard'}
+                                </div>
+                            </div>
+                        </div>
+                        <div className="flex gap-8 items-center text-[11px]">
+                            <div className="flex items-center gap-2">
                                 <span className="font-medium">Date d'effet :</span>
                                 <DateDisplay value={contrat.date_effet} />
                             </div>

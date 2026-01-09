@@ -54,6 +54,7 @@ export const Modal = ({ isOpen, onClose, title, children, size = 'md' }: ModalPr
             <div className="flex items-center justify-between p-6 border-b border-gray-100">
               <h3 className="text-xl font-bold text-gray-900">{title}</h3>
               <button
+                type="button"
                 onClick={onClose}
                 className="w-10 h-10 flex items-center justify-center rounded-xl text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all"
                 aria-label="Fermer la modale"

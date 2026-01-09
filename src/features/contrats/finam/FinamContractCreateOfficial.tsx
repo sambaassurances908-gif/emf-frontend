@@ -341,10 +341,16 @@ const FinamContractCreateOfficial: React.FC = () => {
                 error={errors.date_effet}
               />
               <FormInput
-                label="Taux du prêt :"
+                label="Taux du prêt (%) :"
                 value={formData.taux_pret}
-                onChange={(e) => setFormData({ ...formData, taux_pret: e.target.value })}
-                type="number"
+                onChange={(e) => {
+                  // Accepter uniquement les chiffres et le point décimal
+                  const value = e.target.value.replace(/[^0-9.,]/g, '').replace(',', '.')
+                  setFormData({ ...formData, taux_pret: value })
+                }}
+                type="text"
+                inputMode="decimal"
+                placeholder="Ex: 12.5"
               />
               <FormInput
                 label="Date de fin d'échéance :"

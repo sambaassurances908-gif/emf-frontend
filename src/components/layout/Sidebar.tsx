@@ -101,9 +101,9 @@ export const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
     // Pour les utilisateurs ARIANE FINANCE, utiliser les routes ARIANE FINANCE spécifiques
     if (isArianeFinanceUser) {
       if (item.label === 'Dashboard') return '/dashboard/arianefinance';
-      if (item.label === 'Contrats') return '/contrats/arianefinance';
-      if (item.label === 'Sinistres') return '/sinistres/arianefinance';
-      if (item.label === 'Statistiques') return '/statistiques/arianefinance';
+      if (item.label === 'Contrats') return '/contrats/ariane-finance';
+      if (item.label === 'Sinistres') return '/sinistres/ariane-finance';
+      if (item.label === 'Statistiques') return '/statistiques/ariane-finance';
     }
     // Pour les autres EMFs, utiliser le pattern standard
     if (isEmfUser && item.emfPath) {

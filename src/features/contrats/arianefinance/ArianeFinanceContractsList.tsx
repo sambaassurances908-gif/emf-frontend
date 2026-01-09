@@ -92,7 +92,7 @@ export const ArianeFinanceContractsList = () => {
                     </p>
                 </div>
                 <Button
-                    onClick={() => navigate('/contrats/nouveau/arianefinance')}
+                    onClick={() => navigate('/contrats/nouveau/ariane-finance')}
                     className="bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 shadow-lg px-6"
                 >
                     <Plus className="h-5 w-5 mr-2" />
@@ -147,7 +147,7 @@ export const ArianeFinanceContractsList = () => {
                                 Créez votre premier contrat ARIANE FINANCE pour commencer à gérer vos micro-assurances.
                             </p>
                             <Button
-                                onClick={() => navigate('/contrats/nouveau/arianefinance')}
+                                onClick={() => navigate('/contrats/nouveau/ariane-finance')}
                                 className="bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 shadow-lg px-8"
                                 size="lg"
                             >
@@ -175,7 +175,7 @@ export const ArianeFinanceContractsList = () => {
                                         <tr
                                             key={contrat.id}
                                             className="cursor-pointer hover:bg-violet-50 transition-all duration-200"
-                                            onClick={() => navigate(`/contrats/arianefinance/${contrat.id}`)}
+                                            onClick={() => navigate(`/contrats/ariane-finance/${contrat.id}`)}
                                         >
                                             <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-violet-600 font-semibold">
                                                 #{contrat.id}
@@ -208,7 +208,7 @@ export const ArianeFinanceContractsList = () => {
                                                     size="sm"
                                                     onClick={(e) => {
                                                         e.stopPropagation()
-                                                        navigate(`/contrats/arianefinance/${contrat.id}`)
+                                                        navigate(`/contrats/ariane-finance/${contrat.id}`)
                                                     }}
                                                     className="h-8 w-8 p-0 hover:bg-violet-100"
                                                     title="Voir détails"
@@ -220,7 +220,7 @@ export const ArianeFinanceContractsList = () => {
                                                     size="sm"
                                                     onClick={(e) => {
                                                         e.stopPropagation()
-                                                        navigate(`/contrats/arianefinance/${contrat.id}/edit`)
+                                                        navigate(`/contrats/ariane-finance/${contrat.id}/edit`)
                                                     }}
                                                     className="h-8 w-8 p-0 hover:bg-purple-100"
                                                     title="Modifier"

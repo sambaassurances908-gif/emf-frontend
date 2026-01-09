@@ -119,7 +119,9 @@ export const ArianeFinanceContractCreate = () => {
         beneficiaire_prenom: '',
         beneficiaire_telephone: '',
         lieu_signature: 'Libreville',
-        date_signature: new Date().toISOString().split('T')[0]
+        date_signature: new Date().toISOString().split('T')[0],
+        statut: 'En attente',
+        categorie: 'Standard'
     })
 
     const [errors, setErrors] = useState<Record<string, string>>({})
@@ -260,7 +262,7 @@ export const ArianeFinanceContractCreate = () => {
             createContract(payload as any, {
                 onSuccess: (data: any) => {
                     console.log('✅ Contrat ARIANE FINANCE créé avec succès!')
-                    navigate(`/contrats/arianefinance/${data.id || data.data?.id}`, {
+                    navigate(`/contrats/ariane-finance/${data.id || data.data?.id}`, {
                         state: { success: 'Contrat créé avec succès !' }
                     })
                 },
@@ -288,7 +290,7 @@ export const ArianeFinanceContractCreate = () => {
         <div className="min-h-screen bg-gray-100 py-4 px-4">
             {/* Toolbar */}
             <div className="max-w-[210mm] mx-auto mb-4 flex items-center justify-between bg-white rounded-lg shadow p-3">
-                <Button variant="ghost" onClick={() => navigate('/contrats/arianefinance')} className="hover:bg-gray-100">
+                <Button variant="ghost" onClick={() => navigate('/contrats/ariane-finance')} className="hover:bg-gray-100">
                     <ArrowLeft className="h-5 w-5 mr-1" />
                     Retour à la liste
                 </Button>
@@ -382,155 +384,166 @@ export const ArianeFinanceContractCreate = () => {
                                         (Auto-généré à la création)
                                     </span>
                                 </div>
+                            </div>
+                            <FormInput
+                                label="Statut :"
+                                value={formData.statut}
+                                onChange={(v) => setFormData({ ...formData, statut: v })}
+                                placeholder="Ex: En attente"
+                            />
+                            <FormInput
+                                label="Catégorie :"
+                                value={formData.categorie}
+                                onChange={(v) => setFormData({ ...formData, categorie: v })}
+                                placeholder="Ex: Standard"
+                            />
+                            <FormInput
+                                label="Montant du prêt assuré :"
+                                value={formData.montant_pret_assure}
+                                onChange={(v) => setFormData({ ...formData, montant_pret_assure: v })}
+                                type="number"
+                                placeholder="Ex: 2000000"
+                                required
+                                error={errors.montant_pret_assure || formErrors.montant_pret_assure}
+                            />
+                            <FormInput
+                                label="Durée du prêt (mois) :"
+                                value={formData.duree_pret}
+                                onChange={(v) => setFormData({ ...formData, duree_pret: v })}
+                                type="number"
+                                placeholder="Ex: 12"
+                                required
+                                error={errors.duree_pret || formErrors.duree_pret}
+                            />
+                            <FormInput
+                                label="Date d'effet :"
+                                value={formData.date_effet}
+                                onChange={(v) => setFormData({ ...formData, date_effet: v })}
+                                type="date"
+                                required
+                                error={errors.date_effet}
+                            />
+                            <FormInput
+                                label="Date de fin d'échéance :"
+                                value={formData.date_fin_echeance}
+                                disabled
+                            />
+                        </div>
+                    </div>
+                    {/* Section: Assuré/Emprunteur */}
+                    <div className={`flex border-b border-violet-500 ${!isSection2Enabled ? 'opacity-50 pointer-events-none' : ''}`}>
+                        <div className="w-28 flex-shrink-0 p-1.5 bg-violet-50 italic border-r border-violet-500 flex flex-col justify-center text-xs">
+                            Assuré/Emprunteur
+                        </div>
+                        <div className="flex-grow p-1.5 space-y-1">
+                            <div className="flex gap-2">
                                 <FormInput
-                                    label="Montant du prêt assuré :"
-                                    value={formData.montant_pret_assure}
-                                    onChange={(v) => setFormData({ ...formData, montant_pret_assure: v })}
-                                    type="number"
-                                    placeholder="Ex: 2000000"
+                                    label="Nom :"
+                                    value={formData.nom}
+                                    onChange={(v) => setFormData({ ...formData, nom: v })}
+                                    placeholder="Ex: NGUEMA"
                                     required
-                                    error={errors.montant_pret_assure || formErrors.montant_pret_assure}
+                                    error={errors.nom}
+                                    disabled={!isSection2Enabled}
                                 />
                                 <FormInput
-                                    label="Durée du prêt (mois) :"
-                                    value={formData.duree_pret}
-                                    onChange={(v) => setFormData({ ...formData, duree_pret: v })}
-                                    type="number"
-                                    placeholder="Ex: 12"
+                                    label="Prénom :"
+                                    value={formData.prenom}
+                                    onChange={(v) => setFormData({ ...formData, prenom: v })}
+                                    placeholder="Ex: Jean"
                                     required
-                                    error={errors.duree_pret || formErrors.duree_pret}
+                                    error={errors.prenom}
+                                    disabled={!isSection2Enabled}
+                                />
+                            </div>
+                            <div className="flex gap-2">
+                                <FormInput
+                                    label="Adresse :"
+                                    value={formData.adresse}
+                                    onChange={(v) => setFormData({ ...formData, adresse: v })}
+                                    placeholder="Ex: Quartier Louis"
+                                    disabled={!isSection2Enabled}
                                 />
                                 <FormInput
-                                    label="Date d'effet :"
-                                    value={formData.date_effet}
-                                    onChange={(v) => setFormData({ ...formData, date_effet: v })}
-                                    type="date"
+                                    label="Ville :"
+                                    value={formData.ville}
+                                    onChange={(v) => setFormData({ ...formData, ville: v })}
+                                    placeholder="Ex: Libreville"
+                                    disabled={!isSection2Enabled}
+                                />
+                            </div>
+                            <div className="flex gap-2">
+                                <FormInput
+                                    label="Téléphone :"
+                                    value={formData.telephone}
+                                    onChange={(v) => setFormData({ ...formData, telephone: v })}
+                                    placeholder="Ex: 06 12 34 56"
                                     required
-                                    error={errors.date_effet}
+                                    error={errors.telephone}
+                                    disabled={!isSection2Enabled}
                                 />
                                 <FormInput
-                                    label="Date de fin d'échéance :"
-                                    value={formData.date_fin_echeance}
-                                    disabled
+                                    label="Email :"
+                                    value={formData.email}
+                                    onChange={(v) => setFormData({ ...formData, email: v })}
+                                    placeholder="Ex: email@example.com"
+                                    type="email"
+                                    disabled={!isSection2Enabled}
                                 />
                             </div>
                         </div>
+                    </div>
 
-                        {/* Section: Assuré/Emprunteur */}
-                        <div className={`flex border-b border-violet-500 ${!isSection2Enabled ? 'opacity-50 pointer-events-none' : ''}`}>
-                            <div className="w-28 flex-shrink-0 p-1.5 bg-violet-50 italic border-r border-violet-500 flex flex-col justify-center text-xs">
-                                Assuré/Emprunteur
-                            </div>
-                            <div className="flex-grow p-1.5 space-y-1">
-                                <div className="flex gap-2">
-                                    <FormInput
-                                        label="Nom :"
-                                        value={formData.nom}
-                                        onChange={(v) => setFormData({ ...formData, nom: v })}
-                                        placeholder="Ex: NGUEMA"
-                                        required
-                                        error={errors.nom}
-                                        disabled={!isSection2Enabled}
-                                    />
-                                    <FormInput
-                                        label="Prénom :"
-                                        value={formData.prenom}
-                                        onChange={(v) => setFormData({ ...formData, prenom: v })}
-                                        placeholder="Ex: Jean"
-                                        required
-                                        error={errors.prenom}
-                                        disabled={!isSection2Enabled}
-                                    />
-                                </div>
-                                <div className="flex gap-2">
-                                    <FormInput
-                                        label="Adresse :"
-                                        value={formData.adresse}
-                                        onChange={(v) => setFormData({ ...formData, adresse: v })}
-                                        placeholder="Ex: Quartier Louis"
-                                        disabled={!isSection2Enabled}
-                                    />
-                                    <FormInput
-                                        label="Ville :"
-                                        value={formData.ville}
-                                        onChange={(v) => setFormData({ ...formData, ville: v })}
-                                        placeholder="Ex: Libreville"
-                                        disabled={!isSection2Enabled}
-                                    />
-                                </div>
-                                <div className="flex gap-2">
-                                    <FormInput
-                                        label="Téléphone :"
-                                        value={formData.telephone}
-                                        onChange={(v) => setFormData({ ...formData, telephone: v })}
-                                        placeholder="Ex: 06 12 34 56"
-                                        required
-                                        error={errors.telephone}
-                                        disabled={!isSection2Enabled}
-                                    />
-                                    <FormInput
-                                        label="Email :"
-                                        value={formData.email}
-                                        onChange={(v) => setFormData({ ...formData, email: v })}
-                                        placeholder="Ex: email@example.com"
-                                        type="email"
-                                        disabled={!isSection2Enabled}
-                                    />
-                                </div>
+                    {/* Section: Bénéficiaire */}
+                    <div className={`flex border-b border-violet-500 ${!isSection2Enabled ? 'opacity-50 pointer-events-none' : ''}`}>
+                        <div className="w-28 flex-shrink-0 p-1.5 bg-violet-50 italic border-r border-violet-500 flex flex-col justify-center text-xs">
+                            Bénéficiaire
+                        </div>
+                        <div className="flex-grow p-1.5 space-y-1">
+                            <div className="flex gap-2">
+                                <FormInput
+                                    label="Nom :"
+                                    value={formData.beneficiaire_nom}
+                                    onChange={(v) => setFormData({ ...formData, beneficiaire_nom: v })}
+                                    placeholder="Ex: NGUEMA"
+                                    disabled={!isSection2Enabled}
+                                />
+                                <FormInput
+                                    label="Prénom :"
+                                    value={formData.beneficiaire_prenom}
+                                    onChange={(v) => setFormData({ ...formData, beneficiaire_prenom: v })}
+                                    placeholder="Ex: Marie"
+                                    disabled={!isSection2Enabled}
+                                />
+                                <FormInput
+                                    label="Téléphone :"
+                                    value={formData.beneficiaire_telephone}
+                                    onChange={(v) => setFormData({ ...formData, beneficiaire_telephone: v })}
+                                    placeholder="Ex: 07 77 88 99"
+                                    disabled={!isSection2Enabled}
+                                />
                             </div>
                         </div>
+                    </div>
 
-                        {/* Section: Bénéficiaire */}
-                        <div className={`flex border-b border-violet-500 ${!isSection2Enabled ? 'opacity-50 pointer-events-none' : ''}`}>
-                            <div className="w-28 flex-shrink-0 p-1.5 bg-violet-50 italic border-r border-violet-500 flex flex-col justify-center text-xs">
-                                Bénéficiaire
-                            </div>
-                            <div className="flex-grow p-1.5 space-y-1">
-                                <div className="flex gap-2">
-                                    <FormInput
-                                        label="Nom :"
-                                        value={formData.beneficiaire_nom}
-                                        onChange={(v) => setFormData({ ...formData, beneficiaire_nom: v })}
-                                        placeholder="Ex: NGUEMA"
-                                        disabled={!isSection2Enabled}
-                                    />
-                                    <FormInput
-                                        label="Prénom :"
-                                        value={formData.beneficiaire_prenom}
-                                        onChange={(v) => setFormData({ ...formData, beneficiaire_prenom: v })}
-                                        placeholder="Ex: Marie"
-                                        disabled={!isSection2Enabled}
-                                    />
-                                    <FormInput
-                                        label="Téléphone :"
-                                        value={formData.beneficiaire_telephone}
-                                        onChange={(v) => setFormData({ ...formData, beneficiaire_telephone: v })}
-                                        placeholder="Ex: 07 77 88 99"
-                                        disabled={!isSection2Enabled}
-                                    />
-                                </div>
-                            </div>
+                    {/* Section: Cotisations */}
+                    <div className="flex bg-violet-50/50">
+                        <div className="w-28 flex-shrink-0 p-1.5 bg-violet-50 italic border-r border-violet-500 flex flex-col justify-center text-xs">
+                            Cotisations
                         </div>
-
-                        {/* Section: Cotisations */}
-                        <div className="flex bg-violet-50/50">
-                            <div className="w-28 flex-shrink-0 p-1.5 bg-violet-50 italic border-r border-violet-500 flex flex-col justify-center text-xs">
-                                Cotisations
-                            </div>
-                            <div className="flex-grow p-2">
-                                <div className="space-y-1 text-[10px]">
-                                    <div className="flex justify-between">
-                                        <span>Taux Décès/IAD :</span>
-                                        <span className="font-bold">{TAUX_DECES_IAD}%</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span>Calcul ({TAUX_DECES_IAD}% × {formatCurrency(montant)}) :</span>
-                                        <span className="font-bold">{formatCurrency(primeTotale)}</span>
-                                    </div>
-                                    <div className="flex justify-between border-t pt-1 mt-1">
-                                        <span className="font-bold">Prime totale :</span>
-                                        <span className="font-extrabold text-violet-600 text-base">{formatCurrency(primeTotale)}</span>
-                                    </div>
+                        <div className="flex-grow p-2">
+                            <div className="space-y-1 text-[10px]">
+                                <div className="flex justify-between">
+                                    <span>Taux Décès/IAD :</span>
+                                    <span className="font-bold">{TAUX_DECES_IAD}%</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span>Calcul ({TAUX_DECES_IAD}% × {formatCurrency(montant)}) :</span>
+                                    <span className="font-bold">{formatCurrency(primeTotale)}</span>
+                                </div>
+                                <div className="flex justify-between border-t pt-1 mt-1">
+                                    <span className="font-bold">Prime totale :</span>
+                                    <span className="font-extrabold text-violet-600 text-base">{formatCurrency(primeTotale)}</span>
                                 </div>
                             </div>
                         </div>
@@ -596,7 +609,7 @@ export const ArianeFinanceContractCreate = () => {
                     <Button
                         type="button"
                         variant="outline"
-                        onClick={() => navigate('/contrats/arianefinance')}
+                        onClick={() => navigate('/contrats/ariane-finance')}
                         className="flex-1"
                         disabled={isPending}
                     >

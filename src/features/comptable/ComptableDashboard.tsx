@@ -112,7 +112,8 @@ const Dropdown = ({
   
   return (
     <div className="relative">
-      <button 
+      <button
+        type="button"
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-1 text-xs font-bold text-gray-500 bg-gray-50 px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors"
       >

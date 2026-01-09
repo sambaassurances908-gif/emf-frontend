@@ -166,7 +166,8 @@ export const LimitesDepasseesModal: React.FC<LimitesDepasseesModalProps> = ({
                 </p>
               </div>
             </div>
-            <button 
+            <button
+              type="button"
               onClick={onClose}
               className="p-1 rounded-full hover:bg-white/20 transition-colors"
             >

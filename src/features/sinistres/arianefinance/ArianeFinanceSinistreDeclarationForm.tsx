@@ -194,7 +194,7 @@ export const ArianeFinanceSinistreDeclarationForm = () => {
         createSinistre(payload, {
             onSuccess: (response) => {
                 alert(`✅ Sinistre déclaré avec succès!\n\nNuméro: ${response.numero_sinistre || 'En attente'}`)
-                navigate('/sinistres/arianefinance')
+                navigate('/sinistres/ariane-finance')
             },
             onError: (error: any) => {
                 const validationErrors = error?.response?.data?.errors
@@ -236,7 +236,7 @@ export const ArianeFinanceSinistreDeclarationForm = () => {
                     <div className="flex items-center justify-between">
                         <Button
                             variant="ghost"
-                            onClick={() => navigate('/sinistres/arianefinance')}
+                            onClick={() => navigate('/sinistres/ariane-finance')}
                             className="flex items-center gap-2 text-slate-600 hover:text-slate-900"
                         >
                             <ArrowLeft className="h-4 w-4" />
@@ -591,7 +591,7 @@ export const ArianeFinanceSinistreDeclarationForm = () => {
                         <Button
                             type="button"
                             variant="outline"
-                            onClick={() => navigate('/sinistres/arianefinance')}
+                            onClick={() => navigate('/sinistres/ariane-finance')}
                             disabled={isPending}
                             className="h-12 px-6 border-slate-300"
                         >

@@ -276,6 +276,7 @@ export const FpdgSidebar = ({ isOpen, onToggle }: FpdgSidebarProps) => {
                 </div>
               </div>
               <button
+                type="button"
                 onClick={handleLogout}
                 className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                 title="Déconnexion"
@@ -289,6 +290,7 @@ export const FpdgSidebar = ({ isOpen, onToggle }: FpdgSidebarProps) => {
                 {user.name?.charAt(0)}
               </div>
               <button
+                type="button"
                 onClick={handleLogout}
                 className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                 title="Déconnexion"

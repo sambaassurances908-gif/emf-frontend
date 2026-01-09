@@ -125,7 +125,7 @@ import { CofigaContratPrintPage } from '@/features/contrats/cofiga/CofigaContrat
 import { AgrProContractsList, AgrProContractCreate, AgrProContractDetailPage, AgrProContractPrintPage } from '@/features/contrats/agrpro'
 
 // ✅ Pages ARIANE FINANCE
-import { ArianeFinanceContractsList, ArianeFinanceContractCreate } from '@/features/contrats/arianefinance'
+import { ArianeFinanceContractsList, ArianeFinanceContractCreateOfficial, ArianeFinanceContratDetailPage } from '@/features/contrats/arianefinance'
 
 // ✅ Pages Comptable
 import { ComptableDashboard, HistoriquePaiementsPage, RapportFinancierPage, QuittancesPage } from '@/features/comptable'
@@ -218,11 +218,14 @@ export const router = createBrowserRouter([
           { path: 'finam', element: <FinamContractsList /> },
           { path: 'cofiga', element: <CofigaContractsList /> },
           { path: 'agrpro', element: <AgrProContractsList /> },
-          { path: 'arianefinance', element: <ArianeFinanceContractsList /> },
+          { path: 'ariane-finance', element: <ArianeFinanceContractsList /> },
 
           // ✅ Détails et impression AGR PRO
           { path: 'agrpro/:id', element: <AgrProContractDetailPage /> },
           { path: 'agrpro/:id/print', element: <AgrProContractPrintPage /> },
+
+          // ✅ Détails et impression ARIANE FINANCE
+          { path: 'ariane-finance/:id', element: <ArianeFinanceContratDetailPage /> },
 
           // ✅ Détails dédiés par EMF
           { path: 'bamboo/:id', element: <BambooContratDetailPage /> },
@@ -282,7 +285,7 @@ export const router = createBrowserRouter([
               { path: 'finam', element: <FinamContractCreateOfficial /> },
               { path: 'cofiga', element: <CofigaContractCreateOfficial /> },
               { path: 'agrpro', element: <AgrProContractCreate /> },
-              { path: 'arianefinance', element: <ArianeFinanceContractCreate /> },
+              { path: 'ariane-finance', element: <ArianeFinanceContractCreateOfficial /> },
             ],
           },
         ],
@@ -305,7 +308,7 @@ export const router = createBrowserRouter([
           { path: 'cofiga', element: <CofigaSinistresList /> },
           { path: 'finam', element: <FinamSinistresList /> },
           { path: 'agrpro', element: <AgrProSinistresList /> },
-          { path: 'arianefinance', element: <ArianeFinanceSinistresList /> },
+          { path: 'ariane-finance', element: <ArianeFinanceSinistresList /> },
 
           // Déclaration générique (fallback)
           { path: 'nouveau', element: <SinistreDeclarationForm /> },
@@ -319,7 +322,7 @@ export const router = createBrowserRouter([
           { path: 'nouveau/cofiga', element: <CofigaSinistreDeclarationForm /> },
           { path: 'nouveau/finam', element: <FinamSinistreDeclarationForm /> },
           { path: 'nouveau/agrpro', element: <AgrProSinistreDeclarationForm /> },
-          { path: 'nouveau/arianefinance', element: <ArianeFinanceSinistreDeclarationForm /> },
+          { path: 'nouveau/ariane-finance', element: <ArianeFinanceSinistreDeclarationForm /> },
 
           // ✅ Page de traitement admin (route principale)
           { path: 'traitement/:id', element: <SinistreTraitementPage /> },
@@ -336,7 +339,7 @@ export const router = createBrowserRouter([
           { path: 'cofiga/:id', element: <SinistreDetailPageV2 /> },
           { path: 'finam/:id', element: <SinistreDetailPageV2 /> },
           { path: 'agrpro/:id', element: <SinistreDetailPageV2 /> },
-          { path: 'arianefinance/:id', element: <SinistreDetailPageV2 /> },
+          { path: 'ariane-finance/:id', element: <SinistreDetailPageV2 /> },
 
           // Détail générique d'un sinistre (V2 avec quittances)
           { path: ':id', element: <SinistreDetailPageV2 /> },

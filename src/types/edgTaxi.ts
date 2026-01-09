@@ -33,6 +33,8 @@ export interface EdgTaxiPerteRecetteContrat {
     // Paramètres
     periodicite: 'annuel' | 'semestre'
     cotisation?: number
+    statut?: string
+    categorie?: string
 
     created_at?: string
     updated_at?: string
@@ -57,6 +59,8 @@ export interface EdgTaxiPerteRecetteFormData {
     contact_nom?: string
     contact_telephone?: string
     periodicite: 'annuel' | 'semestre'
+    statut?: string
+    categorie?: string
 }
 
 // Constantes métier (miroir du backend)
@@ -92,6 +96,8 @@ export interface EdgTaxiPrevoyanceDecesContrat {
     periodicite: 'annuel' | 'semestre'
     prime_semestrielle?: number
     prime_annuelle?: number
+    statut?: string
+    categorie?: string
 
     assures_associes?: Array<{
         lien: string
@@ -119,6 +125,8 @@ export interface EdgTaxiPrevoyanceDecesFormData {
     telephone?: string
     email?: string
     periodicite: 'annuel' | 'semestre'
+    statut?: string
+    categorie?: string
     assures_associes: Array<{
         lien: string
         nom: string

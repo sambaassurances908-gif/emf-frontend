@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { useBcegTaxiPrevoyanceDecesContract, useDeleteBcegTaxiPrevoyanceDecesContract } from '@/hooks/useBcegTaxiContracts'
@@ -40,14 +40,14 @@ const InfoCard = ({
     </div>
 )
 
-// Badge de statut (unused but keep if useful)
-const StatusBadge = ({ statut = 'actif' }: { statut?: string }) => {
-    return (
-        <span className="px-4 py-2 rounded-full text-sm font-bold bg-green-50 text-green-600 uppercase">
-            {statut}
-        </span>
-    )
-}
+// Badge de statut commenté car non utilisé actuellement
+// const StatusBadge = ({ statut = 'actif' }: { statut?: string }) => {
+//     return (
+//         <span className="px-4 py-2 rounded-full text-sm font-bold bg-green-50 text-green-600 uppercase">
+//             {statut}
+//         </span>
+//     )
+// }
 
 // Ligne d'information
 const InfoRow = ({ label, value, mono = false }: { label: string; value: React.ReactNode; mono?: boolean }) => (
@@ -135,6 +135,7 @@ export const BcegTaxiPrevoyanceDecesDetailPage = () => {
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
                 <div className="flex items-center gap-4">
                     <button
+                        type="button"
                         onClick={() => navigate('/contrats/bceg')}
                         className="p-2 bg-white rounded-full shadow-sm hover:shadow-md transition-shadow text-gray-500"
                     >
@@ -152,6 +153,7 @@ export const BcegTaxiPrevoyanceDecesDetailPage = () => {
 
                 <div className="flex gap-3">
                     <button
+                        type="button"
                         onClick={handlePrint}
                         className="flex items-center gap-2 px-4 py-2 bg-[#F48232] text-white hover:bg-[#e0742a] rounded-xl font-bold text-sm transition-colors"
                     >
@@ -223,6 +225,7 @@ export const BcegTaxiPrevoyanceDecesDetailPage = () => {
             {/* Actions Footer */}
             <div className="mt-10 flex justify-end gap-3 pt-6 border-t border-gray-200">
                 <button
+                    type="button"
                     onClick={() => navigate(`/contrats/bceg-taxi-prevoyance-deces/${id}/edit`)}
                     className="flex items-center gap-2 px-6 py-3 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-xl font-bold transition-all"
                 >
@@ -230,6 +233,7 @@ export const BcegTaxiPrevoyanceDecesDetailPage = () => {
                     Modifier le contrat
                 </button>
                 <button
+                    type="button"
                     onClick={handleDelete}
                     className="flex items-center gap-2 px-6 py-3 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl font-bold transition-all"
                 >

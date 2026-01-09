@@ -111,6 +111,20 @@ export const BcegMotoContratPrint: React.FC<BcegMotoContratPrintProps> = ({ cont
                         <div className="flex gap-4">
                             <div className="flex-1">
                                 <FormInput
+                                    label="Statut :"
+                                    value={contrat.statut || 'En attente'}
+                                />
+                            </div>
+                            <div className="flex-1">
+                                <FormInput
+                                    label="Catégorie :"
+                                    value={contrat.categorie || 'Standard'}
+                                />
+                            </div>
+                        </div>
+                        <div className="flex gap-4">
+                            <div className="flex-1">
+                                <FormInput
                                     label="Montant du prêt :"
                                     value={formatCurrency(Number(contrat.montant_pret))}
                                 />

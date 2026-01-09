@@ -65,7 +65,9 @@ export interface AgrProContrat {
     montant_prevoyance_forfaitaire?: number // 25000 FCFA
 
     // Statut
-    statut: 'actif' | 'en_attente' | 'resilie' | 'termine' | 'sinistre'
+    statut: string // Relaxed from union to string to allow free input
+    categorie?: string | null
+    autre_categorie_precision?: string | null
     observations?: string | null
 
     // Relations
@@ -100,6 +102,9 @@ export interface AgrProContratCreatePayload {
     taux_pret?: number
     prime_unique?: number
     montant_prevoyance_forfaitaire?: number
+    statut?: string
+    categorie?: string
+    autre_categorie_precision?: string
 }
 
 export interface ApiResponse<T> {

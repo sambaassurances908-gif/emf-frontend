@@ -11,7 +11,6 @@ import { AgrProContratCreatePayload } from '@/types/agrpro'
 import { AgrProContractFormLayout } from './components/AgrProContractFormLayout'
 
 // Schema de validation
-// Schema de validation
 const schema = z.object({
     numero_police: z.string().optional(),
     duree_pret: z.union([z.string(), z.number()])
@@ -36,6 +35,9 @@ const schema = z.object({
     prime_unique: z.number().optional(),
     taux_pret: z.number().optional(),
     montant_prevoyance_forfaitaire: z.number().optional(),
+    statut: z.string().optional(),
+    categorie: z.enum(['commercants', 'salaries_public', 'salaries_prive', 'retraites', 'autre', '']).optional(),
+    autre_categorie_precision: z.string().optional(),
 })
 
 type FormValues = z.infer<typeof schema>
@@ -52,6 +54,9 @@ export const AgrProContractCreate = () => {
             prime_unique: 5000, // Default active
             taux_pret: 3,     // Default active
             montant_prevoyance_forfaitaire: 250000,
+            statut: 'Actif',
+            categorie: '',
+            autre_categorie_precision: '',
         },
     })
 
@@ -78,6 +83,8 @@ export const AgrProContractCreate = () => {
                 prime_unique: 5000, // Force values
                 taux_pret: 3,
                 montant_prevoyance_forfaitaire: 250000,
+                statut: data.statut || undefined,
+                categorie: data.categorie || undefined,
             }
 
             console.log('Soumission Contrat AGR PRO:', payload)

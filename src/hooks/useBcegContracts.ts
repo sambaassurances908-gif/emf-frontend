@@ -35,23 +35,23 @@ export const useBcegContracts = (emfId: number) => {
       const contratsTaxiPD = extractData(resTaxiPD)
 
       // Add Source tag & Normalize
-      const standardTagged = contratsStandard.map(c => ({ ...c, source: 'standard' }))
+      const standardTagged = contratsStandard.map((c: any) => ({ ...c, source: 'standard' }))
 
-      const motoTagged = contratsMoto.map(c => ({
+      const motoTagged = contratsMoto.map((c: any) => ({
         ...c,
         source: 'moto',
         numero_police: c.numero_police || c.police_numero,
         statut: c.statut || 'actif'
       }))
 
-      const taxiPRTagged = contratsTaxiPR.map(c => ({
+      const taxiPRTagged = contratsTaxiPR.map((c: any) => ({
         ...c,
         source: 'taxi_perte_recette',
         montant_pret: 0,
         statut: c.statut || 'actif'
       }))
 
-      const taxiPDTagged = contratsTaxiPD.map(c => ({
+      const taxiPDTagged = contratsTaxiPD.map((c: any) => ({
         ...c,
         source: 'taxi_prevoyance_deces',
         montant_pret: 0,

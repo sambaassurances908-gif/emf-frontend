@@ -121,6 +121,20 @@ export const BcegTaxiPrevoyanceDecesPrint: React.FC<BcegTaxiPrevoyanceDecesPrint
                                 {contrat.numero_police}
                             </div>
                         </div>
+                        <div className="flex gap-8 text-[11px]">
+                            <div className="flex items-center gap-2 text-[11px]">
+                                <span className="w-32 font-medium">Statut :</span>
+                                <div className="border border-gray-400 rounded py-1 px-3 font-bold bg-white min-w-[200px] text-sm">
+                                    {contrat.statut || 'En attente'}
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2 text-[11px]">
+                                <span className="w-32 font-medium">Catégorie :</span>
+                                <div className="border border-gray-400 rounded py-1 px-3 font-bold bg-white min-w-[200px] text-sm">
+                                    {contrat.categorie || 'Standard'}
+                                </div>
+                            </div>
+                        </div>
                         <div className="flex gap-8">
                             <div className="flex items-center gap-2 text-[11px]">
                                 <span className="w-32 font-medium">Date d'effet :</span>
