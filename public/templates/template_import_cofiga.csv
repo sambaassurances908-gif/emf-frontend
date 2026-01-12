@@ -1,0 +1,2 @@
+nom;prenom;adresse;ville;telephone;email;categorie;montant_pret_assure;duree_pret;date_effet;beneficiaire_nom;beneficiaire_prenom;beneficiaire_telephone;agence;lieu_signature;date_signature
+Jean;Dupont;123 Rue Exemple;Conakry;620123456;jean@exemple.com;CDI;5000000;12;2026-01-15;Dupont;Marie;620987654;Agence Centre;Conakry;2026-01-10

@@ -1,0 +1,2 @@
+nom;prenom;adresse_assure;ville_assure;telephone_assure;email_assure;categorie;beneficiaire_prevoyance_nom_prenom;beneficiaire_prevoyance_adresse;beneficiaire_prevoyance_contact;montant_pret;duree_pret_mois;date_effet;lieu_signature;date_signature;agence;prime_unique_prevoyance;statut
+Jean;Dupont;123 Rue Exemple;Conakry;620123456;jean@exemple.com;CDI;Marie Dupont;456 Rue Bénéficiaire;620987654;5000000;12;2026-01-15;Conakry;2026-01-10;Agence Centre;75000;Actif

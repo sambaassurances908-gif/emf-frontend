@@ -520,14 +520,6 @@ export const DashboardPage = () => {
         </div>
 
         <div className="flex items-center gap-4">
-          {/* Bouton Import CSV */}
-          <button
-            onClick={() => setIsImportModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-gray-900 text-white rounded-xl font-medium text-sm hover:bg-gray-800 transition-colors shadow-sm"
-          >
-            <Upload size={16} />
-            Importer CSV
-          </button>
 
           <Dropdown
             label="Période"

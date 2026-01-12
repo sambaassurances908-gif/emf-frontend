@@ -1,10 +1,10 @@
 // src/features/contrats/bamboo/BambooContractCreateOfficial.tsx
-import React, { useState, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import React, { useState, useMemo, useEffect } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, Save, CheckCircle, AlertCircle, Mail, Phone, MapPin, Printer } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { useAuthStore } from '@/store/authStore'
-import { useCreateBambooContract } from '@/hooks/useBambooContracts'
+import { useCreateBambooContract, useBambooContract, useUpdateBambooContract } from '@/hooks/useBambooContracts'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { formatCurrency } from '@/lib/utils'
 import logoSamba from '@/assets/logo-samba.png'
@@ -116,7 +116,12 @@ const Footer: React.FC = () => {
 
 export const BambooContractCreateOfficial = () => {
   const navigate = useNavigate()
+  const { id } = useParams<{ id: string }>()
   const { user } = useAuthStore()
+
+  // Mode édition si un ID est présent dans l'URL
+  const isEditMode = !!id
+  const contractId = id ? Number(id) : undefined
 
   // ═══════════════════════════════════════════════════════════════════
   // 🔒 VÉRIFICATION EMF - BAMBOO = emf_id 1
@@ -128,6 +133,9 @@ export const BambooContractCreateOfficial = () => {
 
   // IMPORTANT: Toujours utiliser emf_id = 1 pour BAMBOO
   const emfId = 1
+
+  // Charger les données du contrat existant en mode édition
+  const { data: existingContract, isLoading: isLoadingContract } = useBambooContract(contractId)
 
   const [formData, setFormData] = useState({
     emf_id: emfId,
@@ -152,6 +160,36 @@ export const BambooContractCreateOfficial = () => {
     lieu_signature: 'Libreville',
     date_signature: new Date().toISOString().split('T')[0]
   })
+
+  // Pré-remplir le formulaire avec les données existantes en mode édition
+  useEffect(() => {
+    if (isEditMode && existingContract) {
+      console.log('📝 Mode édition - Chargement des données:', existingContract)
+      setFormData({
+        emf_id: existingContract.emf_id || emfId,
+        nom_prenom: existingContract.nom_prenom || '',
+        adresse_assure: existingContract.adresse_assure || '',
+        ville_assure: existingContract.ville_assure || '',
+        telephone_assure: existingContract.telephone_assure || '',
+        email_assure: existingContract.email_assure || '',
+        numero_police: existingContract.numero_police || '',
+        categorie: (existingContract.categorie as typeof formData.categorie) || '',
+        autre_categorie_precision: existingContract.autre_categorie_precision || '',
+        montant_pret_assure: existingContract.montant_pret_assure?.toString() || '',
+        duree_pret_mois: existingContract.duree_pret_mois?.toString() || '',
+        date_effet: existingContract.date_effet?.split('T')[0] || '',
+        date_fin_echeance: existingContract.date_fin_echeance?.split('T')[0] || '',
+        beneficiaire_prevoyance: existingContract.beneficiaire_prevoyance || '',
+        garantie_prevoyance_deces_iad: !!existingContract.garantie_prevoyance_deces_iad || !!existingContract.garantie_prevoyance,
+        garantie_deces_iad: !!existingContract.garantie_deces_iad,
+        garantie_perte_emploi: !!existingContract.garantie_perte_emploi,
+        type_contrat_travail: (existingContract.type_contrat_travail as typeof formData.type_contrat_travail) || '',
+        agence: existingContract.agence || '',
+        lieu_signature: existingContract.lieu_signature || 'Libreville',
+        date_signature: existingContract.date_signature?.split('T')[0] || new Date().toISOString().split('T')[0]
+      })
+    }
+  }, [isEditMode, existingContract, emfId])
 
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [submitError, setSubmitError] = useState('')
@@ -198,10 +236,14 @@ export const BambooContractCreateOfficial = () => {
   const isSection4Enabled = isSection2Complete
   const isSection5Enabled = isSection2Complete
 
-  // Bouton de création: actif si tous les champs obligatoires sont remplis
+  // Bouton de création/édition: actif si tous les champs obligatoires sont remplis
   const isFormComplete = isSection1Complete && isSection2Complete
 
-  const { mutate: createContract, isPending, isSuccess } = useCreateBambooContract()
+  const { mutate: createContract, isPending: isCreating, isSuccess: isCreateSuccess } = useCreateBambooContract()
+  const { mutate: updateContract, isPending: isUpdating, isSuccess: isUpdateSuccess } = useUpdateBambooContract()
+
+  const isPending = isCreating || isUpdating
+  const isSuccess = isCreateSuccess || isUpdateSuccess
 
   // Calculer la date de fin automatiquement avec useMemo
   const calculatedDateFinEcheance = useMemo(() => {
@@ -320,6 +362,15 @@ export const BambooContractCreateOfficial = () => {
     )
   }
 
+  // Affichage du chargement en mode édition
+  if (isEditMode && isLoadingContract) {
+    return (
+      <div className="flex items-center justify-center h-[calc(100vh-4rem)] bg-gray-100">
+        <LoadingSpinner size="lg" text="Chargement du contrat BAMBOO..." />
+      </div>
+    )
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     setErrors({})
@@ -401,36 +452,41 @@ export const BambooContractCreateOfficial = () => {
         statut: 'actif',
       }
 
-      console.log('📤 Payload BAMBOO:', JSON.stringify(payload, null, 2))
+      console.log(`📤 Payload BAMBOO (${isEditMode ? 'ÉDITION' : 'CRÉATION'}):`, JSON.stringify(payload, null, 2))
 
-      createContract(payload, {
-        onSuccess: (data) => {
-          const contractId = 'id' in data ? data.id : (data as { data?: { id?: number } }).data?.id
-          console.log('✅ Contrat BAMBOO créé avec succès! ID:', contractId)
-          navigate(`/contrats/bamboo/${contractId}`, {
-            state: { success: 'Contrat créé avec succès !' }
+      const onSuccess = (data: any) => {
+        const resultId = 'id' in data ? data.id : (data as { data?: { id?: number } }).data?.id || contractId
+        console.log(`✅ Contrat BAMBOO ${isEditMode ? 'modifié' : 'créé'} avec succès! ID:`, resultId)
+        navigate(`/contrats/bamboo/${resultId}`, {
+          state: { success: `Contrat ${isEditMode ? 'modifié' : 'créé'} avec succès !` }
+        })
+      }
+
+      const onError = (error: { response?: { status?: number; data?: { errors?: Record<string, string | string[]>; message?: string }; message?: string }; message?: string }) => {
+        console.error(`❌ Erreur ${isEditMode ? 'modification' : 'création'} BAMBOO:`, error.response?.data?.message || error.message)
+        console.error('❌ Détails erreur:', JSON.stringify(error.response?.data, null, 2))
+        if (error.response?.status === 422) {
+          const validationErrors = error.response.data?.errors || {}
+          console.error('❌ Erreurs de validation backend:', validationErrors)
+          const newErrors: Record<string, string> = {}
+          Object.entries(validationErrors).forEach(([key, messages]) => {
+            newErrors[key] = Array.isArray(messages) ? messages[0] : messages as string
           })
-        },
-        onError: (error: { response?: { status?: number; data?: { errors?: Record<string, string | string[]>; message?: string }; message?: string }; message?: string }) => {
-          console.error('❌ Erreur création BAMBOO:', error.response?.data?.message || error.message)
-          console.error('❌ Détails erreur:', JSON.stringify(error.response?.data, null, 2))
-          if (error.response?.status === 422) {
-            const validationErrors = error.response.data?.errors || {}
-            console.error('❌ Erreurs de validation backend:', validationErrors)
-            const newErrors: Record<string, string> = {}
-            Object.entries(validationErrors).forEach(([key, messages]) => {
-              newErrors[key] = Array.isArray(messages) ? messages[0] : messages as string
-            })
-            setErrors(newErrors)
-            const errorMessages = Object.entries(validationErrors)
-              .map(([field, msgs]) => `• ${field}: ${Array.isArray(msgs) ? msgs[0] : msgs}`)
-              .join('\n')
-            setSubmitError(`❌ Erreurs de validation:\n${errorMessages || error.response?.data?.message || 'Erreur inconnue'}`)
-          } else {
-            setSubmitError(`❌ Erreur: ${error.response?.data?.message || error.message}`)
-          }
+          setErrors(newErrors)
+          const errorMessages = Object.entries(validationErrors)
+            .map(([field, msgs]) => `• ${field}: ${Array.isArray(msgs) ? msgs[0] : msgs}`)
+            .join('\n')
+          setSubmitError(`❌ Erreurs de validation:\n${errorMessages || error.response?.data?.message || 'Erreur inconnue'}`)
+        } else {
+          setSubmitError(`❌ Erreur: ${error.response?.data?.message || error.message}`)
         }
-      })
+      }
+
+      if (isEditMode && contractId) {
+        updateContract({ id: contractId, payload }, { onSuccess, onError })
+      } else {
+        createContract(payload, { onSuccess, onError })
+      }
 
     } catch (error) {
       console.error('💥 ERREUR INATTENDUE:', error)
@@ -443,11 +499,13 @@ export const BambooContractCreateOfficial = () => {
     <div className="min-h-screen bg-gray-100 py-4 px-4">
       {/* Toolbar */}
       <div className="max-w-[210mm] mx-auto mb-4 flex items-center justify-between bg-white rounded-lg shadow p-3">
-        <Button variant="ghost" onClick={() => navigate('/contrats/bamboo')} className="hover:bg-gray-100">
+        <Button variant="ghost" onClick={() => navigate(isEditMode ? `/contrats/bamboo/${contractId}` : '/contrats/bamboo')} className="hover:bg-gray-100">
           <ArrowLeft className="h-5 w-5 mr-1" />
-          Retour à la liste
+          {isEditMode ? 'Retour au contrat' : 'Retour à la liste'}
         </Button>
-        <h1 className="text-lg font-bold text-[#F48232]">Nouveau Contrat BAMBOO-EMF</h1>
+        <h1 className="text-lg font-bold text-[#F48232]">
+          {isEditMode ? `Modifier Contrat BAMBOO #${contractId}` : 'Nouveau Contrat BAMBOO-EMF'}
+        </h1>
         <div className="flex gap-2">
           <Button
             variant="outline"

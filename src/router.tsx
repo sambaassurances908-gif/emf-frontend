@@ -244,17 +244,25 @@ export const router = createBrowserRouter([
 
           // ✅ Détails dédiés par EMF
           { path: 'bamboo/:id', element: <BambooContratDetailPage /> },
+          { path: 'bamboo/:id/edit', element: <BambooContractCreateOfficial /> },
+          { path: 'bamboo-emf/:id', element: <BambooContratDetailPage /> }, // Alias pour compatibilité avec type_contrat
+          { path: 'bamboo-emf/:id/edit', element: <BambooContractCreateOfficial /> },
           { path: 'sodec/:id', element: <SodecContratDetailPage /> },
           { path: 'sodec/:id/print', element: <SodecContratPrintPage /> },
           { path: 'cofidec/:id', element: <CofidecContratDetailPage /> },
+          { path: 'cofidec/:id/edit', element: <CofidecContractCreateOfficial /> },
           { path: 'cofidec/:id/print', element: <CofidecContratPrintPage /> },
           { path: 'bceg/:id', element: <BcegContratDetailPage /> },
+          { path: 'bceg/:id/edit', element: <BcegContractCreateOfficial /> },
           { path: 'bceg/:id/print', element: <BcegContratPrintPage /> },
           { path: 'edg/:id', element: <EdgContratDetailPage /> },
           { path: 'finam/:id', element: <FinamContratDetailPage /> },
+          { path: 'finam/:id/edit', element: <FinamContractCreateOfficial /> },
           { path: 'finam/:id/print', element: <FinamContratPrintPage /> },
           { path: 'cofiga/:id', element: <CofigaContratDetailPage /> },
+          { path: 'cofiga/:id/edit', element: <CofigaContractCreateOfficial /> },
           { path: 'cofiga/:id/print', element: <CofigaContratPrintPage /> },
+          { path: 'sodec/:id/edit', element: <SodecContractCreateOfficial /> },
           { path: 'bceg-moto/:id', element: <BcegMotoContratDetailPage /> },
           { path: 'bceg-moto/:id/edit', element: <BcegMotoContractCreate /> },
 
@@ -300,6 +308,7 @@ export const router = createBrowserRouter([
               { path: 'finam', element: <FinamContractCreateOfficial /> },
               { path: 'cofiga', element: <CofigaContractCreateOfficial /> },
               { path: 'agrpro', element: <AgrProContractCreate /> },
+              { path: 'agr-pro', element: <AgrProContractCreate /> }, // Alias avec tiret
               { path: 'ariane-finance', element: <ArianeFinanceContractCreateOfficial /> },
             ],
           },

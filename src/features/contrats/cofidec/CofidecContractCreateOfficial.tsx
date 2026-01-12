@@ -1,9 +1,9 @@
 // src/features/contrats/cofidec/CofidecContractCreateOfficial.tsx
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Printer, Save, ArrowLeft, CheckCircle, AlertTriangle, AlertCircle, Lock } from 'lucide-react'
+import { useNavigate, useParams } from 'react-router-dom'
+import { Printer, Save, ArrowLeft, CheckCircle, AlertTriangle, AlertCircle, Lock, Edit } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
-import { useCreateCofidecContract } from '@/hooks/useCofidecContracts'
+import { useCreateCofidecContract, useCofidecContract, useUpdateCofidecContract } from '@/hooks/useCofidecContracts'
 import { Button } from '@/components/ui/Button'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import logoSamba from '@/assets/logo-samba.png'
@@ -61,7 +61,17 @@ const Checkbox: React.FC<{
 
 export const CofidecContractCreateOfficial = () => {
   const navigate = useNavigate()
+  const { id } = useParams<{ id: string }>()
   const { user } = useAuthStore()
+
+  // ═══════════════════════════════════════════════════════════════════
+  // 📝 MODE ÉDITION - Récupérer le contrat existant si ID présent
+  // ═══════════════════════════════════════════════════════════════════
+  const isEditMode = Boolean(id)
+  const contractId = id ? parseInt(id) : undefined
+
+  // Récupérer le contrat existant en mode édition
+  const { data: existingContract, isLoading: isLoadingContract } = useCofidecContract(contractId)
 
   // ═══════════════════════════════════════════════════════════════════
   // 🔒 VÉRIFICATION EMF - COFIDEC = emf_id 2
@@ -99,7 +109,42 @@ export const CofidecContractCreateOfficial = () => {
   })
 
   const [submitError, setSubmitError] = useState('')
-  const { mutate: createContract, isPending } = useCreateCofidecContract()
+  const { mutate: createContract, isPending: isCreating } = useCreateCofidecContract()
+  const { mutate: updateContract, isPending: isUpdating } = useUpdateCofidecContract()
+
+  const isPending = isCreating || isUpdating
+
+  // ═══════════════════════════════════════════════════════════════════
+  // 📝 PRÉ-REMPLIR LE FORMULAIRE EN MODE ÉDITION
+  // ═══════════════════════════════════════════════════════════════════
+  useEffect(() => {
+    if (isEditMode && existingContract) {
+      console.log('📝 Mode édition - Pré-remplissage du formulaire:', existingContract)
+      setFormData({
+        emf_id: existingContract.emf_id || emfId,
+        nom_prenom: existingContract.nom_prenom || '',
+        adresse_assure: existingContract.adresse_assure || '',
+        ville_assure: existingContract.ville_assure || '',
+        telephone_assure: existingContract.telephone_assure || '',
+        email_assure: existingContract.email_assure || '',
+        montant_pret: String(existingContract.montant_pret_assure || existingContract.montant_pret || ''),
+        duree_pret_mois: String(existingContract.duree_pret_mois || ''),
+        date_effet: existingContract.date_effet?.split('T')[0] || '',
+        date_fin_echeance: existingContract.date_fin_echeance?.split('T')[0] || '',
+        categorie: existingContract.categorie || '',
+        autre_categorie_precision: existingContract.autre_categorie_precision || '',
+        agence: existingContract.agence || '',
+        beneficiaire_nom: existingContract.beneficiaire_nom || '',
+        beneficiaire_prenom: existingContract.beneficiaire_prenom || '',
+        beneficiaire_contact: existingContract.beneficiaire_contact || '',
+        garantie_prevoyance: existingContract.garantie_prevoyance ?? true,
+        garantie_deces_iad: existingContract.garantie_deces_iad ?? true,
+        garantie_perte_emploi: existingContract.garantie_perte_emploi ?? false,
+        lieu_signature: existingContract.lieu_signature || 'Libreville',
+        date_signature: existingContract.date_signature?.split('T')[0] || new Date().toISOString().split('T')[0],
+      })
+    }
+  }, [isEditMode, existingContract, emfId])
 
   // Variable dérivée pour l'affichage conditionnel dans le JSX
   const duree = parseInt(formData.duree_pret_mois) || 0
@@ -319,44 +364,72 @@ export const CofidecContractCreateOfficial = () => {
 
     console.log('📤 Payload COFIDEC:', JSON.stringify(payload, null, 2))
 
-    createContract(payload, {
-      onSuccess: (response: any) => {
-        console.log('✅ Contrat COFIDEC créé - Réponse complète:', response)
+    // ═══════════════════════════════════════════════════════════════════
+    // 📝 MODE ÉDITION vs CRÉATION
+    // ═══════════════════════════════════════════════════════════════════
+    if (isEditMode && contractId) {
+      console.log('📝 Mode édition - Mise à jour du contrat ID:', contractId)
 
-        // Extraire l'ID selon le format de réponse du backend
-        const contratId = response?.id || response?.data?.id || response?.contrat?.id
+      updateContract(
+        { id: contractId, payload },
+        {
+          onSuccess: (response: any) => {
+            console.log('✅ Contrat COFIDEC mis à jour:', response)
+            navigate(`/contrats/cofidec/${contractId}`, {
+              state: { success: 'Contrat modifié avec succès !' }
+            })
+          },
+          onError: (error: any) => {
+            console.error('❌ Erreur mise à jour COFIDEC:', error.response?.data)
 
-        if (contratId) {
-          console.log('✅ ID du contrat:', contratId)
-          navigate(`/contrats/cofidec/${contratId}`, {
-            state: { success: 'Contrat créé avec succès !' }
-          })
-        } else {
-          console.warn('⚠️ ID du contrat non trouvé dans la réponse:', response)
-          // Rediriger vers la liste en cas de problème
-          navigate('/contrats/cofidec', {
-            state: { success: 'Contrat créé avec succès !' }
-          })
+            if (error.response?.status === 422) {
+              const validationErrors = error.response.data.errors || {}
+              const errorMessages = Object.entries(validationErrors)
+                .map(([field, msgs]) => `• ${field}: ${Array.isArray(msgs) ? msgs[0] : msgs}`)
+                .join('\n')
+              setSubmitError(`Erreurs de validation:\n${errorMessages || error.response.data.message || 'Champs invalides'}`)
+            } else {
+              setSubmitError(error.response?.data?.message || 'Erreur lors de la mise à jour')
+            }
+          }
         }
-      },
-      onError: (error: any) => {
-        console.error('❌ Erreur création COFIDEC:', error.response?.data)
+      )
+    } else {
+      // Mode création
+      createContract(payload, {
+        onSuccess: (response: any) => {
+          console.log('✅ Contrat COFIDEC créé - Réponse complète:', response)
 
-        // Afficher les erreurs de validation détaillées
-        if (error.response?.status === 422) {
-          const validationErrors = error.response.data.errors || {}
-          console.error('❌ Erreurs de validation:', validationErrors)
+          // Extraire l'ID selon le format de réponse du backend
+          const contratId = response?.id || response?.data?.id || response?.contrat?.id
 
-          const errorMessages = Object.entries(validationErrors)
-            .map(([field, msgs]) => `• ${field}: ${Array.isArray(msgs) ? msgs[0] : msgs}`)
-            .join('\n')
+          if (contratId) {
+            console.log('✅ ID du contrat:', contratId)
+            navigate(`/contrats/cofidec/${contratId}`, {
+              state: { success: 'Contrat créé avec succès !' }
+            })
+          } else {
+            console.warn('⚠️ ID du contrat non trouvé dans la réponse:', response)
+            navigate('/contrats/cofidec', {
+              state: { success: 'Contrat créé avec succès !' }
+            })
+          }
+        },
+        onError: (error: any) => {
+          console.error('❌ Erreur création COFIDEC:', error.response?.data)
 
-          setSubmitError(`Erreurs de validation:\n${errorMessages || error.response.data.message || 'Champs invalides'}`)
-        } else {
-          setSubmitError(error.response?.data?.message || 'Erreur lors de la création')
+          if (error.response?.status === 422) {
+            const validationErrors = error.response.data.errors || {}
+            const errorMessages = Object.entries(validationErrors)
+              .map(([field, msgs]) => `• ${field}: ${Array.isArray(msgs) ? msgs[0] : msgs}`)
+              .join('\n')
+            setSubmitError(`Erreurs de validation:\n${errorMessages || error.response.data.message || 'Champs invalides'}`)
+          } else {
+            setSubmitError(error.response?.data?.message || 'Erreur lors de la création')
+          }
         }
-      }
-    })
+      })
+    }
   }
 
   const formatCurrency = (value: number) => {
@@ -399,11 +472,13 @@ export const CofidecContractCreateOfficial = () => {
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={isPending}
+            disabled={isPending || isLoadingContract}
             className="bg-[#F48232] hover:bg-orange-600"
           >
-            <Save className="h-4 w-4 mr-2" />
-            {isPending ? 'Enregistrement...' : 'Enregistrer'}
+            {isEditMode ? <Edit className="h-4 w-4 mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+            {isPending
+              ? (isEditMode ? 'Modification...' : 'Enregistrement...')
+              : (isEditMode ? 'Modifier' : 'Enregistrer')}
           </Button>
         </div>
       </div>

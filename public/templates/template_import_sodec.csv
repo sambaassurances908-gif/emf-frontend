@@ -1,0 +1,2 @@
+nom_prenom;adresse_assure;ville_assure;telephone_assure;email_assure;categorie;beneficiaire_deces;beneficiaire_nom;beneficiaire_prenom;option_prevoyance;garantie_prevoyance;garantie_deces_iad;garantie_perte_emploi;montant_pret_assure;duree_pret_mois;date_effet;lieu_signature;date_signature;agence
+Jean Dupont;123 Rue Exemple;Conakry;620123456;jean@exemple.com;CDI;Marie Dupont;Dupont;Marie;Standard;Oui;Oui;Non;5000000;12;2026-01-15;Conakry;2026-01-10;Agence Centre

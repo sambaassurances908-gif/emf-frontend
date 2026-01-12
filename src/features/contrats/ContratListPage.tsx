@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+﻿import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -9,11 +9,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/Badge';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { EmptyState } from '@/components/shared/EmptyState';
-import { Plus, Search, Download, Eye } from 'lucide-react';
+import { Plus, Search, Download, Eye, Upload } from 'lucide-react';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { STATUTS_CONTRAT } from '@/lib/constants';
 import { contratService } from '@/services/contrat.service';
 import { Modal } from '@/components/ui/Modal';
+import { ImportContratModal } from '@/components/modals/ImportContratModal';
+import { useToast } from '@/components/ui/Toast';
 
 interface Contrat {
   id: number;
@@ -55,11 +57,61 @@ type ApiResponse = {
 
 export const ContratListPage = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [statutFilter, setStatutFilter] = useState('');
   const [emfFilter, setEmfFilter] = useState('');
   const [showTypeModal, setShowTypeModal] = useState(false);
   const [page, setPage] = useState(1);
+
+  // Système de notifications toast
+  const { showSuccess, showError, showWarning, ToastContainer } = useToast();
+
+  // État pour la modal d'import CSV (le composant ImportContratModal gère tout en interne)
+  const [showImportModal, setShowImportModal] = useState(false);
+
+  // Callback appelé après un import réussi pour rafraîchir la liste des contrats et afficher le résultat
+  const handleImportSuccess = (result: {
+    success: boolean;
+    message: string;
+    contrats_crees?: number;
+    stats?: { total: number; success: number; errors: string[] }
+  }) => {
+    queryClient.invalidateQueries({ queryKey: ['contrats'] });
+    setShowImportModal(false);
+
+    // Afficher la notification toast avec les statistiques
+    if (result.success) {
+      const stats = result.stats;
+      const hasErrors = stats?.errors && stats.errors.length > 0;
+
+      if (hasErrors) {
+        // Import partiel avec des erreurs
+        showWarning(
+          'Import terminé avec des avertissements',
+          `${stats?.success || result.contrats_crees} contrat(s) créé(s), ${stats?.errors?.length} erreur(s)`,
+          {
+            total: stats?.total,
+            success: stats?.success || result.contrats_crees,
+            errors: stats?.errors?.length
+          }
+        );
+      } else {
+        // Import complet sans erreur
+        showSuccess(
+          'Import réussi !',
+          result.message,
+          {
+            total: stats?.total || result.contrats_crees,
+            success: stats?.success || result.contrats_crees,
+            errors: 0
+          }
+        );
+      }
+    } else {
+      showError('Échec de l\'import', result.message);
+    }
+  };
 
   const { data, isLoading, error } = useQuery<ApiResponse>({
     queryKey: ['contrats', { search, statutFilter, emfFilter, page }],
@@ -93,7 +145,7 @@ export const ContratListPage = () => {
     }
   }
 
-  console.log('🔍 Data brute:', data);
+  console.log('📝 Data brute:', data);
   console.log('✅ Contrats extraits:', contrats);
 
   const handleCreateContrat = (type: string) => {
@@ -109,24 +161,24 @@ export const ContratListPage = () => {
     if (contrat.cotisation_totale_ttc && contrat.cotisation_totale_ttc > 0) {
       return contrat.cotisation_totale_ttc;
     }
-    
+
     // 2. Si prime_collectee est disponible
     if (contrat.prime_collectee && contrat.prime_collectee > 0) {
       return contrat.prime_collectee;
     }
-    
+
     // 3. Calculer à partir des composants si disponibles
     const cotisationDeces = contrat.cotisation_deces_iad || contrat.prime_deces || 0;
     const cotisationPrevoyance = contrat.cotisation_prevoyance || 0;
     const cotisationPerteEmploi = contrat.cotisation_perte_emploi || contrat.prime_perte_emploi || 0;
     const cotisationIad = contrat.prime_iad || 0;
-    
+
     const total = cotisationDeces + cotisationPrevoyance + cotisationPerteEmploi + cotisationIad;
-    
+
     if (total > 0) {
       return total;
     }
-    
+
     // 4. Pas de cotisation disponible
     return null;
   };
@@ -158,292 +210,362 @@ export const ContratListPage = () => {
   }
 
   return (
-    <div className="space-y-6 p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Contrats</h1>
-          <p className="text-gray-600 mt-1">
-            Gérez tous vos contrats d&apos;assurance
-          </p>
-        </div>
-        <Button type="button" onClick={() => setShowTypeModal(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Nouveau Contrat
-        </Button>
-      </div>
+    <>
+      {/* Conteneur de notifications Toast */}
+      <ToastContainer />
 
-      {/* Filters */}
-      <Card>
-        <CardContent className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="md:col-span-2">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Rechercher par numéro, client..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="pl-10"
-                />
+      <div className="space-y-6 p-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Contrats</h1>
+            <p className="text-gray-600 mt-1">
+              Gérez tous vos contrats d&apos;assurance
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button type="button" variant="outline" onClick={() => setShowImportModal(true)}>
+              <Upload className="h-4 w-4 mr-2" />
+              Importer CSV
+            </Button>
+            <Button type="button" onClick={() => setShowTypeModal(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Nouveau Contrat
+            </Button>
+          </div>
+        </div>
+
+        {/* Filters */}
+        <Card>
+          <CardContent className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="md:col-span-2">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    placeholder="Rechercher par numéro, client..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
               </div>
+              <Select
+                placeholder="Tous les statuts"
+                value={statutFilter}
+                onChange={(e) => setStatutFilter(e.target.value)}
+                options={[
+                  { value: '', label: 'Tous les statuts' },
+                  ...STATUTS_CONTRAT,
+                ]}
+              />
+              <Select
+                placeholder="Toutes les EMF"
+                value={emfFilter}
+                onChange={(e) => setEmfFilter(e.target.value)}
+                options={[
+                  { value: '', label: 'Toutes les EMF' },
+                  { value: 'bamboo', label: 'BAMBOO EMF' },
+                  { value: 'cofidec', label: 'COFIDEC' },
+                  { value: 'bceg', label: 'BCEG' },
+                  { value: 'edg', label: 'EDG' },
+                  { value: 'sodec', label: 'SODEC' },
+                ]}
+              />
             </div>
-            <Select
-              placeholder="Tous les statuts"
-              value={statutFilter}
-              onChange={(e) => setStatutFilter(e.target.value)}
-              options={[
-                { value: '', label: 'Tous les statuts' },
-                ...STATUTS_CONTRAT,
-              ]}
-            />
-            <Select
-              placeholder="Toutes les EMF"
-              value={emfFilter}
-              onChange={(e) => setEmfFilter(e.target.value)}
-              options={[
-                { value: '', label: 'Toutes les EMF' },
-                { value: 'bamboo', label: 'BAMBOO EMF' },
-                { value: 'cofidec', label: 'COFIDEC' },
-                { value: 'bceg', label: 'BCEG' },
-                { value: 'edg', label: 'EDG' },
-                { value: 'sodec', label: 'SODEC' },
-              ]}
-            />
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
-      {/* Table */}
-      <Card>
-        <CardContent className="p-0">
-          {isLoading ? (
-            <div className="py-12 flex justify-center">
-              <LoadingSpinner size="lg" text="Chargement des contrats..." />
-            </div>
-          ) : !contrats || contrats.length === 0 ? (
-            <EmptyState
-              title="Aucun contrat trouvé"
-              description="Commencez par créer votre premier contrat ou modifiez vos filtres."
-              action={
-                <Button type="button" onClick={() => setShowTypeModal(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Créer un contrat
-                </Button>
-              }
-            />
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>N° Police</TableHead>
-                    <TableHead>Client</TableHead>
-                    <TableHead>EMF</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Montant</TableHead>
-                    <TableHead>Cotisation</TableHead>
-                    <TableHead>Durée</TableHead>
-                    <TableHead>Statut</TableHead>
-                    <TableHead>Date Effet</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {contrats.map((contrat) => (
-                    <TableRow key={`${contrat.type_contrat}-${contrat.id}`}>
-                      <TableCell className="font-mono text-sm font-medium">
-                        {contrat.numero_police || '-'}
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <p className="font-medium text-gray-900">{contrat.nom_prenom}</p>
-                          <p className="text-xs text-gray-500">{contrat.telephone_assure}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className="bg-blue-50 text-blue-700 border border-blue-200">
-                          {contrat.emf?.sigle || 'N/A'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-xs font-medium text-gray-600 bg-gray-100 px-2 py-1 rounded">
-                          {contrat.type_contrat}
-                        </span>
-                      </TableCell>
-                      <TableCell className="font-semibold text-gray-900">
-                        {formatCurrency(Number(contrat.montant_pret))}
-                      </TableCell>
-                      <TableCell className="font-semibold">
-                        {(() => {
-                          const cotisation = getCotisation(contrat);
-                          if (cotisation !== null && cotisation > 0) {
-                            return <span className="text-emerald-600">{formatCurrency(cotisation)}</span>;
-                          }
-                          return (
-                            <span 
-                              className="text-xs text-gray-400 hover:text-blue-500 cursor-pointer"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                navigate(`/contrats/${contrat.type_contrat.toLowerCase().replace(/\s+/g, '-')}/${contrat.id}`);
-                              }}
-                              title="Voir le détail pour la cotisation"
-                            >
-                              Voir détail →
-                            </span>
-                          );
-                        })()}
-                      </TableCell>
-                      <TableCell className="text-gray-600">{contrat.duree_pret_mois} mois</TableCell>
-                      <TableCell>
-                        <Badge className={getStatusColor(contrat.statut)}>
-                          {contrat.statut}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-gray-600 text-sm">
-                        {formatDate(contrat.date_effet)}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            onClick={() => navigate(`/contrats/${contrat.type_contrat.toLowerCase().replace(/\s+/g, '-')}/${contrat.id}`)}
-                            title="Voir le détail"
-                            className="p-2 hover:bg-gray-100"
-                          >
-                            <Eye className="h-4 w-4 text-gray-500 hover:text-blue-600" />
-                          </Button>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            onClick={() => console.log('Download PDF', contrat.id)}
-                            title="Télécharger"
-                            className="p-2 hover:bg-gray-100"
-                          >
-                            <Download className="h-4 w-4 text-gray-500 hover:text-green-600" />
-                          </Button>
-                        </div>
-                      </TableCell>
+        {/* Table */}
+        <Card>
+          <CardContent className="p-0">
+            {isLoading ? (
+              <div className="py-12 flex justify-center">
+                <LoadingSpinner size="lg" text="Chargement des contrats..." />
+              </div>
+            ) : !contrats || contrats.length === 0 ? (
+              <EmptyState
+                title="Aucun contrat trouvé"
+                description="Commencez par créer votre premier contrat ou modifiez vos filtres."
+                action={
+                  <Button type="button" onClick={() => setShowTypeModal(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Créer un contrat
+                  </Button>
+                }
+              />
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>N° Police</TableHead>
+                      <TableHead>Client</TableHead>
+                      <TableHead>EMF</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Montant</TableHead>
+                      <TableHead>Cotisation</TableHead>
+                      <TableHead>Durée</TableHead>
+                      <TableHead>Statut</TableHead>
+                      <TableHead>Date Effet</TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {contrats.map((contrat) => (
+                      <TableRow key={`${contrat.type_contrat}-${contrat.id}`}>
+                        <TableCell className="font-mono text-sm font-medium">
+                          {contrat.numero_police || '-'}
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium text-gray-900">{contrat.nom_prenom}</p>
+                            <p className="text-xs text-gray-500">{contrat.telephone_assure}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className="bg-blue-50 text-blue-700 border border-blue-200">
+                            {contrat.emf?.sigle || 'N/A'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-xs font-medium text-gray-600 bg-gray-100 px-2 py-1 rounded">
+                            {contrat.type_contrat}
+                          </span>
+                        </TableCell>
+                        <TableCell className="font-semibold text-gray-900">
+                          {formatCurrency(Number(contrat.montant_pret))}
+                        </TableCell>
+                        <TableCell className="font-semibold">
+                          {(() => {
+                            const cotisation = getCotisation(contrat);
+                            if (cotisation !== null && cotisation > 0) {
+                              return <span className="text-emerald-600">{formatCurrency(cotisation)}</span>;
+                            }
+                            return (
+                              <span
+                                className="text-xs text-gray-400 hover:text-blue-500 cursor-pointer"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigate(`/contrats/${contrat.type_contrat.toLowerCase().replace(/\s+/g, '-')}/${contrat.id}`);
+                                }}
+                                title="Voir le détail pour la cotisation"
+                              >
+                                Voir détail →
+                              </span>
+                            );
+                          })()}
+                        </TableCell>
+                        <TableCell className="text-gray-600">{contrat.duree_pret_mois} mois</TableCell>
+                        <TableCell>
+                          <Badge className={getStatusColor(contrat.statut)}>
+                            {contrat.statut}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-gray-600 text-sm">
+                          {formatDate(contrat.date_effet)}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() => navigate(`/contrats/${contrat.type_contrat.toLowerCase().replace(/\s+/g, '-')}/${contrat.id}`)}
+                              title="Voir le détail"
+                              className="p-2 hover:bg-gray-100"
+                            >
+                              <Eye className="h-4 w-4 text-gray-500 hover:text-blue-600" />
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() => console.log('Download PDF', contrat.id)}
+                              title="Télécharger"
+                              className="p-2 hover:bg-gray-100"
+                            >
+                              <Download className="h-4 w-4 text-gray-500 hover:text-green-600" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Pagination */}
+        {meta.total > 0 && (
+          <div className="flex items-center justify-between pt-2">
+            <p className="text-sm text-gray-600">
+              Affichage de <span className="font-medium">{meta.from}</span> à <span className="font-medium">{meta.to}</span> sur <span className="font-medium">{meta.total}</span> contrats
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={page === 1}
+                onClick={() => setPage((p) => p - 1)}
+                className="disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Précédent
+              </Button>
+              <span className="text-sm font-medium text-gray-900 px-3">
+                Page {page} / {meta.last_page}
+              </span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={page === meta.last_page}
+                onClick={() => setPage((p) => p + 1)}
+                className="disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Suivant
+              </Button>
             </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Pagination */}
-      {meta.total > 0 && (
-        <div className="flex items-center justify-between pt-2">
-          <p className="text-sm text-gray-600">
-            Affichage de <span className="font-medium">{meta.from}</span> à <span className="font-medium">{meta.to}</span> sur <span className="font-medium">{meta.total}</span> contrats
-          </p>
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={page === 1}
-              onClick={() => setPage((p) => p - 1)}
-              className="disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Précédent
-            </Button>
-            <span className="text-sm font-medium text-gray-900 px-3">
-              Page {page} / {meta.last_page}
-            </span>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={page === meta.last_page}
-              onClick={() => setPage((p) => p + 1)}
-              className="disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Suivant
-            </Button>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Modal de sélection du type de contrat */}
-      <Modal
-        isOpen={showTypeModal}
-        onClose={() => setShowTypeModal(false)}
-        title="Choisir le type de contrat"
-        size="md"
-      >
-        <div className="grid grid-cols-1 gap-3 max-h-[60vh] overflow-y-auto p-1">
-          <button
-            type="button"
-            onClick={() => handleCreateContrat('bamboo')}
-            className="p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all text-left group focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <h3 className="font-semibold text-gray-900 group-hover:text-blue-700">
-              BAMBOO EMF
-            </h3>
-            <p className="text-sm text-gray-600 mt-1">
-              Contrat collectif de micro-assurance BAMBOO EMF
-            </p>
-          </button>
+        {/* Modal de sélection du type de contrat */}
+        <Modal
+          isOpen={showTypeModal}
+          onClose={() => setShowTypeModal(false)}
+          title="Choisir le type de contrat"
+          size="md"
+        >
+          <div className="grid grid-cols-1 gap-3 max-h-[60vh] overflow-y-auto p-1">
+            <button
+              type="button"
+              onClick={() => handleCreateContrat('bamboo')}
+              className="p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all text-left group focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <h3 className="font-semibold text-gray-900 group-hover:text-blue-700">
+                BAMBOO EMF
+              </h3>
+              <p className="text-sm text-gray-600 mt-1">
+                Contrat collectif de micro-assurance BAMBOO EMF
+              </p>
+            </button>
 
-          <button
-            type="button"
-            onClick={() => handleCreateContrat('cofidec')}
-            className="p-4 border-2 border-gray-200 rounded-lg hover:border-green-500 hover:bg-green-50 transition-all text-left group focus:outline-none focus:ring-2 focus:ring-green-500"
-          >
-            <h3 className="font-semibold text-gray-900 group-hover:text-green-700">
-              COFIDEC
-            </h3>
-            <p className="text-sm text-gray-600 mt-1">
-              Contrat prévoyance crédits COFIDEC
-            </p>
-          </button>
+            <button
+              type="button"
+              onClick={() => handleCreateContrat('cofidec')}
+              className="p-4 border-2 border-gray-200 rounded-lg hover:border-green-500 hover:bg-green-50 transition-all text-left group focus:outline-none focus:ring-2 focus:ring-green-500"
+            >
+              <h3 className="font-semibold text-gray-900 group-hover:text-green-700">
+                COFIDEC
+              </h3>
+              <p className="text-sm text-gray-600 mt-1">
+                Contrat prévoyance crédits COFIDEC
+              </p>
+            </button>
 
-          <button
-            type="button"
-            onClick={() => handleCreateContrat('bceg')}
-            className="p-4 border-2 border-gray-200 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-all text-left group focus:outline-none focus:ring-2 focus:ring-purple-500"
-          >
-            <h3 className="font-semibold text-gray-900 group-hover:text-purple-700">
-              BCEG
-            </h3>
-            <p className="text-sm text-gray-600 mt-1">
-              Contrat décès emprunteur & prévoyance BCEG
-            </p>
-          </button>
+            <button
+              type="button"
+              onClick={() => handleCreateContrat('bceg')}
+              className="p-4 border-2 border-gray-200 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-all text-left group focus:outline-none focus:ring-2 focus:ring-purple-500"
+            >
+              <h3 className="font-semibold text-gray-900 group-hover:text-purple-700">
+                BCEG
+              </h3>
+              <p className="text-sm text-gray-600 mt-1">
+                Contrat décès emprunteur & prévoyance BCEG
+              </p>
+            </button>
 
-          <button
-            type="button"
-            onClick={() => handleCreateContrat('edg')}
-            className="p-4 border-2 border-gray-200 rounded-lg hover:border-orange-500 hover:bg-orange-50 transition-all text-left group focus:outline-none focus:ring-2 focus:ring-orange-500"
-          >
-            <h3 className="font-semibold text-gray-900 group-hover:text-orange-700">
-              EDG
-            </h3>
-            <p className="text-sm text-gray-600 mt-1">
-              Contrat prévoyance crédits EDG (Standard/VIP)
-            </p>
-          </button>
+            <button
+              type="button"
+              onClick={() => handleCreateContrat('edg')}
+              className="p-4 border-2 border-gray-200 rounded-lg hover:border-orange-500 hover:bg-orange-50 transition-all text-left group focus:outline-none focus:ring-2 focus:ring-orange-500"
+            >
+              <h3 className="font-semibold text-gray-900 group-hover:text-orange-700">
+                EDG
+              </h3>
+              <p className="text-sm text-gray-600 mt-1">
+                Contrat prévoyance crédits EDG (Standard/VIP)
+              </p>
+            </button>
 
-          <button
-            type="button"
-            onClick={() => handleCreateContrat('sodec')}
-            className="p-4 border-2 border-gray-200 rounded-lg hover:border-red-500 hover:bg-red-50 transition-all text-left group focus:outline-none focus:ring-2 focus:ring-red-500"
-          >
-            <h3 className="font-semibold text-gray-900 group-hover:text-red-700">
-              SODEC
-            </h3>
-            <p className="text-sm text-gray-600 mt-1">
-              Contrat prévoyance crédits SODEC (Option A/B)
-            </p>
-          </button>
-        </div>
-      </Modal>
-    </div>
+            <button
+              type="button"
+              onClick={() => handleCreateContrat('sodec')}
+              className="p-4 border-2 border-gray-200 rounded-lg hover:border-red-500 hover:bg-red-50 transition-all text-left group focus:outline-none focus:ring-2 focus:ring-red-500"
+            >
+              <h3 className="font-semibold text-gray-900 group-hover:text-red-700">
+                SODEC
+              </h3>
+              <p className="text-sm text-gray-600 mt-1">
+                Contrat prévoyance crédits SODEC (Option A/B)
+              </p>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleCreateContrat('finam')}
+              className="p-4 border-2 border-gray-200 rounded-lg hover:border-teal-500 hover:bg-teal-50 transition-all text-left group focus:outline-none focus:ring-2 focus:ring-teal-500"
+            >
+              <h3 className="font-semibold text-gray-900 group-hover:text-teal-700">
+                FINAM
+              </h3>
+              <p className="text-sm text-gray-600 mt-1">
+                Contrat emprunteur FINAM
+              </p>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleCreateContrat('cofiga')}
+              className="p-4 border-2 border-gray-200 rounded-lg hover:border-indigo-500 hover:bg-indigo-50 transition-all text-left group focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              <h3 className="font-semibold text-gray-900 group-hover:text-indigo-700">
+                COFIGA
+              </h3>
+              <p className="text-sm text-gray-600 mt-1">
+                Contrat emprunteur COFIGA
+              </p>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleCreateContrat('agr-pro')}
+              className="p-4 border-2 border-gray-200 rounded-lg hover:border-emerald-500 hover:bg-emerald-50 transition-all text-left group focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            >
+              <h3 className="font-semibold text-gray-900 group-hover:text-emerald-700">
+                AGR PRO
+              </h3>
+              <p className="text-sm text-gray-600 mt-1">
+                Contrat AGR PRO - Activité Génératrice de Revenus
+              </p>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleCreateContrat('ariane-finance')}
+              className="p-4 border-2 border-gray-200 rounded-lg hover:border-cyan-500 hover:bg-cyan-50 transition-all text-left group focus:outline-none focus:ring-2 focus:ring-cyan-500"
+            >
+              <h3 className="font-semibold text-gray-900 group-hover:text-cyan-700">
+                ARIANE FINANCE
+              </h3>
+              <p className="text-sm text-gray-600 mt-1">
+                Contrat emprunteur Ariane Finance
+              </p>
+            </button>
+          </div>
+        </Modal>
+
+        {/* Modal d'import CSV - utilise le composant réutilisable */}
+        <ImportContratModal
+          isOpen={showImportModal}
+          onClose={() => setShowImportModal(false)}
+          onSuccess={handleImportSuccess}
+        />
+      </div>
+    </>
   );
 };
