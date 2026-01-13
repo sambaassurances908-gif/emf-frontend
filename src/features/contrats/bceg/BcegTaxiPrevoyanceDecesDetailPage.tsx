@@ -3,7 +3,6 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { useBcegTaxiPrevoyanceDecesContract, useDeleteBcegTaxiPrevoyanceDecesContract } from '@/hooks/useBcegTaxiContracts'
 import { BcegTaxiPrevoyanceDecesPrint } from './BcegTaxiPrevoyanceDecesPrint'
-import { TAXI_PREVOYANCE_DECES_CONSTANTS } from '@/types/bcegTaxi'
 import {
     ArrowLeft,
     User,
@@ -124,9 +123,7 @@ export const BcegTaxiPrevoyanceDecesDetailPage = () => {
 
     const formatCurrency = (val?: number) => val ? new Intl.NumberFormat('fr-FR').format(val) : '0'
     const nomComplet = [contrat.nom, contrat.prenom].filter(Boolean).join(' ')
-    const cotisation = contrat.periodicite === 'semestre'
-        ? (contrat.prime_semestrielle || TAXI_PREVOYANCE_DECES_CONSTANTS.PRIME_SEMESTRIELLE)
-        : (contrat.prime_annuelle || TAXI_PREVOYANCE_DECES_CONSTANTS.PRIME_ANNUELLE)
+    const cotisation = contrat.prime_ttc || contrat.prime_annuelle || 50000;
 
 
     return (
@@ -199,6 +196,54 @@ export const BcegTaxiPrevoyanceDecesDetailPage = () => {
                     </div>
                 </div>
 
+                {/* Assurés associés info table */}
+                <div className="col-span-12 bg-white p-6 rounded-3xl shadow-soft border border-gray-100/50">
+                    <div className="flex justify-between items-start mb-5">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center">
+                                <User size={20} className="text-gray-600" />
+                            </div>
+                            <h3 className="font-bold text-gray-700">Assurés Associés ({contrat.assures_associes?.filter((a: any) => a.nom)?.length || 0})</h3>
+                        </div>
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm text-left">
+                            <thead className="text-xs text-gray-500 uppercase bg-gray-50">
+                                <tr>
+                                    <th className="px-4 py-3 rounded-l-lg">Lien</th>
+                                    <th className="px-4 py-3">Nom</th>
+                                    <th className="px-4 py-3">Prénom</th>
+                                    <th className="px-4 py-3">Né(e) le</th>
+                                    <th className="px-4 py-3">À</th>
+                                    <th className="px-4 py-3 rounded-r-lg">Contact</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {(contrat.assures_associes || []).map((associe: any, index: number) => {
+                                    if (!associe.nom) return null;
+                                    return (
+                                        <tr key={index} className="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors">
+                                            <td className="px-4 py-3 font-medium text-gray-900">{associe.lien}</td>
+                                            <td className="px-4 py-3">{associe.nom}</td>
+                                            <td className="px-4 py-3">{associe.prenom}</td>
+                                            <td className="px-4 py-3">{associe.date_naissance ? new Date(associe.date_naissance).toLocaleDateString() : '-'}</td>
+                                            <td className="px-4 py-3">{associe.lieu_naissance}</td>
+                                            <td className="px-4 py-3">{associe.contact}</td>
+                                        </tr>
+                                    )
+                                })}
+                                {(!contrat.assures_associes || contrat.assures_associes.filter((a: any) => a.nom).length === 0) && (
+                                    <tr>
+                                        <td colSpan={6} className="px-4 py-8 text-center text-gray-400 italic">
+                                            Aucun assuré associé enregistré
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
                 {/* Garantie Info */}
                 <InfoCard title="Garanties" icon={HeartHandshake} className="col-span-12 lg:col-span-4">
                     <div className="space-y-3">
@@ -217,6 +262,17 @@ export const BcegTaxiPrevoyanceDecesDetailPage = () => {
                             <InfoRow label="Adresse" value={contrat.adresse || 'N/A'} />
                             <InfoRow label="Email" value={contrat.email || 'N/A'} />
                         </div>
+                    </div>
+                </InfoCard>
+
+                {/* Informations Complémentaires */}
+                <InfoCard title="Informations Complémentaires" icon={User} className="col-span-12 lg:col-span-4">
+                    <div className="space-y-4">
+                        <InfoRow label="Catégorie" value={contrat.categorie || 'Commerçants'} />
+                        <InfoRow label="N° Taxi" value={contrat.numero_taxis || 'N/A'} mono />
+                        <InfoRow label="Personne à prévenir" value={contrat.personne_urgence || 'N/A'} />
+                        <InfoRow label="Bénéficiaire Décès" value={contrat.beneficiaire_deces || 'N/A'} />
+                        <InfoRow label="Visas DNA" value={contrat.visas_dna || 'N/A'} mono />
                     </div>
                 </InfoCard>
 

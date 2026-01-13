@@ -3,7 +3,6 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { useEdgTaxiPrevoyanceDecesContract, useDeleteEdgTaxiPrevoyanceDecesContract } from '@/hooks/useEdgTaxiContracts'
 import { EdgTaxiPrevoyanceDecesPrint } from './EdgTaxiPrevoyanceDecesPrint'
-import { EDG_TAXI_PREVOYANCE_DECES_CONSTANTS } from '@/types/edgTaxi'
 import {
     ArrowLeft,
     User,
@@ -143,9 +142,7 @@ export const EdgTaxiPrevoyanceDecesDetailPage = () => {
 
     const nomComplet = `${contrat.prenom || ''} ${contrat.nom || ''}`.trim()
     const formatCurrency = (val: number) => new Intl.NumberFormat('fr-FR').format(val)
-    const cotisation = contrat.periodicite === 'semestre'
-        ? EDG_TAXI_PREVOYANCE_DECES_CONSTANTS.PRIME_SEMESTRIELLE
-        : EDG_TAXI_PREVOYANCE_DECES_CONSTANTS.PRIME_ANNUELLE
+    const cotisation = contrat.prime_ttc || contrat.prime_annuelle || 50000;
 
     return (
         <div className="min-h-screen bg-[#FAFAFA] p-8">
@@ -256,15 +253,53 @@ export const EdgTaxiPrevoyanceDecesDetailPage = () => {
                     </div>
                 </InfoCard>
 
-                {/* Assurés associés info */}
-                <InfoCard title="Assurés Associés" icon={Users} className="col-span-12 lg:col-span-4">
-                    <div className="space-y-3">
-                        <InfoRow label="Nombre total" value={(contrat.assures_associes?.filter((a: any) => a.nom)?.length || 0).toString()} />
-                        <div className="text-[10px] text-gray-400 italic mt-2">
-                            Voir l'aperçu print pour la liste complète des bénéficiaires.
+                {/* Assurés associés info table */}
+                <div className="col-span-12 bg-white p-6 rounded-3xl shadow-soft border border-gray-100/50">
+                    <div className="flex justify-between items-start mb-5">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center text-[#F48232]">
+                                <Users size={20} />
+                            </div>
+                            <h3 className="font-bold text-gray-700">Assurés Associés ({contrat.assures_associes?.filter((a: any) => a.nom)?.length || 0})</h3>
                         </div>
                     </div>
-                </InfoCard>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm text-left">
+                            <thead className="text-xs text-gray-500 uppercase bg-gray-50">
+                                <tr>
+                                    <th className="px-4 py-3 rounded-l-lg">Lien</th>
+                                    <th className="px-4 py-3">Nom</th>
+                                    <th className="px-4 py-3">Prénom</th>
+                                    <th className="px-4 py-3">Né(e) le</th>
+                                    <th className="px-4 py-3">À</th>
+                                    <th className="px-4 py-3 rounded-r-lg">Contact</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {(contrat.assures_associes || []).map((associe: any, index: number) => {
+                                    if (!associe.nom) return null; // Skip empty rows
+                                    return (
+                                        <tr key={index} className="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors">
+                                            <td className="px-4 py-3 font-medium text-gray-900">{associe.lien}</td>
+                                            <td className="px-4 py-3">{associe.nom}</td>
+                                            <td className="px-4 py-3">{associe.prenom}</td>
+                                            <td className="px-4 py-3">{associe.date_naissance ? new Date(associe.date_naissance).toLocaleDateString() : '-'}</td>
+                                            <td className="px-4 py-3">{associe.lieu_naissance}</td>
+                                            <td className="px-4 py-3">{associe.contact}</td>
+                                        </tr>
+                                    )
+                                })}
+                                {(!contrat.assures_associes || contrat.assures_associes.filter((a: any) => a.nom).length === 0) && (
+                                    <tr>
+                                        <td colSpan={6} className="px-4 py-8 text-center text-gray-400 italic">
+                                            Aucun assuré associé enregistré
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
 
                 {/* Assuré principal */}
                 <InfoCard title="Assuré Principal" icon={User} className="col-span-12 lg:col-span-6">
@@ -279,8 +314,19 @@ export const EdgTaxiPrevoyanceDecesDetailPage = () => {
                     </div>
                 </InfoCard>
 
+                {/* Informations Complémentaires */}
+                <InfoCard title="Informations Complémentaires" icon={User} className="col-span-12 lg:col-span-6">
+                    <div className="space-y-4">
+                        <InfoRow label="Catégorie" value={contrat.categorie || 'Commerçants'} />
+                        <InfoRow label="N° Taxi" value={contrat.numero_taxis || 'N/A'} mono />
+                        <InfoRow label="Personne à prévenir" value={contrat.personne_urgence || 'N/A'} />
+                        <InfoRow label="Bénéficiaire Décès" value={contrat.beneficiaire_deces || 'N/A'} />
+                        <InfoRow label="Visas DNA" value={contrat.visas_dna || 'N/A'} mono />
+                    </div>
+                </InfoCard>
+
                 {/* Contact & Support */}
-                <InfoCard title="Support & Support" icon={Phone} className="col-span-12 lg:col-span-6">
+                <InfoCard title="Support & Assistance" icon={Phone} className="col-span-12">
                     <div className="space-y-3">
                         <div className="p-3 bg-gray-50 rounded-xl text-sm text-gray-600">
                             En cas de décès, contactez immédiatement le service client pour l'ouverture du dossier de sinistre.

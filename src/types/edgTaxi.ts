@@ -98,6 +98,11 @@ export interface EdgTaxiPrevoyanceDecesContrat {
     prime_annuelle?: number
     statut?: string
     categorie?: string
+    numero_taxis?: string
+    personne_urgence?: string
+    beneficiaire_deces?: string
+    visas_dna?: string
+    prime_ttc?: number
 
     assures_associes?: Array<{
         lien: string
@@ -127,6 +132,10 @@ export interface EdgTaxiPrevoyanceDecesFormData {
     periodicite: 'annuel' | 'semestre'
     statut?: string
     categorie?: string
+    numero_taxis?: string
+    personne_urgence?: string
+    beneficiaire_deces?: string
+    visas_dna?: string
     assures_associes: Array<{
         lien: string
         nom: string
@@ -138,8 +147,8 @@ export interface EdgTaxiPrevoyanceDecesFormData {
 }
 
 export const EDG_TAXI_PREVOYANCE_DECES_CONSTANTS = {
-    FRAIS_FUNERAIRES_FORFAIT: 200000, // Implied, not explicitly in controller but assuming similar to BCEG or I should check controller infos returns
-    MONTANT_MAX_COUVERTURE: 200000, // Same
-    PRIME_ANNUELLE: 25000,
-    PRIME_SEMESTRIELLE: 12500,
+    FRAIS_FUNERAIRES_FORFAIT: 200000,
+    MONTANT_MAX_COUVERTURE: 200000,
+    PRIME_ANNUELLE: 50000, // Updated to total
+    PRIME_SEMESTRIELLE: 25000,
 }

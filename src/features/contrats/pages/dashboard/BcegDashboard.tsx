@@ -529,21 +529,7 @@ export const BcegDashboard = () => {
             </p>
           </div>
 
-          <div
-            onClick={() => {
-              setIsNewContractModalOpen(false)
-              navigate('/contrats/nouveau/bceg-taxi-perte-recette')
-            }}
-            className="border-2 border-gray-100 hover:border-[#F48232] hover:bg-orange-50 rounded-2xl p-6 cursor-pointer transition-all flex flex-col items-center text-center group"
-          >
-            <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-              <Car className="h-8 w-8 text-[#F48232]" />
-            </div>
-            <h3 className="font-bold text-gray-900 text-lg mb-2">TAXI - Perte Recettes</h3>
-            <p className="text-sm text-gray-500">
-              Indemnisation journalière en cas d'immobilisation du taxi.
-            </p>
-          </div>
+
 
           <div
             onClick={() => {

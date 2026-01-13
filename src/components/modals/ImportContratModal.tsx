@@ -375,7 +375,10 @@ export const ImportContratModal: React.FC<ImportContratModalProps> = ({
         try {
             const formData = new FormData();
             formData.append('file', file);
-            formData.append('type_contrat', typeContrat);
+            // Utiliser la templateKey (ex: 'ariane') au lieu de la clé de l'objet (ex: 'arianefinance')
+            // car le backend attend 'ariane' pour l'import
+            const backendType = EMF_CONFIG[typeContrat]?.templateKey || typeContrat;
+            formData.append('type_contrat', backendType);
             formData.append('emf_id', String(finalEmfId));
             formData.append('exercice_id', String(finalExerciceId));
 

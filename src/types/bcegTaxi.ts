@@ -110,6 +110,13 @@ export interface BcegTaxiPrevoyanceDecesContrat {
     prime_annuelle?: number
     statut?: string
     categorie?: string
+    numero_taxis?: string
+    personne_urgence?: string
+    beneficiaire_deces?: string
+    visas_dna?: string
+
+    // Add missing field if needed for stricter typing, though JS handles it.
+    prime_ttc?: number
 
     assures_associes?: Array<{
         lien: string
@@ -139,6 +146,10 @@ export interface BcegTaxiPrevoyanceDecesFormData {
     periodicite: 'annuel' | 'semestre'
     statut?: string
     categorie?: string
+    numero_taxis?: string
+    personne_urgence?: string
+    beneficiaire_deces?: string
+    visas_dna?: string
     assures_associes: Array<{
         lien: string
         nom: string
@@ -153,6 +164,6 @@ export interface BcegTaxiPrevoyanceDecesFormData {
 export const TAXI_PREVOYANCE_DECES_CONSTANTS = {
     FRAIS_FUNERAIRES_FORFAIT: 500000,
     MONTANT_MAX_COUVERTURE: 500000,
-    PRIME_SEMESTRIELLE: 12500,
-    PRIME_ANNUELLE: 25000,
+    PRIME_SEMESTRIELLE: 25000,
+    PRIME_ANNUELLE: 50000, // Updated to total
 }

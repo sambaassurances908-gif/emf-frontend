@@ -557,21 +557,7 @@ export const EdgDashboard = () => {
             </p>
           </div>
 
-          <div
-            onClick={() => {
-              setIsNewContractModalOpen(false)
-              navigate('/contrats/nouveau/edg-taxi-perte-recette')
-            }}
-            className="border-2 border-gray-100 hover:border-orange-500 hover:bg-orange-50 rounded-2xl p-6 cursor-pointer transition-all flex flex-col items-center text-center group"
-          >
-            <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-              <Car className="h-8 w-8 text-orange-500" />
-            </div>
-            <h3 className="font-bold text-gray-900 text-lg mb-2">TAXI - Perte Recette</h3>
-            <p className="text-xs text-gray-500">
-              Garantie de revenus pour les chauffeurs en cas d'immobilisation.
-            </p>
-          </div>
+
 
           <div
             onClick={() => {
