@@ -4,7 +4,7 @@ import { ArrowLeft, Mail, Phone, MapPin } from 'lucide-react'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { useCreateEdgTaxiPrevoyanceDecesContract } from '@/hooks/useEdgTaxiContracts'
 import { EdgTaxiPrevoyanceDecesFormData } from '@/types/edgTaxi'
-import { Button } from '@/components/ui/button'
+import { Button } from '@/components/ui/Button'
 
 // --- Internal Components ---
 

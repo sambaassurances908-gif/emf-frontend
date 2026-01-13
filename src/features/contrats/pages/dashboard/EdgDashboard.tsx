@@ -12,7 +12,6 @@ import {
   ChevronDown,
   ArrowLeft,
   ShieldCheck,
-  Car,
   HeartHandshake,
 } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal'

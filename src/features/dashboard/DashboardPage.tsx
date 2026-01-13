@@ -26,7 +26,6 @@ import {
   CheckCircle2,
   Hourglass,
   ArrowRight,
-  Upload,
 } from 'lucide-react';
 import { ImportContratModal } from '@/components/modals/ImportContratModal';
 import { formatCurrencyShort, formatDate } from '@/lib/utils';

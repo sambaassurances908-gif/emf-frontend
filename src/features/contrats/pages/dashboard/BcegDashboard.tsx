@@ -11,7 +11,6 @@ import {
   MoreHorizontal,
   ChevronDown,
   Bike,
-  Car,
   HeartHandshake,
 } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal'

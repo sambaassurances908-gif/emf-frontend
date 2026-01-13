@@ -4,7 +4,7 @@ import { ArrowLeft, Mail, Phone, MapPin } from 'lucide-react'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { useCreateBcegTaxiPrevoyanceDecesContract } from '@/hooks/useBcegTaxiContracts'
 import { BcegTaxiPrevoyanceDecesFormData } from '@/types/bcegTaxi'
-import { Button } from '@/components/ui/button'
+import { Button } from '@/components/ui/Button'
 import logoSamba from '@/assets/logo-samba.png'
 
 // --- Internal Components ---

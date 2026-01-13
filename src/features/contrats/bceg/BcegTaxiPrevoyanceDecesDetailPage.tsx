@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { useBcegTaxiPrevoyanceDecesContract, useDeleteBcegTaxiPrevoyanceDecesContract } from '@/hooks/useBcegTaxiContracts'
+import { TAXI_PREVOYANCE_DECES_CONSTANTS } from '@/types/bcegTaxi'
 import { BcegTaxiPrevoyanceDecesPrint } from './BcegTaxiPrevoyanceDecesPrint'
 import {
     ArrowLeft,

@@ -206,7 +206,7 @@ export const ImportContratModal: React.FC<ImportContratModalProps> = ({
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Récupérer la liste des EMFs uniquement si emfId n'est pas fourni
-    const { data: emfsData, isLoading: isLoadingEmfs, isError: isEmfError } = useQuery({
+    const { data: emfsData, isLoading: isLoadingEmfs } = useQuery({
         queryKey: ['emfs-list-import'],
         queryFn: () => emfService.getAll(),
         enabled: !emfId && isOpen,
@@ -216,7 +216,7 @@ export const ImportContratModal: React.FC<ImportContratModalProps> = ({
 
     // Récupérer la liste des exercices uniquement si exerciceId n'est pas fourni
     // Ne pas filtrer par statut pour afficher tous les exercices disponibles
-    const { data: exercicesData, isLoading: isLoadingExercices, isError: isExerciceError } = useQuery({
+    const { data: exercicesData, isLoading: isLoadingExercices } = useQuery({
         queryKey: ['exercices-list-import'],
         queryFn: () => exerciceService.getAll(),
         enabled: !exerciceId && isOpen,
